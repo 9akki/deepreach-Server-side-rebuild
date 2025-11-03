@@ -1,0 +1,5 @@
+com/deepreach/auth/dto/LoginResponseDTO.class
+com/deepreach/auth/dto/UserLoginDTO.class
+com/deepreach/auth/controller/AuthController.class
+com/deepreach/auth/dto/UserRegisterDTO.class
+com/deepreach/auth/entity/User.class

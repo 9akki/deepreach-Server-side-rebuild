@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.deepreach</groupId>
+        <artifactId>deepreach</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>deepreach-web</artifactId>
+    <name>DeepReach Web</name>
+    <description>Web启动模块</description>
+
+    <dependencies>
+        <!-- 依赖所有业务模块 -->
+        <dependency>
+            <groupId>com.deepreach</groupId>
+            <artifactId>deepreach-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.deepreach</groupId>
+            <artifactId>deepreach-auth</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.deepreach</groupId>
+            <artifactId>deepreach-ai</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.deepreach</groupId>
+            <artifactId>deepreach-translate</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.deepreach</groupId>
+            <artifactId>deepreach-platform</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.deepreach</groupId>
+            <artifactId>deepreach-message</artifactId>
+        </dependency>
+
+        <!-- HTTP 客户端用于调用阿里云API -->
+        <dependency>
+            <groupId>org.apache.httpcomponents.client5</groupId>
+            <artifactId>httpclient5</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+
+        <!-- Spring Security -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
+        <!-- API文档 -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>2.2.0</version>
+        </dependency>
+
+        <!-- 测试 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <mainClass>com.deepreach.web.DeepReachApplication</mainClass>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.springframework.boot</groupId>
+                            <artifactId>spring-boot-configuration-processor</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

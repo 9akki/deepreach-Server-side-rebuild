@@ -1,0 +1,311 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.deepreach.web.mapper.ProxyMapper">
+
+    <!-- 代理配置结果映射 -->
+    <resultMap id="ProxyResult" type="com.deepreach.web.entity.Proxy">
+        <id property="proxyId" column="proxy_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="proxyType" column="proxy_type"/>
+        <result property="proxyHost" column="proxy_host"/>
+        <result property="proxyPort" column="proxy_port"/>
+        <result property="proxyUsername" column="proxy_username"/>
+        <result property="proxyPassword" column="proxy_password"/>
+        <result property="status" column="status"/>
+        <result property="createTime" column="create_time"/>
+        <result property="createBy" column="create_by"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="remark" column="remark"/>
+    </resultMap>
+
+    <!-- 代理配置基本信息字段 -->
+    <sql id="selectProxyVo">
+        SELECT proxy_id, user_id, proxy_type, proxy_host, proxy_port, proxy_username, proxy_password,
+               status, create_time, create_by, update_time, update_by, remark
+        FROM proxy p
+    </sql>
+
+    <!--
+        ==================== 基础查询方法 ====================
+    -->
+
+    <!-- 根据代理ID查询代理配置 -->
+    <select id="selectProxyById" parameterType="Long" resultMap="ProxyResult">
+        <include refid="selectProxyVo"/>
+        WHERE proxy_id = #{proxyId}
+    </select>
+
+    <!-- 根据用户ID查询代理配置列表 -->
+    <select id="selectProxiesByUserId" parameterType="Long" resultMap="ProxyResult">
+        <include refid="selectProxyVo"/>
+        WHERE user_id = #{userId}
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 查询代理配置列表（分页） -->
+    <select id="selectProxyList" parameterType="com.deepreach.web.entity.Proxy" resultMap="ProxyResult">
+        <include refid="selectProxyVo"/>
+        <where>
+            <if test="userId != null">
+                AND p.user_id = #{userId}
+            </if>
+            <if test="proxyType != null">
+                AND p.proxy_type = #{proxyType}
+            </if>
+            <if test="proxyHost != null and proxyHost != ''">
+                AND p.proxy_host LIKE CONCAT('%', #{proxyHost}, '%')
+            </if>
+            <if test="proxyPort != null and proxyPort != ''">
+                AND p.proxy_port = #{proxyPort}
+            </if>
+            <if test="proxyUsername != null and proxyUsername != ''">
+                AND p.proxy_username = #{proxyUsername}
+            </if>
+            <if test="status != null and status != ''">
+                AND p.status = #{status}
+            </if>
+            <if test="params.beginTime != null and params.beginTime != ''">
+                AND date_format(p.create_time,'%y%m%d') &gt;= date_format(#{params.beginTime},'%y%m%d')
+            </if>
+            <if test="params.endTime != null and params.endTime != ''">
+                AND date_format(p.create_time,'%y%m%d') &lt;= date_format(#{params.endTime},'%y%m%d')
+            </if>
+        </where>
+        ORDER BY p.create_time DESC
+    </select>
+
+    <!-- 根据代理类型查询代理配置列表 -->
+    <select id="selectProxiesByType" resultMap="ProxyResult">
+        <include refid="selectProxyVo"/>
+        WHERE p.proxy_type = #{proxyType}
+        AND p.user_id = #{userId}
+        ORDER BY p.create_time DESC
+    </select>
+
+    <!-- 根据状态查询代理配置列表 -->
+    <select id="selectProxiesByStatus" resultMap="ProxyResult">
+        <include refid="selectProxyVo"/>
+        WHERE p.status = #{status}
+        AND p.user_id = #{userId}
+        ORDER BY p.create_time DESC
+    </select>
+
+    <!-- 查询可用的代理配置列表 -->
+    <select id="selectAvailableProxies" resultMap="ProxyResult">
+        <include refid="selectProxyVo"/>
+        WHERE p.status = '0'
+        AND p.user_id = #{userId}
+        <if test="proxyType != null">
+            AND p.proxy_type = #{proxyType}
+        </if>
+        ORDER BY p.create_time DESC
+        <if test="proxyType == null">
+            LIMIT 100
+        </if>
+    </select>
+
+    <!-- 随机获取一个可用的代理配置 -->
+    <select id="selectRandomAvailableProxy" resultMap="ProxyResult">
+        <include refid="selectProxyVo"/>
+        WHERE p.status = '0'
+        AND p.user_id = #{userId}
+        <if test="proxyType != null">
+            AND p.proxy_type = #{proxyType}
+        </if>
+        ORDER BY RAND()
+        LIMIT 1
+    </select>
+
+    <!--
+        ==================== 统计方法 ====================
+    -->
+
+    <!-- 统计代理配置总数 -->
+    <select id="countProxies" parameterType="com.deepreach.web.entity.Proxy" resultType="int">
+        SELECT COUNT(1)
+        FROM proxy p
+        <where>
+            <if test="userId != null">
+                AND p.user_id = #{userId}
+            </if>
+            <if test="proxyType != null">
+                AND p.proxy_type = #{proxyType}
+            </if>
+            <if test="proxyHost != null and proxyHost != ''">
+                AND p.proxy_host LIKE CONCAT('%', #{proxyHost}, '%')
+            </if>
+            <if test="proxyPort != null and proxyPort != ''">
+                AND p.proxy_port = #{proxyPort}
+            </if>
+            <if test="status != null and status != ''">
+                AND p.status = #{status}
+            </if>
+        </where>
+    </select>
+
+    <!-- 统计指定用户的代理配置数量 -->
+    <select id="countProxiesByUserId" parameterType="Long" resultType="int">
+        SELECT COUNT(1) FROM proxy WHERE user_id = #{userId}
+    </select>
+
+    <!-- 统计指定代理类型的代理配置数量 -->
+    <select id="countProxiesByType" resultType="int">
+        SELECT COUNT(1) FROM proxy WHERE proxy_type = #{proxyType} AND user_id = #{userId}
+    </select>
+
+    <!--
+        ==================== 唯一性检查方法 ====================
+    -->
+
+    <!-- 检查代理地址和端口是否唯一 -->
+    <select id="checkProxyAddressUnique" resultType="int">
+        SELECT COUNT(1) FROM proxy
+        WHERE proxy_host = #{host} AND proxy_port = #{port} AND user_id = #{userId}
+        <if test="proxyId != null">
+            AND proxy_id != #{proxyId}
+        </if>
+    </select>
+
+    <!-- 检查用户是否拥有指定代理配置 -->
+    <select id="checkProxyOwnership" resultType="boolean">
+        SELECT COUNT(1) > 0 FROM proxy
+        WHERE proxy_id = #{proxyId} AND user_id = #{userId}
+    </select>
+
+    <!--
+        ==================== 插入方法 ====================
+    -->
+
+    <!-- 插入新的代理配置 -->
+    <insert id="insertProxy" parameterType="com.deepreach.web.entity.Proxy" useGeneratedKeys="true" keyProperty="proxyId">
+        INSERT INTO proxy(
+            user_id, proxy_type, proxy_host, proxy_port, proxy_username, proxy_password,
+            status, create_time, create_by, remark
+        ) VALUES (
+            #{userId}, #{proxyType}, #{proxyHost}, #{proxyPort}, #{proxyUsername}, #{proxyPassword},
+            #{status}, #{createTime}, #{createBy}, #{remark}
+        )
+    </insert>
+
+    <!--
+        ==================== 更新方法 ====================
+    -->
+
+    <!-- 更新代理配置 -->
+    <update id="updateProxy" parameterType="com.deepreach.web.entity.Proxy">
+        UPDATE proxy
+        <set>
+            <if test="proxyType != null">
+                proxy_type = #{proxyType},
+            </if>
+            <if test="proxyHost != null and proxyHost != ''">
+                proxy_host = #{proxyHost},
+            </if>
+            <if test="proxyPort != null and proxyPort != ''">
+                proxy_port = #{proxyPort},
+            </if>
+            <if test="proxyUsername != null">
+                proxy_username = #{proxyUsername},
+            </if>
+            <if test="proxyPassword != null">
+                proxy_password = #{proxyPassword},
+            </if>
+            <if test="status != null and status != ''">
+                status = #{status},
+            </if>
+            <if test="remark != null">
+                remark = #{remark},
+            </if>
+            update_time = #{updateTime},
+            update_by = #{updateBy}
+        </set>
+        WHERE proxy_id = #{proxyId}
+    </update>
+
+    <!-- 更新代理状态 -->
+    <update id="updateProxyStatus">
+        UPDATE proxy SET status = #{status}, update_time = NOW()
+        WHERE proxy_id = #{proxyId}
+    </update>
+
+    <!--
+        ==================== 删除方法 ====================
+    -->
+
+    <!-- 删除代理配置 -->
+    <delete id="deleteProxyById" parameterType="Long">
+        DELETE FROM proxy WHERE proxy_id = #{proxyId}
+    </delete>
+
+    <!-- 批量删除代理配置 -->
+    <delete id="deleteProxyByIds" parameterType="java.util.List">
+        DELETE FROM proxy WHERE proxy_id IN
+        <foreach collection="proxyIds" item="proxyId" open="(" separator="," close=")">
+            #{proxyId}
+        </foreach>
+    </delete>
+
+    <!--
+        ==================== 高级查询方法 ====================
+    -->
+
+    <!-- 根据主机地址模糊查询代理配置 -->
+    <select id="selectProxiesByHostLike" resultMap="ProxyResult">
+        <include refid="selectProxyVo"/>
+        WHERE p.proxy_host LIKE CONCAT('%', #{host}, '%')
+        AND p.user_id = #{userId}
+        ORDER BY p.create_time DESC
+    </select>
+
+    <!-- 根据端口范围查询代理配置 -->
+    <select id="selectProxiesByPortRange" resultMap="ProxyResult">
+        <include refid="selectProxyVo"/>
+        WHERE CAST(p.proxy_port AS UNSIGNED) BETWEEN #{startPort} AND #{endPort}
+        AND p.user_id = #{userId}
+        ORDER BY p.create_time DESC
+    </select>
+
+    <!-- 查询需要认证的代理配置列表 -->
+    <select id="selectProxiesWithAuthentication" resultMap="ProxyResult">
+        <include refid="selectProxyVo"/>
+        WHERE p.proxy_username IS NOT NULL AND p.proxy_username != ''
+        AND p.user_id = #{userId}
+        ORDER BY p.create_time DESC
+    </select>
+
+    <!-- 查询无需认证的代理配置列表 -->
+    <select id="selectProxiesWithoutAuthentication" resultMap="ProxyResult">
+        <include refid="selectProxyVo"/>
+        WHERE (p.proxy_username IS NULL OR p.proxy_username = '')
+        AND p.user_id = #{userId}
+        ORDER BY p.create_time DESC
+    </select>
+
+    <!-- 根据创建时间范围查询代理配置 -->
+    <select id="selectProxiesByCreateTimeRange" resultMap="ProxyResult">
+        <include refid="selectProxyVo"/>
+        WHERE p.create_time BETWEEN #{startTime} AND #{endTime}
+        AND p.user_id = #{userId}
+        ORDER BY p.create_time DESC
+    </select>
+
+    <!-- 查询最近使用的代理配置 -->
+    <select id="selectRecentlyUsedProxies" resultMap="ProxyResult">
+        <include refid="selectProxyVo"/>
+        WHERE p.user_id = #{userId}
+        ORDER BY p.update_time DESC
+        LIMIT #{limit}
+    </select>
+
+    <!--
+        ==================== 测试方法 ====================
+    -->
+
+    <!-- 测试代理连接 -->
+    <select id="testProxyConnection" resultType="boolean">
+        SELECT 1 FROM dual WHERE 1=0
+        <!-- 这里是占位符，实际的连接测试在Service层实现 -->
+    </select>
+
+</mapper>

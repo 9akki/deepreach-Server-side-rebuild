@@ -1,0 +1,52 @@
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::staticFieldBase has been called by com.google.inject.internal.aop.HiddenClassDefiner (file:/opt/homebrew/Cellar/maven/3.9.11/libexec/lib/guice-5.1.0-classes.jar)
+WARNING: Please consider reporting this to the maintainers of class com.google.inject.internal.aop.HiddenClassDefiner
+WARNING: sun.misc.Unsafe::staticFieldBase will be removed in a future release
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] DeepReach                                                          [pom]
+[INFO] DeepReach Common                                                   [jar]
+[INFO] DeepReach Auth                                                     [jar]
+[INFO] DeepReach AI                                                       [jar]
+[INFO] DeepReach Translate                                                [jar]
+[INFO] DeepReach Platform                                                 [jar]
+[INFO] DeepReach Message                                                  [jar]
+[INFO] DeepReach Web                                                      [jar]
+[INFO] 
+[INFO] ----------------------< com.deepreach:deepreach >-----------------------
+[INFO] Building DeepReach 1.0.0                                           [1/8]
+[INFO]   from pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] >>> spring-boot:3.2.0:run (default-cli) > test-compile @ deepreach >>>
+[INFO] 
+[INFO] <<< spring-boot:3.2.0:run (default-cli) < test-compile @ deepreach <<<
+[INFO] 
+[INFO] 
+[INFO] --- spring-boot:3.2.0:run (default-cli) @ deepreach ---
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for DeepReach 1.0.0:
+[INFO] 
+[INFO] DeepReach .......................................... FAILURE [  0.207 s]
+[INFO] DeepReach Common ................................... SKIPPED
+[INFO] DeepReach Auth ..................................... SKIPPED
+[INFO] DeepReach AI ....................................... SKIPPED
+[INFO] DeepReach Translate ................................ SKIPPED
+[INFO] DeepReach Platform ................................. SKIPPED
+[INFO] DeepReach Message .................................. SKIPPED
+[INFO] DeepReach Web ...................................... SKIPPED
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  0.465 s
+[INFO] Finished at: 2025-11-01T19:44:14+08:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.springframework.boot:spring-boot-maven-plugin:3.2.0:run (default-cli) on project deepreach: Unable to find a suitable main class, please add a 'mainClass' property -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException

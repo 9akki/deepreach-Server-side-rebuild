@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.deepreach.web.mapper.UserComputerMapper">
+
+    <resultMap type="com.deepreach.common.core.domain.entity.UserComputer" id="UserComputerResult">
+        <id     property="id"             column="id"               />
+        <result property="endUserId"       column="end_user_id"       />
+        <result property="computerId"      column="computer_id"        />
+        <result property="assignTime"      column="assign_time"        />
+        <result property="status"          column="status"            />
+        <result property="createTime"      column="create_time"       />
+        <result property="updateTime"      column="update_time"       />
+    </resultMap>
+
+    <sql id="selectUserComputerVo">
+        select id, end_user_id, computer_id, assign_time, status, create_time, update_time 
+        from t_user_computer
+    </sql>
+
+    <select id="selectById" parameterType="Long" resultMap="UserComputerResult">
+        <include refid="selectUserComputerVo"/>
+        where id = #{id}
+    </select>
+
+    <select id="selectByEndUserId" parameterType="String" resultMap="UserComputerResult">
+        <include refid="selectUserComputerVo"/>
+        where end_user_id = #{endUserId}
+        order by create_time desc
+    </select>
+
+    <select id="selectByComputerId" parameterType="String" resultMap="UserComputerResult">
+        <include refid="selectUserComputerVo"/>
+        where computer_id = #{computerId}
+        order by create_time desc
+    </select>
+
+    <select id="selectAll" resultMap="UserComputerResult">
+        <include refid="selectUserComputerVo"/>
+        order by create_time desc
+    </select>
+
+    <select id="selectByCondition" parameterType="com.deepreach.common.core.domain.entity.UserComputer" resultMap="UserComputerResult">
+        <include refid="selectUserComputerVo"/>
+        <where>
+            <if test="endUserId != null and endUserId != ''">
+                and end_user_id = #{endUserId}
+            </if>
+            <if test="computerId != null and computerId != ''">
+                and computer_id = #{computerId}
+            </if>
+            <if test="status != null">
+                and status = #{status}
+            </if>
+        </where>
+        order by create_time desc
+    </select>
+
+    <insert id="insert" parameterType="com.deepreach.common.core.domain.entity.UserComputer" useGeneratedKeys="true" keyProperty="id">
+        insert into t_user_computer(
+            <if test="endUserId != null and endUserId != ''">end_user_id,</if>
+            <if test="computerId != null and computerId != ''">computer_id,</if>
+            <if test="status != null">status,</if>
+            create_time
+        )values(
+            <if test="endUserId != null and endUserId != ''">#{endUserId},</if>
+            <if test="computerId != null and computerId != ''">#{computerId},</if>
+            <if test="status != null">#{status},</if>
+            sysdate()
+        )
+    </insert>
+
+    <update id="updateById" parameterType="com.deepreach.common.core.domain.entity.UserComputer">
+        update t_user_computer
+        <set>
+            <if test="endUserId != null and endUserId != ''">end_user_id = #{endUserId},</if>
+            <if test="computerId != null and computerId != ''">computer_id = #{computerId},</if>
+            <if test="status != null">status = #{status},</if>
+            update_time = sysdate()
+        </set>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteById" parameterType="Long">
+        delete from t_user_computer where id = #{id}
+    </delete>
+
+    <delete id="deleteByEndUserIdAndComputerId">
+        delete from t_user_computer 
+        where end_user_id = #{endUserId} and computer_id = #{computerId}
+    </delete>
+
+    <select id="checkUserComputerExists" resultType="int">
+        select count(1) from t_user_computer 
+        where end_user_id = #{endUserId} and computer_id = #{computerId}
+        <if test="id != null">
+            and id != #{id}
+        </if>
+        limit 1
+    </select>
+
+    <update id="updateStatus">
+        update t_user_computer set status = #{status}, update_time = sysdate() where id = #{id}
+    </update>
+
+    <select id="selectByEndUserIdAndStatus" resultMap="UserComputerResult">
+        <include refid="selectUserComputerVo"/>
+        where end_user_id = #{endUserId} and status = #{status}
+        order by create_time desc
+    </select>
+
+    <select id="selectByComputerIdAndStatus" resultMap="UserComputerResult">
+        <include refid="selectUserComputerVo"/>
+        where computer_id = #{computerId} and status = #{status}
+        order by create_time desc
+    </select>
+
+    <select id="countByEndUserId" parameterType="String" resultType="int">
+        select count(1) from t_user_computer where end_user_id = #{endUserId}
+    </select>
+
+    <select id="countByComputerId" parameterType="String" resultType="int">
+        select count(1) from t_user_computer where computer_id = #{computerId}
+    </select>
+
+</mapper>

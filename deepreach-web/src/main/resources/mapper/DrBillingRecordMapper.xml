@@ -1,0 +1,356 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.deepreach.web.mapper.DrBillingRecordMapper">
+
+    <!-- 通用结果映射 -->
+    <resultMap id="BaseResultMap" type="com.deepreach.web.entity.DrBillingRecord">
+        <id column="bill_id" property="billId" />
+        <result column="bill_no" property="billNo" />
+        <result column="user_id" property="userId" />
+        <result column="operator_id" property="operatorId" />
+        <result column="bill_type" property="billType" />
+        <result column="billing_type" property="billingType" />
+        <result column="business_type" property="businessType" />
+        <result column="business_id" property="businessId" />
+        <result column="dr_amount" property="drAmount" />
+        <result column="balance_before" property="balanceBefore" />
+        <result column="balance_after" property="balanceAfter" />
+        <result column="description" property="description" />
+        <result column="extra_data" property="extraData" />
+        <result column="consumer" property="consumer" />
+        <result column="remark" property="remark" />
+        <result column="status" property="status" />
+        <result column="create_by" property="createBy" />
+        <result column="create_time" property="createTime" />
+        <result column="update_by" property="updateBy" />
+        <result column="update_time" property="updateTime" />
+        <result column="username" property="username" />
+        <result column="level1_commission" property="level1Commission" />
+        <result column="level2_commission" property="level2Commission" />
+        <result column="level3_commission" property="level3Commission" />
+    </resultMap>
+
+    <!-- 通用列名 -->
+    <sql id="Base_Column_List">
+        bill_id, bill_no, user_id, operator_id, bill_type, billing_type, business_type,
+        business_id, dr_amount, balance_before, balance_after, description, extra_data, consumer, remark,
+        status, create_by, create_time, update_by, update_time
+    </sql>
+
+    <!-- 根据ID查询账单记录 -->
+    <select id="selectById" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        select <include refid="Base_Column_List" />
+        from dr_billing_record
+        where bill_id = #{billId}
+    </select>
+
+    <!-- 分页查询账单记录列表 -->
+    <select id="selectRecordPage" parameterType="com.deepreach.web.entity.DrBillingRecord" resultMap="BaseResultMap">
+        select
+            br.bill_id,
+            br.bill_no,
+            br.user_id,
+            br.operator_id,
+            br.bill_type,
+            br.billing_type,
+            br.business_type,
+            br.business_id,
+            br.dr_amount,
+            br.balance_before,
+            br.balance_after,
+            br.description,
+            br.extra_data,
+            br.consumer,
+            br.remark,
+            br.status,
+            br.create_by,
+            br.create_time,
+            br.update_by,
+            br.update_time,
+            u.username,
+            COALESCE(rc.level1_commission, 0) AS level1_commission,
+            COALESCE(rc.level2_commission, 0) AS level2_commission,
+            COALESCE(rc.level3_commission, 0) AS level3_commission
+        from dr_billing_record br
+        left join sys_user u on br.user_id = u.user_id
+        left join (
+            select trigger_billing_id,
+                   sum(case when hierarchy_level = 1 then commission_amount else 0 end) as level1_commission,
+                   sum(case when hierarchy_level = 2 then commission_amount else 0 end) as level2_commission,
+                   sum(case when hierarchy_level = 3 then commission_amount else 0 end) as level3_commission
+            from dr_agent_commission_record
+            where business_type = 'RECHARGE_COMMISSION'
+            group by trigger_billing_id
+        ) rc on rc.trigger_billing_id = br.bill_id
+        <where>
+            <if test="billNo != null and billNo != ''">
+                and br.bill_no like concat('%', #{billNo}, '%')
+            </if>
+            <if test="userId != null">
+                and br.user_id = #{userId}
+            </if>
+            <if test="operatorId != null">
+                and br.operator_id = #{operatorId}
+            </if>
+            <if test="billType != null">
+                and br.bill_type = #{billType}
+            </if>
+            <if test="billingType != null">
+                and br.billing_type = #{billingType}
+            </if>
+            <if test="businessType != null and businessType != ''">
+                and br.business_type = #{businessType}
+            </if>
+            <if test="businessId != null">
+                and br.business_id = #{businessId}
+            </if>
+            <if test="status != null">
+                and br.status = #{status}
+            </if>
+            <if test="username != null and username != ''">
+                and u.username like concat('%', #{username}, '%')
+            </if>
+            <if test="params.beginTime != null and params.beginTime != ''">
+                and date_format(br.create_time,'%y%m%d') &gt;= date_format(#{params.beginTime},'%y%m%d')
+            </if>
+            <if test="params.endTime != null and params.endTime != ''">
+                and date_format(br.create_time,'%y%m%d') &lt;= date_format(#{params.endTime},'%y%m%d')
+            </if>
+        </where>
+        order by br.create_time desc
+    </select>
+
+    
+    <!-- 插入账单记录 -->
+    <insert id="insert" parameterType="com.deepreach.web.entity.DrBillingRecord" useGeneratedKeys="true" keyProperty="billId">
+        insert into dr_billing_record (
+            bill_no, user_id, operator_id, bill_type, billing_type, business_type,
+            business_id, dr_amount, balance_before, balance_after, description, remark,
+            extra_data, consumer, status, create_by, create_time
+        ) values (
+            #{billNo}, #{userId}, #{operatorId}, #{billType}, #{billingType}, #{businessType},
+            #{businessId}, #{drAmount}, #{balanceBefore}, #{balanceAfter}, #{description}, #{remark},
+            #{extraData}, #{consumer}, #{status}, #{createBy}, #{createTime}
+        )
+    </insert>
+
+    <!-- 更新账单记录 -->
+    <update id="update" parameterType="com.deepreach.web.entity.DrBillingRecord">
+        update dr_billing_record
+        <set>
+            <if test="billNo != null and billNo != ''">
+                bill_no = #{billNo},
+            </if>
+            <if test="operatorId != null">
+                operator_id = #{operatorId},
+            </if>
+            <if test="billType != null">
+                bill_type = #{billType},
+            </if>
+            <if test="billingType != null">
+                billing_type = #{billingType},
+            </if>
+            <if test="businessType != null and businessType != ''">
+                business_type = #{businessType},
+            </if>
+            <if test="businessId != null">
+                business_id = #{businessId},
+            </if>
+            <if test="drAmount != null">
+                dr_amount = #{drAmount},
+            </if>
+            <if test="balanceBefore != null">
+                balance_before = #{balanceBefore},
+            </if>
+            <if test="balanceAfter != null">
+                balance_after = #{balanceAfter},
+            </if>
+            <if test="description != null and description != ''">
+                description = #{description},
+            </if>
+            <if test="extraData != null and extraData != ''">
+                extra_data = #{extraData},
+            </if>
+            <if test="consumer != null and consumer != ''">
+                consumer = #{consumer},
+            </if>
+            <if test="remark != null">
+                remark = #{remark},
+            </if>
+            <if test="status != null">
+                status = #{status},
+            </if>
+            <if test="updateBy != null and updateBy != ''">
+                update_by = #{updateBy},
+            </if>
+            update_time = #{updateTime}
+        </set>
+        where bill_id = #{billId}
+    </update>
+
+    <!-- 根据用户ID查询账单记录 -->
+    <select id="selectByUserId" resultMap="BaseResultMap">
+        select <include refid="Base_Column_List" />
+        from dr_billing_record
+        where user_id = #{userId}
+        <if test="limit != null and limit > 0">
+            limit #{limit}
+        </if>
+        order by create_time desc
+    </select>
+
+    <!-- 根据用户ID和业务类型查询账单记录 -->
+    <select id="selectByUserIdAndBusinessType" resultMap="BaseResultMap">
+        select <include refid="Base_Column_List" />
+        from dr_billing_record
+        where user_id = #{userId}
+          and business_type = #{businessType}
+        <if test="limit != null and limit > 0">
+            limit #{limit}
+        </if>
+        order by create_time desc
+    </select>
+
+    <!-- 根据用户ID和账单类型查询账单记录 -->
+    <select id="selectByUserIdAndBillType" resultMap="BaseResultMap">
+        select <include refid="Base_Column_List" />
+        from dr_billing_record
+        where user_id = #{userId}
+          and bill_type = #{billType}
+        <if test="limit != null and limit > 0">
+            limit #{limit}
+        </if>
+        order by create_time desc
+    </select>
+
+    <!-- 根据时间范围查询用户账单记录 -->
+    <select id="selectByUserIdAndDateRange" resultMap="BaseResultMap">
+        select <include refid="Base_Column_List" />
+        from dr_billing_record
+        where user_id = #{userId}
+          and create_time &gt;= #{startDate}
+          and create_time &lt;= #{endDate}
+        order by create_time desc
+    </select>
+
+    <!-- 获取用户账单统计信息 -->
+    <select id="selectUserBillStatistics" resultType="java.util.Map">
+        select
+            count(*) as totalCount,
+            sum(case when bill_type = 1 then dr_amount else 0 end) as totalRecharge,
+            sum(case when bill_type = 2 then dr_amount else 0 end) as totalConsume,
+            sum(case when bill_type = 3 then dr_amount else 0 end) as totalRefund,
+            sum(case when status = 1 then dr_amount else 0 end) as successAmount,
+            sum(case when status = 0 then dr_amount else 0 end) as failedAmount,
+            count(case when bill_type = 1 then 1 end) as rechargeCount,
+            count(case when bill_type = 2 then 1 end) as consumeCount,
+            count(case when bill_type = 3 then 1 end) as refundCount,
+            count(case when status = 1 then 1 end) as successCount,
+            count(case when status = 0 then 1 end) as failedCount
+        from dr_billing_record
+        where user_id = #{userId}
+        <if test="startDate != null and startDate != ''">
+            and create_time &gt;= #{startDate}
+        </if>
+        <if test="endDate != null and endDate != ''">
+            and create_time &lt;= #{endDate}
+        </if>
+    </select>
+
+    <!-- 统计账单总数 -->
+    <select id="countTotal" resultType="java.lang.Long">
+        select count(*) from dr_billing_record
+    </select>
+
+    <!-- 根据账单类型统计数量 -->
+    <select id="countByBillType" parameterType="java.lang.Integer" resultType="java.lang.Long">
+        select count(*) from dr_billing_record where bill_type = #{billType}
+    </select>
+
+    <!-- 根据业务类型统计数量 -->
+    <select id="countByBusinessType" parameterType="java.lang.String" resultType="java.lang.Long">
+        select count(*) from dr_billing_record where business_type = #{businessType}
+    </select>
+
+    <!-- 统计用户总消费金额 -->
+    <select id="sumTotalConsume" parameterType="java.lang.Long" resultType="java.math.BigDecimal">
+        select sum(dr_amount) from dr_billing_record
+        where user_id = #{userId} and bill_type = 2 and status = 1
+    </select>
+
+    <!-- 统计用户总充值金额 -->
+    <select id="sumTotalRecharge" parameterType="java.lang.Long" resultType="java.math.BigDecimal">
+        select sum(dr_amount) from dr_billing_record
+        where user_id = #{userId} and bill_type = 1 and status = 1
+    </select>
+
+    <!-- 统计指定时间范围内的消费金额 -->
+    <select id="sumConsumeByDateRange" resultType="java.math.BigDecimal">
+        select sum(dr_amount) from dr_billing_record
+        where user_id = #{userId}
+          and bill_type = 2
+          and status = 1
+          and create_time &gt;= #{startDate}
+          and create_time &lt;= #{endDate}
+    </select>
+
+    <!-- 获取最近的成功账单记录 -->
+    <select id="selectRecentSuccessRecords" resultMap="BaseResultMap">
+        select <include refid="Base_Column_List" />
+        from dr_billing_record
+        where user_id = #{userId}
+          and status = 1
+        <if test="limit != null and limit > 0">
+            limit #{limit}
+        </if>
+        order by create_time desc
+    </select>
+
+    <!-- 根据业务ID查询账单记录 -->
+    <select id="selectByBusinessId" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        select <include refid="Base_Column_List" />
+        from dr_billing_record
+        where business_id = #{businessId}
+        order by create_time desc
+    </select>
+
+    <!-- 删除账单记录 -->
+    <delete id="deleteById" parameterType="java.lang.Long">
+        delete from dr_billing_record where bill_id = #{billId}
+    </delete>
+
+    <!-- 批量删除账单记录 -->
+    <delete id="batchDelete">
+        delete from dr_billing_record where bill_id in
+        <foreach collection="billIds" item="billId" open="(" separator="," close=")">
+            #{billId}
+        </foreach>
+    </delete>
+
+    <!-- 根据用户ID查询收支明细 -->
+    <select id="selectTransactionsByUser" parameterType="map" resultMap="BaseResultMap">
+        select <include refid="Base_Column_List" />
+        from dr_billing_record
+        where user_id = #{userId}
+        <if test="startTime != null and startTime != ''">
+            and create_time &gt;= #{startTime}
+        </if>
+        <if test="endTime != null and endTime != ''">
+            and create_time &lt;= #{endTime}
+        </if>
+        <if test="minAmount != null">
+            and dr_amount &gt;= #{minAmount}
+        </if>
+        <if test="maxAmount != null">
+            and dr_amount &lt;= #{maxAmount}
+        </if>
+        <if test="billType != null">
+            and bill_type = #{billType}
+        </if>
+        <if test="businessType != null and businessType != ''">
+            and business_type = #{businessType}
+        </if>
+        order by create_time desc
+    </select>
+
+</mapper>

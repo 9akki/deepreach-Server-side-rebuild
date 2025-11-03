@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.deepreach.common.core.mapper.SysOperLogMapper">
+
+    <!-- 操作日志结果映射 -->
+    <resultMap id="SysOperLogResult" type="com.deepreach.common.core.domain.entity.SysOperLog">
+        <id property="operId" column="oper_id"/>
+        <result property="title" column="title"/>
+        <result property="businessType" column="business_type"/>
+        <result property="method" column="method"/>
+        <result property="requestMethod" column="request_method"/>
+        <result property="operatorType" column="operator_type"/>
+        <result property="operName" column="oper_name"/>
+        <result property="deptName" column="dept_name"/>
+        <result property="operUrl" column="oper_url"/>
+        <result property="operIp" column="oper_ip"/>
+        <result property="operLocation" column="oper_location"/>
+        <result property="operParam" column="oper_param"/>
+        <result property="jsonResult" column="json_result"/>
+        <result property="status" column="status"/>
+        <result property="errorMsg" column="error_msg"/>
+        <result property="operTime" column="oper_time"/>
+        <result property="costTime" column="cost_time"/>
+    </resultMap>
+
+    <!-- 插入操作日志 -->
+    <insert id="insertOperLog" parameterType="com.deepreach.common.core.domain.entity.SysOperLog" useGeneratedKeys="true" keyProperty="operId">
+        INSERT INTO sys_oper_log (
+            title, business_type, method, request_method, operator_type,
+            oper_name, dept_name, oper_url, oper_ip, oper_location,
+            oper_param, json_result, status, error_msg, oper_time, cost_time
+        ) VALUES (
+            #{title}, #{businessType}, #{method}, #{requestMethod}, #{operatorType},
+            #{operName}, #{deptName}, #{operUrl}, #{operIp}, #{operLocation},
+            #{operParam}, #{jsonResult}, #{status}, #{errorMsg}, #{operTime}, #{costTime}
+        )
+    </insert>
+
+    <!-- 根据操作日志ID查询日志信息 -->
+    <select id="selectOperLogById" parameterType="Long" resultMap="SysOperLogResult">
+        SELECT oper_id, title, business_type, method, request_method, operator_type,
+               oper_name, dept_name, oper_url, oper_ip, oper_location,
+               oper_param, json_result, status, error_msg, oper_time, cost_time
+        FROM sys_oper_log
+        WHERE oper_id = #{operId}
+    </select>
+
+    <!-- 查询操作日志列表 -->
+    <select id="selectOperLogList" parameterType="com.deepreach.common.core.domain.entity.SysOperLog" resultMap="SysOperLogResult">
+        SELECT oper_id, title, business_type, method, request_method, operator_type,
+               oper_name, dept_name, oper_url, oper_ip, oper_location,
+               oper_param, json_result, status, error_msg, oper_time, cost_time
+        FROM sys_oper_log
+        <where>
+            <if test="title != null and title != ''">
+                AND title LIKE CONCAT('%', #{title}, '%')
+            </if>
+            <if test="businessType != null">
+                AND business_type = #{businessType}
+            </if>
+            <if test="operName != null and operName != ''">
+                AND oper_name LIKE CONCAT('%', #{operName}, '%')
+            </if>
+            <if test="status != null">
+                AND status = #{status}
+            </if>
+            <if test="beginTime != null">
+                AND oper_time >= #{beginTime}
+            </if>
+            <if test="endTime != null">
+                AND oper_time &lt;= #{endTime}
+            </if>
+        </where>
+        ORDER BY oper_time DESC
+    </select>
+
+    <!-- 根据操作者查询操作日志 -->
+    <select id="selectOperLogByOperName" parameterType="String" resultMap="SysOperLogResult">
+        SELECT oper_id, title, business_type, method, request_method, operator_type,
+               oper_name, dept_name, oper_url, oper_ip, oper_location,
+               oper_param, json_result, status, error_msg, oper_time, cost_time
+        FROM sys_oper_log
+        WHERE oper_name = #{operName}
+        ORDER BY oper_time DESC
+    </select>
+
+    <!-- 根据时间范围查询操作日志 -->
+    <select id="selectOperLogByTimeRange" resultMap="SysOperLogResult">
+        SELECT oper_id, title, business_type, method, request_method, operator_type,
+               oper_name, dept_name, oper_url, oper_ip, oper_location,
+               oper_param, json_result, status, error_msg, oper_time, cost_time
+        FROM sys_oper_log
+        WHERE oper_time >= #{beginTime} AND oper_time &lt;= #{endTime}
+        ORDER BY oper_time DESC
+    </select>
+
+    <!-- 统计操作日志总数 -->
+    <select id="countOperLog" parameterType="com.deepreach.common.core.domain.entity.SysOperLog" resultType="int">
+        SELECT COUNT(1)
+        FROM sys_oper_log
+        <where>
+            <if test="title != null and title != ''">
+                AND title LIKE CONCAT('%', #{title}, '%')
+            </if>
+            <if test="businessType != null">
+                AND business_type = #{businessType}
+            </if>
+            <if test="operName != null and operName != ''">
+                AND oper_name LIKE CONCAT('%', #{operName}, '%')
+            </if>
+            <if test="status != null">
+                AND status = #{status}
+            </if>
+            <if test="beginTime != null">
+                AND oper_time >= #{beginTime}
+            </if>
+            <if test="endTime != null">
+                AND oper_time &lt;= #{endTime}
+            </if>
+        </where>
+    </select>
+
+    <!-- 统计指定时间范围内的操作日志数量 -->
+    <select id="countOperLogByTimeRange" resultType="int">
+        SELECT COUNT(1)
+        FROM sys_oper_log
+        WHERE oper_time >= #{beginTime} AND oper_time &lt;= #{endTime}
+    </select>
+
+    <!-- 统计各业务类型的操作数量 -->
+    <select id="countOperLogByBusinessType" resultType="java.util.Map">
+        SELECT business_type as businessType, COUNT(1) as count
+        FROM sys_oper_log
+        <where>
+            <if test="beginTime != null">
+                AND oper_time >= #{beginTime}
+            </if>
+            <if test="endTime != null">
+                AND oper_time &lt;= #{endTime}
+            </if>
+        </where>
+        GROUP BY business_type
+        ORDER BY count DESC
+    </select>
+
+    <!-- 统计各操作者的操作数量 -->
+    <select id="countOperLogByOperName" resultType="java.util.Map">
+        SELECT oper_name as operName, COUNT(1) as count
+        FROM sys_oper_log
+        <where>
+            <if test="beginTime != null">
+                AND oper_time >= #{beginTime}
+            </if>
+            <if test="endTime != null">
+                AND oper_time &lt;= #{endTime}
+            </if>
+        </where>
+        GROUP BY oper_name
+        ORDER BY count DESC
+        LIMIT 100
+    </select>
+
+    <!-- 删除操作日志 -->
+    <delete id="deleteOperLogById" parameterType="Long">
+        DELETE FROM sys_oper_log WHERE oper_id = #{operId}
+    </delete>
+
+    <!-- 批量删除操作日志 -->
+    <delete id="deleteOperLogByIds" parameterType="java.util.List">
+        DELETE FROM sys_oper_log WHERE oper_id IN
+        <foreach collection="operIds" item="operId" open="(" separator="," close=")">
+            #{operId}
+        </foreach>
+    </delete>
+
+    <!-- 清理指定时间之前的操作日志 -->
+    <delete id="cleanOperLogByTime" parameterType="java.time.LocalDateTime">
+        DELETE FROM sys_oper_log WHERE oper_time &lt; #{endTime}
+    </delete>
+
+    <!-- 清理指定天数之前的操作日志 -->
+    <delete id="cleanOperLogByDays" parameterType="java.lang.Integer">
+        DELETE FROM sys_oper_log WHERE oper_time &lt; DATE_SUB(NOW(), INTERVAL #{days} DAY)
+    </delete>
+
+    <!-- 查询最近的操作日志 -->
+    <select id="selectRecentOperLog" parameterType="java.lang.Integer" resultMap="SysOperLogResult">
+        SELECT oper_id, title, business_type, method, request_method, operator_type,
+               oper_name, dept_name, oper_url, oper_ip, oper_location,
+               oper_param, json_result, status, error_msg, oper_time, cost_time
+        FROM sys_oper_log
+        ORDER BY oper_time DESC
+        <if test="limit != null and limit > 0">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 查询失败的操作日志 -->
+    <select id="selectFailedOperLog" parameterType="java.lang.Integer" resultMap="SysOperLogResult">
+        SELECT oper_id, title, business_type, method, request_method, operator_type,
+               oper_name, dept_name, oper_url, oper_ip, oper_location,
+               oper_param, json_result, status, error_msg, oper_time, cost_time
+        FROM sys_oper_log
+        WHERE status = 1
+        ORDER BY oper_time DESC
+        <if test="limit != null and limit > 0">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 检查日志表是否存在 -->
+    <select id="checkTableExists" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM information_schema.tables
+        WHERE table_schema = DATABASE()
+        AND table_name = 'sys_oper_log'
+    </select>
+
+    <!-- 获取日志表记录总数 -->
+    <select id="getTableRecordCount" resultType="long">
+        SELECT COUNT(1) FROM sys_oper_log
+    </select>
+
+    <!-- 获取日志表的存储大小 -->
+    <select id="getTableSize" resultType="java.lang.Long">
+        SELECT data_length + index_length
+        FROM information_schema.tables
+        WHERE table_schema = DATABASE()
+        AND table_name = 'sys_oper_log'
+    </select>
+
+</mapper>

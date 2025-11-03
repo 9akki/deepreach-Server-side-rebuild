@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.deepreach.web.mapper.AgentCommissionAccountMapper">
+
+    <resultMap id="AccountResultMap" type="com.deepreach.web.entity.AgentCommissionAccount">
+        <id column="account_id" property="accountId"/>
+        <result column="agent_user_id" property="agentUserId"/>
+        <result column="total_commission" property="totalCommission"/>
+        <result column="available_commission" property="availableCommission"/>
+        <result column="frozen_commission" property="frozenCommission"/>
+        <result column="pending_settlement_commission" property="pendingSettlementCommission"/>
+        <result column="settled_commission" property="settledCommission"/>
+        <result column="version" property="version"/>
+        <result column="status" property="status"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_by" property="createBy"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="remark" property="remark"/>
+    </resultMap>
+
+    <sql id="BaseColumns">
+        account_id, agent_user_id, total_commission, available_commission, frozen_commission,
+        pending_settlement_commission, settled_commission, version, status,
+        create_by, create_time, update_by, update_time, remark
+    </sql>
+
+    <select id="selectByAgentUserId" parameterType="long" resultMap="AccountResultMap">
+        select <include refid="BaseColumns"/>
+        from dr_agent_commission_account
+        where agent_user_id = #{agentUserId}
+        limit 1
+    </select>
+
+    <insert id="insert" parameterType="com.deepreach.web.entity.AgentCommissionAccount" useGeneratedKeys="true" keyProperty="accountId">
+        insert into dr_agent_commission_account (
+            agent_user_id, total_commission, available_commission, frozen_commission,
+            pending_settlement_commission, settled_commission, version, status,
+            create_by, create_time, update_by, update_time, remark
+        ) values (
+            #{agentUserId}, #{totalCommission}, #{availableCommission}, #{frozenCommission},
+            #{pendingSettlementCommission}, #{settledCommission}, #{version}, #{status},
+            #{createBy}, #{createTime}, #{updateBy}, #{updateTime}, #{remark}
+        )
+    </insert>
+
+    <update id="incrementCommission">
+        update dr_agent_commission_account
+        set total_commission = total_commission + #{amount},
+            available_commission = available_commission + #{amount},
+            version = version + 1,
+            update_time = NOW()
+        where agent_user_id = #{agentUserId}
+          and status = '0'
+    </update>
+
+    <update id="adjustAvailableCommission">
+        update dr_agent_commission_account
+        set available_commission = available_commission + #{availableDelta},
+            frozen_commission = frozen_commission + #{frozenDelta},
+            pending_settlement_commission = pending_settlement_commission + #{pendingDelta},
+            settled_commission = settled_commission + #{settledDelta},
+            version = version + 1,
+            update_time = NOW()
+        where agent_user_id = #{agentUserId}
+    </update>
+
+    <select id="selectAccountsByAgentUserIds" parameterType="map" resultType="map">
+        select
+            u.user_id as agentUserId,
+            u.username,
+            u.nickname,
+            u.status as userStatus,
+            d.dept_id as deptId,
+            d.dept_name as deptName,
+            d.level as deptLevel,
+            COALESCE(a.total_commission, 0) as totalCommission,
+            COALESCE(a.available_commission, 0) as availableCommission,
+            COALESCE(a.frozen_commission, 0) as frozenCommission,
+            COALESCE(a.pending_settlement_commission, 0) as pendingSettlementCommission,
+            COALESCE(a.settled_commission, 0) as settledCommission,
+            COALESCE(a.status, '0') as accountStatus,
+            a.update_time as accountUpdateTime
+        from sys_user u
+        left join dr_agent_commission_account a on a.agent_user_id = u.user_id
+        left join sys_dept d on u.dept_id = d.dept_id
+        where u.user_id in
+        <foreach collection="agentUserIds" item="userId" open="(" separator="," close=")">
+            #{userId}
+        </foreach>
+    </select>
+
+    <select id="sumSettledCommission" resultType="java.math.BigDecimal">
+        select COALESCE(SUM(settled_commission), 0)
+        from dr_agent_commission_account
+    </select>
+
+</mapper>

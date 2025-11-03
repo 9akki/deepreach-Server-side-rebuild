@@ -1,0 +1,378 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.deepreach.web.mapper.AiCharacterMapper">
+
+    <!-- 人设基本信息结果映射 -->
+    <resultMap id="AiCharacterResult" type="com.deepreach.web.entity.AiCharacter">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="prompt" column="prompt"/>
+        <result property="description" column="description"/>
+        <result property="avatar" column="avatar"/>
+        <result property="isSystem" column="is_system"/>
+        <result property="type" column="type"/>
+        <result property="createdAt" column="created_time"/>
+        <result property="updatedAt" column="updated_time"/>
+        <result property="userId" column="user_id"/>
+    </resultMap>
+
+    <!-- 人设完整信息结果映射（包含用户信息） -->
+    <resultMap id="AiCharacterCompleteResult" type="com.deepreach.web.entity.AiCharacter" extends="AiCharacterResult">
+    </resultMap>
+
+    <!-- 基本列名 -->
+    <sql id="Base_Column_List">
+        id, name, prompt, description, avatar, is_system, type, created_time, updated_time, user_id
+    </sql>
+
+    <!-- 完整列名 -->
+    <sql id="Complete_Column_List">
+        id, name, prompt, description, avatar, is_system, type, created_time, updated_time, user_id
+    </sql>
+
+    <!-- 根据人设ID查询人设信息 -->
+    <select id="selectById" parameterType="Long" resultMap="AiCharacterResult">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM ai_character
+        WHERE id = #{id}
+    </select>
+
+    <!-- 根据用户ID查询人设列表 -->
+    <select id="selectByUserId" parameterType="Long" resultMap="AiCharacterResult">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM ai_character
+        WHERE user_id = #{userId}
+        ORDER BY created_time DESC
+    </select>
+
+    <!-- 根据人设类型查询人设列表 -->
+    <select id="selectByType" parameterType="String" resultMap="AiCharacterResult">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM ai_character
+        WHERE type = #{type}
+        ORDER BY created_time DESC
+    </select>
+
+    <!-- 查询系统人设列表 -->
+    <select id="selectSystemCharacters" resultMap="AiCharacterResult">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM ai_character
+        WHERE is_system = 1
+        ORDER BY created_time DESC
+    </select>
+
+    <!-- 查询用户自建人设列表 -->
+    <select id="selectUserCharacters" resultMap="AiCharacterResult">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM ai_character
+        WHERE is_system = 0
+        ORDER BY created_time DESC
+    </select>
+
+    <!-- 根据条件查询人设列表 -->
+    <select id="selectList" parameterType="com.deepreach.web.entity.AiCharacter" resultMap="AiCharacterResult">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM ai_character
+        <where>
+            <if test="id != null">
+                AND id = #{id}
+            </if>
+            <if test="name != null and name != ''">
+                AND name LIKE CONCAT('%', #{name}, '%')
+            </if>
+            <if test="type != null and type != ''">
+                AND type = #{type}
+            </if>
+            <if test="isSystem != null">
+                AND is_system = #{isSystem}
+            </if>
+            <if test="userId != null">
+                AND user_id = #{userId}
+            </if>
+            <if test="createdAt != null">
+                AND created_time = #{createdAt}
+            </if>
+        </where>
+        ORDER BY created_time DESC
+    </select>
+
+    <!-- 根据条件查询人设列表（带用户权限控制） -->
+    <select id="selectListWithUserPermission" resultMap="AiCharacterResult">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM ai_character
+        <where>
+            <!-- 权限限制：只能查询系统人设或当前用户创建的人设 -->
+            (is_system = 1 OR user_id = #{currentUserId})
+
+            <!-- 其他查询条件 -->
+            <if test="character != null">
+                <if test="character.id != null">
+                    AND id = #{character.id}
+                </if>
+                <if test="character.name != null and character.name != ''">
+                    AND name LIKE CONCAT('%', #{character.name}, '%')
+                </if>
+                <if test="character.type != null and character.type != ''">
+                    AND type = #{character.type}
+                </if>
+                <if test="character.isSystem != null">
+                    AND is_system = #{character.isSystem}
+                </if>
+                <if test="character.createdAt != null">
+                    AND created_at = #{character.createdAt}
+                </if>
+            </if>
+        </where>
+        ORDER BY is_system DESC, created_time DESC
+    </select>
+
+    <!-- 查询人设总数 -->
+    <select id="countCharacters" parameterType="com.deepreach.web.entity.AiCharacter" resultType="int">
+        SELECT COUNT(1)
+        FROM ai_character
+        <where>
+            <if test="id != null">
+                AND id = #{id}
+            </if>
+            <if test="name != null and name != ''">
+                AND name LIKE CONCAT('%', #{name}, '%')
+            </if>
+            <if test="type != null and type != ''">
+                AND type = #{type}
+            </if>
+            <if test="isSystem != null">
+                AND is_system = #{isSystem}
+            </if>
+            <if test="userId != null">
+                AND user_id = #{userId}
+            </if>
+        </where>
+    </select>
+
+    <!-- 统计用户的人设数量 -->
+    <select id="countByUserId" parameterType="Long" resultType="int">
+        SELECT COUNT(1)
+        FROM ai_character
+        WHERE user_id = #{userId}
+    </select>
+
+    <!-- 统计指定类型的人设数量 -->
+    <select id="countByType" parameterType="String" resultType="int">
+        SELECT COUNT(1)
+        FROM ai_character
+        WHERE type = #{type}
+    </select>
+
+    <!-- 插入新人设 -->
+    <insert id="insert" parameterType="com.deepreach.web.entity.AiCharacter" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO ai_character (
+            name, prompt, description, avatar, is_system, type, user_id
+        ) VALUES (
+            #{name}, #{prompt}, #{description}, #{avatar}, #{isSystem}, #{type}, #{userId}
+        )
+    </insert>
+
+    <!-- 更新人设信息 -->
+    <update id="update" parameterType="com.deepreach.web.entity.AiCharacter">
+        UPDATE ai_character
+        <set>
+            <if test="name != null and name != ''">
+                name = #{name},
+            </if>
+            <if test="prompt != null and prompt != ''">
+                prompt = #{prompt},
+            </if>
+            <if test="description != null">
+                description = #{description},
+            </if>
+            <if test="avatar != null">
+                avatar = #{avatar},
+            </if>
+            <if test="type != null">
+                type = #{type},
+            </if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <!-- 删除人设 -->
+    <delete id="deleteById" parameterType="Long">
+        DELETE FROM ai_character WHERE id = #{id}
+    </delete>
+
+    <!-- 批量删除人设 -->
+    <delete id="deleteByIds" parameterType="list">
+        DELETE FROM ai_character WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <!-- 检查人设名称是否唯一 -->
+    <select id="checkNameUnique" resultType="int">
+        SELECT COUNT(1)
+        FROM ai_character
+        WHERE name = #{name} AND user_id = #{userId}
+        <if test="id != null">
+            AND id != #{id}
+        </if>
+    </select>
+
+    <!-- 检查用户是否可以删除人设 -->
+    <select id="canDelete" resultType="boolean">
+        SELECT COUNT(1) = 0
+        FROM ai_character
+        WHERE id = #{id}
+        AND (is_system = 1 OR user_id != #{userId})
+    </select>
+
+    <!-- 查询热门人设列表 -->
+    <select id="selectPopularCharacters" parameterType="int" resultMap="AiCharacterResult">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM ai_character
+        ORDER BY created_time DESC
+        <if test="limit != null and limit > 0">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 查询最新人设列表 -->
+    <select id="selectLatestCharacters" parameterType="int" resultMap="AiCharacterResult">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM ai_character
+        ORDER BY created_time DESC
+        <if test="limit != null and limit > 0">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 查询人设的完整信息 -->
+    <select id="selectCompleteInfo" parameterType="Long" resultMap="AiCharacterCompleteResult">
+        SELECT
+        <include refid="Complete_Column_List"/>
+        FROM ai_character
+        WHERE id = #{id}
+    </select>
+
+    <!-- 更新人设头像 -->
+    <update id="updateAvatar">
+        UPDATE ai_character
+        SET avatar = #{avatar},
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 更新人设使用次数 -->
+    <update id="incrementUsageCount" parameterType="Long">
+        UPDATE ai_character
+        SET updated_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 查询用户可访问的人设列表 -->
+    <select id="selectAccessibleCharacters" parameterType="Long" resultMap="AiCharacterResult">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM ai_character
+        WHERE user_id = #{userId} OR is_system = 1
+        ORDER BY is_system DESC, created_time DESC
+    </select>
+
+    <!-- 查询指定时间范围内的人设 -->
+    <select id="selectByTimeRange" resultMap="AiCharacterResult">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM ai_character
+        WHERE created_time BETWEEN #{startTime} AND #{endTime}
+        <if test="userId != null">
+            AND user_id = #{userId}
+        </if>
+        ORDER BY created_time DESC
+    </select>
+
+    <!-- 搜索人设 -->
+    <select id="searchCharacters" resultMap="AiCharacterResult">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM ai_character
+        WHERE (name LIKE CONCAT('%', #{keyword}, '%')
+               OR description LIKE CONCAT('%', #{keyword}, '%')
+               OR prompt LIKE CONCAT('%', #{keyword}, '%'))
+        <if test="userId != null">
+            AND (user_id = #{userId} OR is_system = 1)
+        </if>
+        ORDER BY is_system DESC, created_time DESC
+        <if test="limit != null and limit > 0">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 获取人设统计信息 -->
+    <select id="getCharacterStatistics" resultType="map">
+        SELECT
+            COUNT(1) as totalCount,
+            COUNT(CASE WHEN is_system = 1 THEN 1 END) as systemCount,
+            COUNT(CASE WHEN is_system = 0 THEN 1 END) as userCount,
+            COUNT(CASE WHEN type = 'emotion' THEN 1 END) as emotionCount,
+            COUNT(CASE WHEN type = 'business' THEN 1 END) as businessCount,
+            COUNT(CASE WHEN created_time >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 END) as weeklyCount,
+            COUNT(CASE WHEN created_time >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as monthlyCount
+        FROM ai_character
+    </select>
+
+    <!-- 获取用户的人设统计信息 -->
+    <select id="getUserCharacterStatistics" parameterType="Long" resultType="map">
+        SELECT
+            COUNT(1) as totalCount,
+            COUNT(CASE WHEN type = 'emotion' THEN 1 END) as emotionCount,
+            COUNT(CASE WHEN type = 'business' THEN 1 END) as businessCount,
+            COUNT(CASE WHEN created_time >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 END) as weeklyCount,
+            COUNT(CASE WHEN created_time >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as monthlyCount
+        FROM ai_character
+        WHERE user_id = #{userId}
+    </select>
+
+    <!-- 统计指定用户集合的人设数量分布 -->
+    <select id="countStatisticsByUserIds" parameterType="map" resultType="com.deepreach.web.entity.dto.AiCharacterStatistics">
+        SELECT
+            COUNT(1) AS totalCount,
+            SUM(CASE WHEN is_system = 1 THEN 1 ELSE 0 END) AS systemCount,
+            SUM(CASE WHEN (is_system = 0 OR is_system IS NULL) THEN 1 ELSE 0 END) AS userCreatedCount,
+            SUM(CASE WHEN type = 'emotion' THEN 1 ELSE 0 END) AS emotionCount,
+            SUM(CASE WHEN type = 'business' THEN 1 ELSE 0 END) AS businessCount
+        FROM ai_character
+        <where>
+            <if test="userIds != null and userIds.size() > 0">
+                user_id IN
+                <foreach collection="userIds" item="userId" open="(" separator="," close=")">
+                    #{userId}
+                </foreach>
+            </if>
+        </where>
+    </select>
+
+    <!-- 检查人设是否存在 -->
+    <select id="existsById" parameterType="Long" resultType="boolean">
+        SELECT COUNT(1) > 0
+        FROM ai_character
+        WHERE id = #{id}
+    </select>
+
+    <!-- 检查用户是否有权限访问人设 -->
+    <select id="hasAccessPermission" resultType="boolean">
+        SELECT COUNT(1) > 0
+        FROM ai_character
+        WHERE id = #{id}
+        AND (is_system = 1 OR user_id = #{userId})
+    </select>
+
+</mapper>

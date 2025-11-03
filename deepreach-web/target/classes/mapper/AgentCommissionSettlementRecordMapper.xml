@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.deepreach.web.mapper.AgentCommissionSettlementRecordMapper">
+
+    <resultMap id="SettlementRecordResultMap" type="com.deepreach.web.entity.AgentCommissionSettlementRecord">
+        <id column="record_id" property="recordId"/>
+        <result column="settlement_id" property="settlementId"/>
+        <result column="agent_user_id" property="agentUserId"/>
+        <result column="change_amount" property="changeAmount"/>
+        <result column="direction" property="direction"/>
+        <result column="status" property="status"/>
+        <result column="operator_id" property="operatorId"/>
+        <result column="description" property="description"/>
+        <result column="extra_data" property="extraData"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="BaseColumns">
+        record_id, settlement_id, agent_user_id, change_amount, direction, status,
+        operator_id, description, extra_data, create_by, create_time, update_by, update_time
+    </sql>
+
+    <insert id="insert" parameterType="com.deepreach.web.entity.AgentCommissionSettlementRecord" useGeneratedKeys="true" keyProperty="recordId">
+        insert into dr_agent_commission_settlement_record (
+            settlement_id, agent_user_id, change_amount, direction, status,
+            operator_id, description, extra_data, create_by, create_time
+        ) values (
+            #{settlementId}, #{agentUserId}, #{changeAmount}, #{direction}, #{status},
+            #{operatorId}, #{description}, #{extraData}, #{createBy}, #{createTime}
+        )
+    </insert>
+
+    <select id="selectBySettlementId" parameterType="long" resultMap="SettlementRecordResultMap">
+        select <include refid="BaseColumns"/>
+        from dr_agent_commission_settlement_record
+        where settlement_id = #{settlementId}
+        order by create_time desc
+    </select>
+
+</mapper>

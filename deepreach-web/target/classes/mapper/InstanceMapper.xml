@@ -1,0 +1,585 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.deepreach.web.mapper.InstanceMapper">
+
+    <!-- 结果映射 -->
+    <resultMap type="com.deepreach.common.core.domain.entity.Instance" id="InstanceResult">
+        <id     property="instanceId"       column="instance_id"        />
+        <result property="instanceName"     column="instance_name"      />
+        <result property="userId"           column="user_id"            />
+        <result property="platform"         column="platform"           />
+        <result property="type"             column="type"               />
+        <result property="status"           column="status"             />
+        <result property="config"           column="config"             />
+        <result property="totalBilledDays"  column="total_billed_days"  />
+        <result property="totalBilledAmount" column="total_billed_amount" />
+        <result property="createTime"       column="create_time"        />
+        <result property="updateTime"       column="update_time"        />
+        <result property="remark"           column="remark"             />
+    </resultMap>
+
+    <!-- 通用查询条件 -->
+    <sql id="selectInstanceVo">
+        select instance_id, instance_name, user_id, platform, type, status,
+               config, total_billed_days, total_billed_amount,
+               create_time, update_time, remark
+        from ai_instance
+    </sql>
+
+    <!-- 查询条件构造 -->
+    <sql id="InstanceCondition">
+        <where>
+            <if test="instanceName != null  and instanceName != ''"> and instance_name = #{instanceName}</if>
+            <if test="userId != null "> and user_id = #{userId}</if>
+            <if test="platform != null "> and platform = #{platform}</if>
+            <if test="type != null "> and type = #{type}</if>
+            <if test="status != null "> and status = #{status}</if>
+            <if test="config != null  and config != ''"> and config = #{config}</if>
+            <if test="totalBilledDays != null "> and total_billed_days = #{totalBilledDays}</if>
+            <if test="totalBilledAmount != null "> and total_billed_amount = #{totalBilledAmount}</if>
+            <if test="remark != null  and remark != ''"> and remark = #{remark}</if>
+            <if test="params.beginTime != null and params.beginTime != ''"><!-- 开始时间检索 -->
+                and date_format(create_time,'%y%m%d') &gt;= date_format(#{params.beginTime},'%y%m%d')
+            </if>
+            <if test="params.endTime != null and params.endTime != ''"><!-- 结束时间检索 -->
+                and date_format(create_time,'%y%m%d') &lt;= date_format(#{params.endTime},'%y%m%d')
+            </if>
+        </where>
+    </sql>
+
+    <!-- 根据ID查询实例 -->
+    <select id="selectById" parameterType="Long" resultMap="InstanceResult">
+        <include refid="selectInstanceVo"/>
+        where instance_id = #{instanceId}
+    </select>
+
+    <!-- 根据实例名称查询实例 -->
+    <select id="selectByName" parameterType="String" resultMap="InstanceResult">
+        <include refid="selectInstanceVo"/>
+        where instance_name = #{instanceName}
+        limit 1
+    </select>
+
+    <!-- 根据用户ID查询实例列表 -->
+    <select id="selectByUserId" parameterType="Long" resultMap="InstanceResult">
+        <include refid="selectInstanceVo"/>
+        where user_id = #{userId}
+        order by create_time desc
+    </select>
+
+    <!-- 根据平台查询实例列表 -->
+    <select id="selectByPlatform" parameterType="Integer" resultMap="InstanceResult">
+        <include refid="selectInstanceVo"/>
+        where platform = #{platform}
+        order by create_time desc
+    </select>
+
+    <!-- 根据状态查询实例列表 -->
+    <select id="selectByStatus" parameterType="Integer" resultMap="InstanceResult">
+        <include refid="selectInstanceVo"/>
+        where status = #{status}
+        order by create_time desc
+    </select>
+
+    <!-- 根据类型查询实例列表 -->
+    <select id="selectByType" parameterType="Integer" resultMap="InstanceResult">
+        <include refid="selectInstanceVo"/>
+        where type = #{type}
+        order by create_time desc
+    </select>
+
+    <!-- 查询指定用户的营销实例 -->
+    <select id="selectMarketingInstancesByUserId" parameterType="Long" resultMap="InstanceResult">
+        <include refid="selectInstanceVo"/>
+        where user_id = #{userId} and type = 1
+        order by create_time desc
+    </select>
+
+    <!-- 查询指定用户的侦查实例 -->
+    <select id="selectProspectingInstancesByUserId" parameterType="Long" resultMap="InstanceResult">
+        <include refid="selectInstanceVo"/>
+        where user_id = #{userId} and type = 2
+        order by create_time desc
+    </select>
+
+    <!-- 查询所有实例列表 -->
+    <select id="selectAll" resultMap="InstanceResult">
+        <include refid="selectInstanceVo"/>
+        order by create_time desc
+    </select>
+
+    <!-- 根据条件查询实例列表 -->
+    <select id="selectList" parameterType="com.deepreach.common.core.domain.entity.Instance" resultMap="InstanceResult">
+        <include refid="selectInstanceVo"/>
+        <include refid="InstanceCondition"/>
+        order by create_time desc
+    </select>
+
+    <!-- 查询指定时间范围内创建的实例 -->
+    <select id="selectByCreateTimeRange" resultMap="InstanceResult">
+        <include refid="selectInstanceVo"/>
+        where create_time between #{startTime} and #{endTime}
+        order by create_time desc
+    </select>
+
+    <!-- 查询需要续费的实例 -->
+    <select id="selectInstancesNeedingRenewal" parameterType="Integer" resultMap="InstanceResult">
+        <include refid="selectInstanceVo"/>
+        where status = 1
+        and date_format(create_time, '%Y-%m-%d') &lt;= date_sub(date_format(now(), '%Y-%m-%d'), interval #{totalBilledDays} day)
+        order by create_time asc
+    </select>
+
+    <!-- 查询异常状态的实例 -->
+    <select id="selectAbnormalInstances" resultMap="InstanceResult">
+        <include refid="selectInstanceVo"/>
+        where status not in (0, 1, 2)
+        order by update_time desc
+    </select>
+
+    <!-- 查询活跃实例 -->
+    <select id="selectActiveInstances" resultMap="InstanceResult">
+        <include refid="selectInstanceVo"/>
+        order by update_time desc
+    </select>
+
+    <!-- 插入新实例 -->
+    <insert id="insert" parameterType="com.deepreach.common.core.domain.entity.Instance" useGeneratedKeys="true" keyProperty="instanceId">
+        insert into ai_instance
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="instanceName != null">instance_name,</if>
+            <if test="userId != null">user_id,</if>
+            <if test="platform != null">platform,</if>
+            <if test="type != null">type,</if>
+            <if test="status != null">status,</if>
+            <if test="config != null">config,</if>
+            <if test="totalBilledDays != null">total_billed_days,</if>
+            <if test="totalBilledAmount != null">total_billed_amount,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateTime != null">update_time,</if>
+            <if test="remark != null">remark,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="instanceName != null">#{instanceName},</if>
+            <if test="userId != null">#{userId},</if>
+            <if test="platform != null">#{platform},</if>
+            <if test="type != null">#{type},</if>
+            <if test="status != null">#{status},</if>
+            <if test="config != null">#{config},</if>
+            <if test="totalBilledDays != null">#{totalBilledDays},</if>
+            <if test="totalBilledAmount != null">#{totalBilledAmount},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+            <if test="remark != null">#{remark},</if>
+         </trim>
+    </insert>
+
+    <!-- 批量插入实例 -->
+    <insert id="batchInsert" parameterType="java.util.List">
+        insert into ai_instance (
+            instance_name, user_id, platform, type, status, config,
+            total_billed_days, total_billed_amount, create_time, update_time, remark
+        ) values
+        <foreach collection="instances" item="instance" separator=",">
+            (
+                #{instance.instanceName}, #{instance.userId}, #{instance.platform},
+                #{instance.type}, #{instance.status}, #{instance.config},
+                #{instance.totalBilledDays}, #{instance.totalBilledAmount},
+                #{instance.createTime}, #{instance.updateTime}, #{instance.remark}
+            )
+        </foreach>
+    </insert>
+
+    <!-- 更新实例信息 -->
+    <update id="update" parameterType="com.deepreach.common.core.domain.entity.Instance">
+        update ai_instance
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="instanceName != null">instance_name = #{instanceName},</if>
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="platform != null">platform = #{platform},</if>
+            <if test="type != null">type = #{type},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="config != null">config = #{config},</if>
+            <if test="totalBilledDays != null">total_billed_days = #{totalBilledDays},</if>
+            <if test="totalBilledAmount != null">total_billed_amount = #{totalBilledAmount},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </trim>
+        where instance_id = #{instanceId}
+    </update>
+
+    <!-- 更新实例状态 -->
+    <update id="updateStatus">
+        update ai_instance
+        set status = #{status}, update_time = now()
+        where instance_id = #{instanceId}
+    </update>
+
+    <!-- 启动实例 -->
+    <update id="startInstance">
+        update ai_instance
+        set status = 1, update_time = now()
+        where instance_id = #{instanceId}
+    </update>
+
+    <!-- 停止实例 -->
+    <update id="stopInstance">
+        update ai_instance
+        set status = 2, update_time = now()
+        where instance_id = #{instanceId}
+    </update>
+
+    <!-- 重启实例 -->
+    <update id="restartInstance">
+        update ai_instance
+        set status = 1, update_time = now()
+        where instance_id = #{instanceId}
+    </update>
+
+    <!-- 删除实例 -->
+    <delete id="deleteById" parameterType="Long">
+        delete from ai_instance where instance_id = #{instanceId}
+    </delete>
+
+    <!-- 批量删除实例 -->
+    <delete id="deleteByIds" parameterType="String">
+        delete from ai_instance where instance_id in
+        <foreach item="instanceId" collection="array" open="(" separator="," close=")">
+            #{instanceId}
+        </foreach>
+    </delete>
+
+    <!-- 统计实例总数 -->
+    <select id="countAll" resultType="int">
+        select count(*) from ai_instance
+    </select>
+
+    <!-- 统计指定用户的实例数量 -->
+    <select id="countByUserId" parameterType="Long" resultType="int">
+        select count(*) from ai_instance where user_id = #{userId}
+    </select>
+
+    <!-- 统计指定平台的实例数量 -->
+    <select id="countByPlatform" parameterType="Integer" resultType="int">
+        select count(*) from ai_instance where platform = #{platform}
+    </select>
+
+    <!-- 统计指定状态的实例数量 -->
+    <select id="countByStatus" parameterType="Integer" resultType="int">
+        select count(*) from ai_instance where status = #{status}
+    </select>
+
+    <!-- 统计指定类型的实例数量 -->
+    <select id="countByType" parameterType="Integer" resultType="int">
+        select count(*) from ai_instance where type = #{type}
+    </select>
+
+    <!-- 统计活跃实例数量 -->
+    <select id="countActiveInstances" resultType="int">
+        select count(*) from ai_instance where status = 1
+    </select>
+
+    <!-- 统计用户营销实例数量 -->
+    <select id="countMarketingInstancesByUserId" parameterType="Long" resultType="int">
+        select count(*) from ai_instance where user_id = #{userId} and type = 1
+    </select>
+
+    <!-- 统计用户侦查实例数量 -->
+    <select id="countProspectingInstancesByUserId" parameterType="Long" resultType="int">
+        select count(*) from ai_instance where user_id = #{userId} and type = 2
+    </select>
+
+    <!-- 获取实例的累计计费天数 -->
+    <select id="getBilledDays" parameterType="Long" resultType="Integer">
+        select ifnull(total_billed_days, 0)
+        from ai_instance
+        where instance_id = #{instanceId}
+    </select>
+
+    <!-- 获取实例的累计计费金额 -->
+    <select id="getBilledAmount" parameterType="Long" resultType="BigDecimal">
+        select ifnull(total_billed_amount, 0)
+        from ai_instance
+        where instance_id = #{instanceId}
+    </select>
+
+    <!-- 更新实例计费信息 -->
+    <update id="updateBillingInfo">
+        update ai_instance
+        set total_billed_days = #{billedDays},
+            total_billed_amount = #{billedAmount},
+            update_time = now()
+        where instance_id = #{instanceId}
+    </update>
+
+    <!-- 增加实例计费天数 -->
+    <update id="addBilledDays">
+        update ai_instance
+        set total_billed_days = total_billed_days + #{days},
+            update_time = now()
+        where instance_id = #{instanceId}
+    </update>
+
+    <!-- 增加实例计费金额 -->
+    <update id="addBilledAmount">
+        update ai_instance
+        set total_billed_amount = total_billed_amount + #{amount},
+            update_time = now()
+        where instance_id = #{instanceId}
+    </update>
+
+    <!-- 检查实例名称是否唯一 -->
+    <select id="checkInstanceNameUnique" resultType="int">
+        select count(*) from ai_instance
+        where instance_name = #{instanceName}
+        <if test="instanceId != null">
+            and instance_id != #{instanceId}
+        </if>
+    </select>
+
+    <!-- 检查用户是否可以创建更多实例 -->
+    <select id="checkUserInstanceLimit" resultType="int">
+        select count(*) from ai_instance
+        where user_id = #{userId}
+    </select>
+
+    <!-- 获取用户实例统计信息 -->
+    <select id="getInstanceStatistics" parameterType="Long" resultMap="InstanceResult">
+        select
+            user_id,
+            count(*) as total_instances,
+            sum(case when type = 1 then 1 else 0 end) as marketing_instances,
+            sum(case when type = 2 then 1 else 0 end) as prospecting_instances,
+            sum(case when status = 1 then 1 else 0 end) as active_instances,
+            sum(ifnull(total_billed_amount, 0)) as total_consumption
+        from ai_instance
+        where user_id = #{userId}
+        group by user_id
+    </select>
+
+    <!-- 获取平台实例统计信息 -->
+    <select id="getPlatformStatistics" parameterType="Integer" resultMap="InstanceResult">
+        select
+            platform,
+            count(*) as total_instances,
+            sum(case when type = 1 then 1 else 0 end) as marketing_instances,
+            sum(case when type = 2 then 1 else 0 end) as prospecting_instances,
+            sum(case when status = 1 then 1 else 0 end) as active_instances,
+            sum(ifnull(total_billed_amount, 0)) as total_consumption
+        from ai_instance
+        where platform = #{platform}
+        group by platform
+    </select>
+
+    <!-- 获取实例每日统计 -->
+    <select id="getDailyStatistics" resultMap="InstanceResult">
+        select
+            date(create_time) as stat_date,
+            count(*) as daily_created,
+            sum(case when type = 1 then 1 else 0 end) as daily_marketing,
+            sum(case when type = 2 then 1 else 0 end) as daily_prospecting,
+            sum(case when status = 1 then 1 else 0 end) as daily_active
+        from ai_instance
+        where create_time between #{startDate} and #{endDate}
+        group by date(create_time)
+        order by stat_date desc
+    </select>
+
+    <!-- 获取实例使用时长排行 -->
+    <select id="getInstanceUsageRanking" resultMap="InstanceResult">
+        select
+            instance_id,
+            instance_name,
+            user_id,
+            total_billed_days,
+            total_billed_amount
+        from ai_instance
+        where status in (1, 2)
+        order by total_billed_days desc
+        <if test="limit != null and limit > 0">
+            limit #{limit}
+        </if>
+    </select>
+
+    <!-- 获取实例消费排行 -->
+    <select id="getInstanceConsumptionRanking" resultMap="InstanceResult">
+        select
+            instance_id,
+            instance_name,
+            user_id,
+            platform,
+            total_billed_amount
+        from ai_instance
+        where total_billed_amount > 0
+        order by total_billed_amount desc
+        <if test="limit != null and limit > 0">
+            limit #{limit}
+        </if>
+    </select>
+
+    <!-- 同步实例信息到缓存 -->
+    <select id="syncToCache" parameterType="Long" resultType="boolean">
+        select true
+        from ai_instance
+        where instance_id = #{instanceId}
+    </select>
+
+    <!-- 从缓存刷新实例信息 -->
+    <select id="refreshFromCache" parameterType="Long" resultType="boolean">
+        select case
+            when count(*) > 0 then true
+            else false
+        end
+        from ai_instance
+        where user_id = #{userId}
+    </select>
+
+    <!-- 获取实例关联的计费记录 -->
+    <select id="getRelatedBillingRecords" parameterType="Long" resultMap="InstanceResult">
+        select
+            i.*,
+            b.record_id,
+            b.amount,
+            b.billing_date,
+            b.business_type
+        from ai_instance i
+        left join dr_billing_record b on i.instance_id = b.instance_id
+        where i.instance_id = #{instanceId}
+        order by b.billing_date desc
+    </select>
+
+    <!-- 获取实例的创建价格 -->
+    <select id="getInstanceCreationPrice" parameterType="Long" resultType="BigDecimal">
+        select p.daily_price
+        from ai_instance i
+        left join dr_price_config p on i.platform = p.platform and p.status = 1
+        where i.instance_id = #{instanceId}
+    </select>
+
+    <!-- 检查实例是否需要计费 -->
+    <select id="checkInstanceNeedsBilling" parameterType="Long" resultType="boolean">
+        select case
+            when status = 1 and date_format(create_time, '%Y-%m-%d') &lt; date_format(now(), '%Y-%m-%d')
+            then true
+            else false
+        end
+        from ai_instance
+        where instance_id = #{instanceId}
+    </select>
+
+    <!-- 获取实例下次计费时间 -->
+    <select id="getNextBillingTime" parameterType="Long" resultType="java.time.LocalDateTime">
+        select date_add(date_format(create_time, '%Y-%m-%d'), interval total_billed_days + 1 day)
+        from ai_instance
+        where instance_id = #{instanceId} and status = 1
+    </select>
+
+    <!-- 更新实例最后活跃时间 -->
+    <update id="updateLastActiveTime">
+        update ai_instance
+        set update_time = #{activeTime}
+        where instance_id = #{instanceId}
+    </update>
+
+    <!-- 批量更新实例状态 -->
+    <update id="batchUpdateStatus">
+        update ai_instance
+        set status = #{status}, update_time = now()
+        where instance_id in
+        <foreach item="instanceId" collection="instanceIds" open="(" separator="," close=")">
+            #{instanceId}
+        </foreach>
+    </update>
+
+    <!-- 获取待处理的实例任务 -->
+    <select id="getPendingInstanceTasks" resultMap="InstanceResult">
+        <include refid="selectInstanceVo"/>
+        where status = 0
+        order by create_time asc
+    </select>
+
+    <!-- 处理实例任务 -->
+    <update id="processInstanceTask">
+        update ai_instance
+        set remark = concat(ifnull(remark, ''), ' [任务处理: ', #{taskResult}, ']'),
+            update_time = now()
+        where instance_id = #{instanceId}
+    </update>
+
+    <!-- 验证实例数据完整性 -->
+    <select id="validateInstanceData" parameterType="Long" resultType="boolean">
+        select case
+            when user_id is not null and platform is not null and type is not null
+            then true
+            else false
+        end
+        from ai_instance
+        where instance_id = #{instanceId}
+    </select>
+
+    <!-- 修复实例数据 -->
+    <update id="repairInstanceData">
+        update ai_instance
+        set total_billed_days = ifnull(total_billed_days, 0),
+            total_billed_amount = ifnull(total_billed_amount, 0),
+            update_time = now()
+        where instance_id = #{instanceId}
+        and (total_billed_days is null or total_billed_amount is null)
+    </update>
+
+    <!-- 获取实例性能指标 -->
+    <select id="getInstancePerformanceMetrics" parameterType="Long" resultMap="InstanceResult">
+        select
+            instance_id,
+            total_billed_days as usage_days,
+            total_billed_amount as total_cost,
+            case when total_billed_days > 0 then total_billed_amount / total_billed_days else 0 end as daily_average_cost,
+            timestampdiff(day, create_time, now()) as total_days_created
+        from ai_instance
+        where instance_id = #{instanceId}
+    </select>
+
+    <!-- 导出实例数据 -->
+    <select id="exportInstances" resultMap="InstanceResult">
+        <include refid="selectInstanceVo"/>
+        <include refid="InstanceCondition"/>
+        <if test="startTime != null">
+            and create_time &gt;= #{startTime}
+        </if>
+        <if test="endTime != null">
+            and create_time &lt;= #{endTime}
+        </if>
+        order by create_time desc
+    </select>
+
+    <!-- 查询实例的完整信息（包含用户和平台信息） -->
+    <select id="selectCompleteInstanceInfo" parameterType="Long" resultMap="InstanceResult">
+        select
+            i.*,
+            u.username,
+            u.nickname,
+            u.email,
+            d.dept_name
+        from ai_instance i
+        left join sys_user u on i.user_id = u.user_id
+        left join sys_dept d on u.dept_id = d.dept_id
+        where i.instance_id = #{instanceId}
+    </select>
+
+    <!-- 查询用户实例的完整信息（包含平台和计费信息） -->
+    <select id="selectCompleteInstancesByUserId" parameterType="Long" resultMap="InstanceResult">
+        select
+            i.*,
+            p.daily_price as current_daily_price,
+            sum(ifnull(b.amount, 0)) as total_billing_amount
+        from ai_instance i
+        left join dr_price_config p on i.platform = p.platform and p.status = 1
+        left join dr_billing_record b on i.instance_id = b.instance_id
+        where i.user_id = #{userId}
+        group by i.instance_id
+        order by i.create_time desc
+    </select>
+
+</mapper>

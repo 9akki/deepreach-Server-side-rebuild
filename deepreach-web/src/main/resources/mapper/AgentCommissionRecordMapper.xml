@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.deepreach.web.mapper.AgentCommissionRecordMapper">
+
+    <insert id="insert" parameterType="com.deepreach.web.entity.AgentCommissionRecord" useGeneratedKeys="true" keyProperty="recordId">
+        insert into dr_agent_commission_record (
+            agent_user_id,
+            agent_dept_id,
+            buyer_user_id,
+            buyer_dept_id,
+            trigger_billing_id,
+            trigger_amount,
+            commission_amount,
+            commission_rate,
+            hierarchy_level,
+            direction,
+            business_type,
+            status,
+            operator_id,
+            description,
+            extra_data,
+            create_time,
+            update_time
+        ) values (
+            #{agentUserId},
+            #{agentDeptId},
+            #{buyerUserId},
+            #{buyerDeptId},
+            #{triggerBillingId},
+            #{triggerAmount},
+            #{commissionAmount},
+            #{commissionRate},
+            #{hierarchyLevel},
+            #{direction},
+            #{businessType},
+            #{status},
+            #{operatorId},
+            #{description},
+            #{extraData},
+            #{createTime},
+            #{updateTime}
+        )
+    </insert>
+
+    <select id="selectRecordsByAgent" parameterType="map" resultType="map">
+        select
+            r.record_id,
+            r.agent_user_id,
+            r.agent_dept_id,
+            r.buyer_user_id,
+            buyer.username as buyerUsername,
+            r.trigger_billing_id,
+            br.bill_no,
+            r.trigger_amount,
+            r.commission_amount,
+            r.commission_rate,
+            r.hierarchy_level,
+            r.business_type,
+            r.status,
+            r.description,
+            r.create_time
+        from dr_agent_commission_record r
+        left join sys_user buyer on r.buyer_user_id = buyer.user_id
+        left join dr_billing_record br on r.trigger_billing_id = br.bill_id
+        where r.agent_user_id = #{agentUserId}
+          and r.direction = '+'
+          and r.business_type = 'RECHARGE_COMMISSION'
+        <if test="startTime != null and startTime != ''">
+            and r.create_time &gt;= #{startTime}
+        </if>
+        <if test="endTime != null and endTime != ''">
+            and r.create_time &lt;= #{endTime}
+        </if>
+        <if test="minAmount != null">
+            and r.commission_amount &gt;= #{minAmount}
+        </if>
+        <if test="maxAmount != null">
+            and r.commission_amount &lt;= #{maxAmount}
+        </if>
+        order by r.create_time desc
+    </select>
+
+    <select id="sumCommissionByAgents" parameterType="map" resultType="map">
+        select
+            r.agent_user_id as agentUserId,
+            COALESCE(sum(r.commission_amount), 0) as commissionSum
+        from dr_agent_commission_record r
+        where r.agent_user_id in
+        <foreach collection="agentUserIds" item="agentUserId" open="(" separator="," close=")">
+            #{agentUserId}
+        </foreach>
+          and r.direction = '+'
+          and r.business_type = 'RECHARGE_COMMISSION'
+        <if test="startTime != null and startTime != ''">
+            and r.create_time &gt;= #{startTime}
+        </if>
+        <if test="endTime != null and endTime != ''">
+            and r.create_time &lt;= #{endTime}
+        </if>
+        <if test="minAmount != null">
+            and r.commission_amount &gt;= #{minAmount}
+        </if>
+        <if test="maxAmount != null">
+            and r.commission_amount &lt;= #{maxAmount}
+        </if>
+        group by r.agent_user_id
+    </select>
+
+</mapper>

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.deepreach</groupId>
+        <artifactId>deepreach</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>deepreach-platform</artifactId>
+    <name>DeepReach Platform</name>
+    <description>平台适配模块</description>
+
+    <dependencies>
+        <!-- 依赖公共模块 -->
+        <dependency>
+            <groupId>com.deepreach</groupId>
+            <artifactId>deepreach-common</artifactId>
+        </dependency>
+
+        <!-- 依赖认证模块 -->
+        <dependency>
+            <groupId>com.deepreach</groupId>
+            <artifactId>deepreach-auth</artifactId>
+        </dependency>
+
+        <!-- 依赖AI模块 -->
+        <dependency>
+            <groupId>com.deepreach</groupId>
+            <artifactId>deepreach-ai</artifactId>
+        </dependency>
+
+        <!-- 依赖翻译模块 -->
+        <dependency>
+            <groupId>com.deepreach</groupId>
+            <artifactId>deepreach-translate</artifactId>
+        </dependency>
+
+        <!-- HTTP客户端 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
+        </dependency>
+
+        <!-- 测试 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

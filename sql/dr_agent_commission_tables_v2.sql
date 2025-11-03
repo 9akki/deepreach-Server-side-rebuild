@@ -1,0 +1,83 @@
+CREATE TABLE `dr_agent_commission_account` (
+  `account_id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '佣金账户ID',
+  `agent_user_id` bigint(20) NOT NULL COMMENT '代理用户ID',
+  `total_commission` decimal(15,4) NOT NULL DEFAULT '0.0000' COMMENT '累计佣金',
+  `available_commission` decimal(15,4) NOT NULL DEFAULT '0.0000' COMMENT '可用佣金',
+  `frozen_commission` decimal(15,4) NOT NULL DEFAULT '0.0000' COMMENT '冻结佣金（待结算）',
+  `pending_settlement_commission` decimal(15,4) NOT NULL DEFAULT '0.0000' COMMENT '结算申请中的佣金',
+  `settled_commission` decimal(15,4) NOT NULL DEFAULT '0.0000' COMMENT '已结算佣金',
+  `version` int(11) NOT NULL DEFAULT '0' COMMENT '版本号（乐观锁）',
+  `status` char(1) NOT NULL DEFAULT '0' COMMENT '状态（0正常 1冻结 2注销）',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `create_by` varchar(64) DEFAULT '' COMMENT '创建者',
+  `update_by` varchar(64) DEFAULT '' COMMENT '更新者',
+  `remark` varchar(500) DEFAULT NULL COMMENT '备注',
+  PRIMARY KEY (`account_id`),
+  UNIQUE KEY `uk_agent_user_id` (`agent_user_id`),
+  CONSTRAINT `fk_agent_commission_user` FOREIGN KEY (`agent_user_id`) REFERENCES `sys_user` (`user_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='代理佣金账户表';
+
+CREATE TABLE `dr_agent_commission_record` (
+  `record_id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '佣金记录ID',
+  `agent_user_id` bigint(20) NOT NULL COMMENT '代理用户ID',
+  `agent_dept_id` bigint(20) DEFAULT NULL COMMENT '代理所属部门ID',
+  `buyer_user_id` bigint(20) NOT NULL COMMENT '买家总账户用户ID',
+  `buyer_dept_id` bigint(20) DEFAULT NULL COMMENT '买家总账户部门ID',
+  `trigger_billing_id` bigint(20) DEFAULT NULL COMMENT '触发账单ID',
+  `trigger_amount` decimal(15,4) NOT NULL DEFAULT '0.0000' COMMENT '触发金额（如充值金额）',
+  `commission_amount` decimal(15,4) NOT NULL DEFAULT '0.0000' COMMENT '佣金金额',
+  `commission_rate` decimal(6,4) NOT NULL DEFAULT '0.0000' COMMENT '佣金比例',
+  `hierarchy_level` int(2) NOT NULL DEFAULT '0' COMMENT '代理层级（1一级 2二级 3三级）',
+  `direction` char(1) NOT NULL DEFAULT '+' COMMENT '方向（+发放 -扣减）',
+  `business_type` varchar(50) NOT NULL DEFAULT 'RECHARGE_COMMISSION' COMMENT '业务类型',
+  `status` char(1) NOT NULL DEFAULT '0' COMMENT '状态（0成功 1失败）',
+  `operator_id` bigint(20) DEFAULT NULL COMMENT '操作人用户ID',
+  `description` varchar(255) DEFAULT NULL COMMENT '描述信息',
+  `extra_data` json DEFAULT NULL COMMENT '扩展信息',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`record_id`),
+  KEY `idx_agent_user_id` (`agent_user_id`),
+  KEY `idx_buyer_user_id` (`buyer_user_id`),
+  KEY `idx_trigger_billing_id` (`trigger_billing_id`),
+  CONSTRAINT `fk_commission_record_agent` FOREIGN KEY (`agent_user_id`) REFERENCES `sys_user` (`user_id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_commission_record_billing` FOREIGN KEY (`trigger_billing_id`) REFERENCES `dr_billing_record` (`bill_id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='代理佣金变动记录表';
+
+CREATE TABLE `dr_agent_commission_settlement` (
+  `settlement_id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '结算申请ID',
+  `agent_user_id` bigint(20) NOT NULL COMMENT '代理用户ID',
+  `request_amount` decimal(15,4) NOT NULL DEFAULT '0.0000' COMMENT '申请结算金额',
+  `approved_amount` decimal(15,4) DEFAULT '0.0000' COMMENT '审批通过金额',
+  `status` char(1) NOT NULL DEFAULT '0' COMMENT '状态（0待审批 1已通过 2已拒绝 3已取消）',
+  `approval_user_id` bigint(20) DEFAULT NULL COMMENT '审批人用户ID',
+  `approval_time` datetime DEFAULT NULL COMMENT '审批时间',
+  `remark` varchar(500) DEFAULT NULL COMMENT '备注',
+  `extra_data` json DEFAULT NULL COMMENT '扩展信息',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`settlement_id`),
+  KEY `idx_agent_user_id` (`agent_user_id`),
+  KEY `idx_status` (`status`),
+  CONSTRAINT `fk_commission_settlement_agent` FOREIGN KEY (`agent_user_id`) REFERENCES `sys_user` (`user_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='代理佣金结算申请表';
+
+CREATE TABLE `dr_agent_commission_settlement_record` (
+  `record_id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '结算记录ID',
+  `settlement_id` bigint(20) DEFAULT NULL COMMENT '结算申请ID',
+  `agent_user_id` bigint(20) NOT NULL COMMENT '代理用户ID',
+  `change_amount` decimal(15,4) NOT NULL DEFAULT '0.0000' COMMENT '变动金额',
+  `direction` char(1) NOT NULL DEFAULT '-' COMMENT '方向（+增加 -扣减）',
+  `status` char(1) NOT NULL DEFAULT '0' COMMENT '状态（0待处理 1成功 2失败）',
+  `operator_id` bigint(20) DEFAULT NULL COMMENT '操作人用户ID',
+  `description` varchar(255) DEFAULT NULL COMMENT '描述信息',
+  `extra_data` json DEFAULT NULL COMMENT '扩展信息',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`record_id`),
+  KEY `idx_agent_user_id` (`agent_user_id`),
+  KEY `idx_settlement_id` (`settlement_id`),
+  CONSTRAINT `fk_commission_settlement_record_agent` FOREIGN KEY (`agent_user_id`) REFERENCES `sys_user` (`user_id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_commission_settlement_record_settlement` FOREIGN KEY (`settlement_id`) REFERENCES `dr_agent_commission_settlement` (`settlement_id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='代理佣金结算流水表';

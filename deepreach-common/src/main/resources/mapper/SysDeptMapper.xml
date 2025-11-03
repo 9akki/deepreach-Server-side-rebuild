@@ -1,0 +1,480 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.deepreach.common.core.mapper.SysDeptMapper">
+
+    <!-- 部门基本信息结果映射 -->
+    <resultMap id="SysDeptResult" type="com.deepreach.common.core.domain.entity.SysDept">
+        <id property="deptId" column="dept_id"/>
+        <result property="parentId" column="parent_id"/>
+        <result property="ancestors" column="ancestors"/>
+        <result property="deptName" column="dept_name"/>
+        <result property="orderNum" column="order_num"/>
+        <result property="leader" column="leader"/>
+        <result property="leaderUserId" column="leader_user_id"/>
+        <result property="phone" column="phone"/>
+        <result property="email" column="email"/>
+        <result property="status" column="status"/>
+        <result property="delFlag" column="del_flag"/>
+        <!-- 基于部门类型的字段 -->
+        <result property="deptType" column="dept_type"/>
+        <result property="level" column="level"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="remark" column="remark"/>
+    </resultMap>
+
+    <!-- 部门基本信息字段 -->
+    <sql id="selectDeptVo">
+        SELECT dept_id, parent_id, ancestors, dept_name, order_num, leader, leader_user_id,
+               phone, email, status, del_flag, dept_type, level,
+               create_by, create_time, update_by, update_time, remark
+        FROM sys_dept
+    </sql>
+
+    <!--
+        ==================== 基础查询方法 ====================
+    -->
+
+    <!-- 根据部门ID查询部门信息 -->
+    <select id="selectDeptById" parameterType="Long" resultMap="SysDeptResult">
+        <include refid="selectDeptVo"/>
+        WHERE dept_id = #{deptId} AND del_flag = '0'
+    </select>
+
+    <!-- 查询部门列表 -->
+    <select id="selectDeptList" parameterType="com.deepreach.common.core.domain.entity.SysDept" resultMap="SysDeptResult">
+        <include refid="selectDeptVo"/>
+        <where>
+            del_flag = '0'
+            <if test="deptName != null and deptName != ''">
+                AND dept_name LIKE CONCAT('%', #{deptName}, '%')
+            </if>
+            <if test="status != null and status != ''">
+                AND status = #{status}
+            </if>
+            <if test="parentId != null">
+                AND parent_id = #{parentId}
+            </if>
+            <if test="leader != null and leader != ''">
+                AND leader LIKE CONCAT('%', #{leader}, '%')
+            </if>
+            <if test="phone != null and phone != ''">
+                AND phone LIKE CONCAT('%', #{phone}, '%')
+            </if>
+            <if test="email != null and email != ''">
+                AND email LIKE CONCAT('%', #{email}, '%')
+            </if>
+            <if test="params != null and params.beginTime != null and params.beginTime != ''">
+                AND date_format(create_time,'%y%m%d') >= date_format(#{params.beginTime},'%y%m%d')
+            </if>
+            <if test="params != null and params.endTime != null and params.endTime != ''">
+                AND date_format(create_time,'%y%m%d') &lt;= date_format(#{params.endTime},'%y%m%d')
+            </if>
+        </where>
+        ORDER BY order_num ASC, create_time DESC
+    </select>
+
+    <!-- 根据父部门ID查询子部门列表 -->
+    <select id="selectChildrenByParentId" parameterType="Long" resultMap="SysDeptResult">
+        <include refid="selectDeptVo"/>
+        WHERE parent_id = #{parentId} AND del_flag = '0' AND status = '0'
+        ORDER BY order_num ASC, create_time ASC
+    </select>
+
+    <!-- 查询根部门列表 -->
+    <select id="selectRootDepts" resultMap="SysDeptResult">
+        <include refid="selectDeptVo"/>
+        WHERE (parent_id = 0 OR parent_id IS NULL) AND del_flag = '0' AND status = '0'
+        ORDER BY order_num ASC, create_time ASC
+    </select>
+
+    <!-- 根据负责人查询部门列表 -->
+    <select id="selectDeptsByLeader" parameterType="Long" resultMap="SysDeptResult">
+        <include refid="selectDeptVo"/>
+        WHERE leader_user_id = #{leaderUserId} AND del_flag = '0' AND status = '0'
+        ORDER BY order_num ASC, create_time ASC
+    </select>
+
+    <!-- 查询指定层级的部门列表 -->
+    <select id="selectDeptsByLevel" parameterType="Integer" resultMap="SysDeptResult">
+        <include refid="selectDeptVo"/>
+        WHERE del_flag = '0' AND status = '0'
+        <if test="level == 1">
+            AND (parent_id = 0 OR parent_id IS NULL)
+        </if>
+        <if test="level > 1">
+            AND ancestors IS NOT NULL 
+            AND ancestors != '' 
+            AND LENGTH(ancestors) - LENGTH(REPLACE(ancestors, ',', '')) = #{level} - 2
+        </if>
+        ORDER BY order_num ASC, create_time ASC
+    </select>
+
+    <!-- 根据祖级路径查询部门 -->
+    <select id="selectDeptsByAncestors" parameterType="String" resultMap="SysDeptResult">
+        <include refid="selectDeptVo"/>
+        WHERE del_flag = '0' AND status = '0'
+        <if test="ancestors != null and ancestors != ''">
+            AND (ancestors = #{ancestors} OR ancestors LIKE CONCAT(#{ancestors}, ',%') 
+                 OR ancestors LIKE CONCAT('%,', #{ancestors}) 
+                 OR ancestors LIKE CONCAT('%,', #{ancestors}, ',%'))
+        </if>
+        ORDER BY order_num ASC, create_time ASC
+    </select>
+
+    <!-- 查询部门的完整路径信息 -->
+    <select id="selectDeptPath" parameterType="Long" resultMap="SysDeptResult">
+        <include refid="selectDeptVo"/>
+        WHERE del_flag = '0' AND status = '0'
+        AND (dept_id = #{deptId} 
+             OR FIND_IN_SET(#{deptId}, ancestors) > 0
+             OR FIND_IN_SET(dept_id, (SELECT ancestors FROM sys_dept WHERE dept_id = #{deptId})) > 0)
+        ORDER BY order_num ASC, create_time ASC
+    </select>
+
+    <!-- 查询部门的所有子部门ID（递归） -->
+    <select id="selectChildDeptIdsRecursive" parameterType="Long" resultType="Long">
+        SELECT dept_id
+        FROM sys_dept
+        WHERE del_flag = '0'
+          AND (
+              dept_id = #{deptId}
+              OR FIND_IN_SET(#{deptId}, ancestors) > 0
+          )
+        ORDER BY level ASC, order_num ASC, dept_id ASC
+    </select>
+
+    <!-- 查询所有启用的部门ID列表 -->
+    <select id="selectEnabledDeptIds" resultType="Long">
+        SELECT dept_id FROM sys_dept 
+        WHERE del_flag = '0' AND status = '0'
+        ORDER BY order_num ASC, create_time ASC
+    </select>
+
+    <!--
+        ==================== CUD操作方法 ====================
+    -->
+
+    <!-- 插入新部门 -->
+    <insert id="insertDept" parameterType="com.deepreach.common.core.domain.entity.SysDept" useGeneratedKeys="true" keyProperty="deptId">
+        INSERT INTO sys_dept (
+            parent_id, ancestors, dept_name, order_num, leader, leader_user_id,
+            phone, email, status, del_flag, dept_type, level,
+            create_by, create_time, remark
+        ) VALUES (
+            #{parentId}, #{ancestors}, #{deptName}, #{orderNum}, #{leader}, #{leaderUserId},
+            #{phone}, #{email}, #{status}, #{delFlag}, #{deptType}, #{level},
+            #{createBy}, #{createTime}, #{remark}
+        )
+    </insert>
+
+    <!-- 更新部门信息 -->
+    <update id="updateDept" parameterType="com.deepreach.common.core.domain.entity.SysDept">
+        UPDATE sys_dept
+        <set>
+            <if test="parentId != null">parent_id = #{parentId},</if>
+            <if test="ancestors != null">ancestors = #{ancestors},</if>
+            <if test="deptName != null and deptName != ''">dept_name = #{deptName},</if>
+            <if test="orderNum != null">order_num = #{orderNum},</if>
+            <if test="leader != null">leader = #{leader},</if>
+            <if test="leaderUserId != null">leader_user_id = #{leaderUserId},</if>
+            <if test="phone != null">phone = #{phone},</if>
+            <if test="email != null">email = #{email},</if>
+            <if test="status != null and status != ''">status = #{status},</if>
+            <if test="deptType != null and deptType != ''">dept_type = #{deptType},</if>
+            <if test="level != null">level = #{level},</if>
+            <if test="updateBy != null and updateBy != ''">update_by = #{updateBy},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            update_time = sysdate()
+        </set>
+        WHERE dept_id = #{deptId}
+    </update>
+
+    <!-- 删除部门 -->
+    <delete id="deleteDeptById" parameterType="Long">
+        DELETE FROM sys_dept WHERE dept_id = #{deptId}
+    </delete>
+
+    <!-- 批量删除部门 -->
+    <delete id="deleteDeptByIds" parameterType="java.util.List">
+        DELETE FROM sys_dept WHERE dept_id IN
+        <foreach collection="deptIds" item="deptId" open="(" separator="," close=")">
+            #{deptId}
+        </foreach>
+    </delete>
+
+    <!-- 更新部门状态 -->
+    <update id="updateDeptStatus">
+        UPDATE sys_dept 
+        SET status = #{status}, update_time = sysdate()
+        WHERE dept_id IN
+        <foreach collection="deptIds" item="deptId" open="(" separator="," close=")">
+            #{deptId}
+        </foreach>
+    </update>
+
+    <!-- 更新部门排序 -->
+    <update id="updateDeptOrderNum">
+        UPDATE sys_dept 
+        SET order_num = #{orderNum}, update_time = sysdate()
+        WHERE dept_id = #{deptId}
+    </update>
+
+    <!--
+        ==================== 统计查询方法 ====================
+    -->
+
+    <!-- 检查部门名称是否唯一 -->
+    <select id="checkDeptNameUnique" resultType="int">
+        SELECT COUNT(1) FROM sys_dept
+        WHERE dept_name = #{deptName} AND parent_id = #{parentId} AND del_flag = '0'
+        <if test="deptId != null">
+            AND dept_id != #{deptId}
+        </if>
+    </select>
+
+    <!-- 统计指定部门的子部门数量 -->
+    <select id="countChildrenByDeptId" parameterType="Long" resultType="int">
+        SELECT COUNT(1) FROM sys_dept
+        WHERE parent_id = #{deptId} AND del_flag = '0'
+    </select>
+
+    <!-- 统计指定部门的用户数量 -->
+    <select id="countUsersByDeptId" parameterType="Long" resultType="int">
+        SELECT COUNT(1) FROM sys_user
+        WHERE status = '0'
+        AND (dept_id = #{deptId} OR dept_id IN (
+            SELECT dept_id FROM sys_dept WHERE FIND_IN_SET(#{deptId}, ancestors) AND del_flag = '0'
+        ))
+    </select>
+
+    <!-- 统计所有用户数量 -->
+    <select id="countAllUsers" resultType="int">
+        SELECT COUNT(1) FROM sys_user WHERE status = '0'
+    </select>
+
+    <!-- 统计自定义部门权限范围内的用户数量 -->
+    <select id="countUsersByCustomDept" parameterType="Long" resultType="int">
+        SELECT COUNT(1) FROM sys_user u
+        WHERE u.status = '0'
+        AND EXISTS (
+            SELECT 1 FROM sys_dept d 
+            WHERE d.dept_id = u.dept_id 
+            AND d.del_flag = '0'
+            AND (d.dept_id = #{deptId} OR FIND_IN_SET(#{deptId}, d.ancestors) > 0)
+        )
+    </select>
+
+    <!-- 根据部门ID列表统计用户数量 -->
+    <select id="countUsersByDeptIds" parameterType="java.util.List" resultType="int">
+        SELECT COUNT(1) FROM sys_user
+        WHERE status = '0' AND dept_id IN
+        <foreach collection="deptIds" item="deptId" open="(" separator="," close=")">
+            #{deptId}
+        </foreach>
+    </select>
+
+    <!-- 查询部门的最大排序号 -->
+    <select id="selectMaxOrderNumByParentId" parameterType="Long" resultType="int">
+        SELECT COALESCE(MAX(order_num), 0) FROM sys_dept
+        WHERE parent_id = #{parentId} AND del_flag = '0'
+    </select>
+
+    <!-- 统计部门层级深度 -->
+    <select id="selectMaxDeptLevel" resultType="int">
+        SELECT CASE 
+            WHEN MAX(LENGTH(ancestors) - LENGTH(REPLACE(ancestors, ',', ''))) IS NULL THEN 0
+            ELSE MAX(LENGTH(ancestors) - LENGTH(REPLACE(ancestors, ',', ''))) + 1
+        END FROM sys_dept WHERE del_flag = '0'
+    </select>
+
+    <!--
+        ==================== 业务验证方法 ====================
+    -->
+
+    <!-- 检查部门是否存在循环引用 -->
+    <select id="checkDeptCycle" parameterType="Long" resultType="boolean">
+        SELECT CASE WHEN COUNT(1) > 0 THEN true ELSE false END
+        FROM sys_dept
+        WHERE del_flag = '0'
+        AND (dept_id = #{parentId} AND FIND_IN_SET(#{parentId}, ancestors) > 0)
+        AND (dept_id = #{deptId} AND FIND_IN_SET(#{deptId}, ancestors) > 0)
+    </select>
+
+    <!--
+        ==================== 账户体系查询方法 ====================
+    -->
+
+    
+    <!-- 根据部门类型查询部门列表 -->
+    <select id="selectDeptsByDeptType" parameterType="String" resultMap="SysDeptResult">
+        <include refid="selectDeptVo"/>
+        WHERE dept_type = #{deptType} AND del_flag = '0' AND status = '0'
+        ORDER BY order_num ASC, create_time ASC
+    </select>
+
+
+    
+    <!-- 查询代理层级结构 -->
+    <select id="selectAgentHierarchy" resultMap="SysDeptResult">
+        <include refid="selectDeptVo"/>
+        WHERE del_flag = '0' AND status = '0' AND dept_type IN ('1', '2', '3', '4')
+        ORDER BY level ASC, order_num ASC, create_time ASC
+    </select>
+
+
+    <!-- 根据部门类型和层级查询部门列表 -->
+    <select id="selectDeptsByDeptTypeAndLevel" parameterType="map" resultMap="SysDeptResult">
+        <include refid="selectDeptVo"/>
+        WHERE del_flag = '0' AND status = '0'
+        AND dept_type = #{deptType}
+        <if test="level != null">
+            AND level = #{level}
+        </if>
+        ORDER BY order_num
+    </select>
+
+    <!-- 根据代理层级查询代理部门列表 -->
+    <select id="selectAgentsByLevel" parameterType="Integer" resultMap="SysDeptResult">
+        <include refid="selectDeptVo"/>
+        WHERE del_flag = '0' AND status = '0'
+        AND dept_type = '2'
+        AND level = #{level}
+        ORDER BY order_num
+    </select>
+
+    <!-- 根据父代理部门ID查询买家总账户部门列表 -->
+    <select id="selectBuyerMainAccountsByParentId" parameterType="Long" resultMap="SysDeptResult">
+        <include refid="selectDeptVo"/>
+        WHERE del_flag = '0' AND status = '0'
+        AND dept_type = '3'
+        AND parent_id = #{parentId}
+        ORDER BY order_num
+    </select>
+
+    <!-- 根据父买家部门ID查询买家子账户部门列表 -->
+    <select id="selectBuyerSubAccountsByParentId" parameterType="Long" resultMap="SysDeptResult">
+        <include refid="selectDeptVo"/>
+        WHERE del_flag = '0' AND status = '0'
+        AND dept_type = '4'
+        AND parent_id = #{parentBuyerDeptId}
+        ORDER BY order_num
+    </select>
+
+    <!-- 递归查询下级代理部门 -->
+    <select id="selectChildAgentsRecursive" parameterType="Long" resultMap="SysDeptResult">
+        <include refid="selectDeptVo"/>
+        WHERE del_flag = '0' AND status = '0'
+        AND dept_type = '2'
+        AND (parent_id = #{deptId} OR ancestors LIKE CONCAT('%,', #{deptId}, ',%') OR ancestors LIKE CONCAT('%,', #{deptId}) OR ancestors LIKE CONCAT(#{deptId}, ',%'))
+        ORDER BY level, order_num
+    </select>
+
+    <!--
+        ==================== 负责人相关查询方法 ====================
+    -->
+
+    <!-- 根据负责人用户ID查询部门列表 -->
+    <select id="selectDeptsByLeaderUserId" parameterType="Long" resultMap="SysDeptResult">
+        <include refid="selectDeptVo"/>
+        WHERE del_flag = '0' AND status = '0'
+        AND leader_user_id = #{leaderUserId}
+        ORDER BY order_num
+    </select>
+
+    <!-- 根据部门ID列表查询部门列表 -->
+    <select id="selectDeptsByIds" parameterType="map" resultMap="SysDeptResult">
+        <include refid="selectDeptVo"/>
+        WHERE del_flag = '0'
+        AND dept_id IN
+        <foreach collection="deptIds" item="deptId" open="(" separator="," close=")">
+            #{deptId}
+        </foreach>
+        ORDER BY order_num
+    </select>
+
+    <!--
+        ==================== 统计相关查询方法 ====================
+    -->
+
+    <!-- 根据部门ID列表统计各部门类型数量 -->
+    <select id="countDeptsByTypeAndIds" parameterType="map" resultType="map">
+        SELECT
+            dept_type,
+            COUNT(*) as count
+        FROM sys_dept
+        WHERE del_flag = '0'
+        AND dept_id IN
+        <foreach collection="deptIds" item="deptId" open="(" separator="," close=")">
+            #{deptId}
+        </foreach>
+        GROUP BY dept_type
+    </select>
+
+    <!-- 根据部门ID列表统计代理部门各层级数量 -->
+    <select id="countAgentDeptsByLevelAndIds" parameterType="map" resultType="map">
+        SELECT
+            level,
+            COUNT(*) as count
+        FROM sys_dept
+        WHERE del_flag = '0'
+        AND dept_type = '2'
+        AND dept_id IN
+        <foreach collection="deptIds" item="deptId" open="(" separator="," close=")">
+            #{deptId}
+        </foreach>
+        GROUP BY level
+    </select>
+
+    <!-- 根据部门ID列表统计买家账户数量 -->
+    <select id="countBuyerAccountsByDeptIds" parameterType="map" resultType="map">
+        SELECT
+            CASE
+                WHEN dept_type = '3' THEN 'buyer_main'
+                WHEN dept_type = '4' THEN 'buyer_sub'
+                ELSE 'other'
+            END as account_type,
+            COUNT(*) as count
+        FROM sys_dept
+        WHERE del_flag = '0'
+        AND dept_type IN ('3', '4')
+        AND dept_id IN
+        <foreach collection="deptIds" item="deptId" open="(" separator="," close=")">
+            #{deptId}
+        </foreach>
+        GROUP BY
+            CASE
+                WHEN dept_type = '3' THEN 'buyer_main'
+                WHEN dept_type = '4' THEN 'buyer_sub'
+                ELSE 'other'
+            END
+    </select>
+
+    <!-- 获取买家总账户详细信息 -->
+    <select id="getBuyerMainAccountDetails" parameterType="map" resultType="map">
+        SELECT
+            d.dept_id,
+            d.dept_name,
+            d.leader,
+            d.create_time,
+            d.status,
+            (
+                SELECT COUNT(*)
+                FROM sys_dept d2
+                WHERE d2.parent_id = d.dept_id
+                AND d2.dept_type = '4'
+                AND d2.del_flag = '0'
+            ) as sub_account_count
+        FROM sys_dept d
+        WHERE d.del_flag = '0'
+        AND d.dept_type = '3'
+        AND d.dept_id IN
+        <foreach collection="deptIds" item="deptId" open="(" separator="," close=")">
+            #{deptId}
+        </foreach>
+        ORDER BY d.create_time
+    </select>
+
+</mapper>

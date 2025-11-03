@@ -1,0 +1,806 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.deepreach.common.core.mapper.SysUserMapper">
+
+    <!-- 用户基本信息结果映射 -->
+    <resultMap id="SysUserResult" type="com.deepreach.common.core.domain.entity.SysUser">
+        <id property="userId" column="user_id"/>
+        <result property="username" column="username"/>
+        <result property="password" column="password"/>
+        <result property="nickname" column="nickname"/>
+        <result property="realName" column="real_name"/>
+        <result property="email" column="email"/>
+        <result property="phone" column="phone"/>
+        <result property="gender" column="gender"/>
+        <result property="avatar" column="avatar"/>
+        <result property="userType" column="user_type"/>
+        <result property="status" column="status"/>
+        <result property="deptId" column="dept_id"/>
+        <result property="deptDisplayName" column="dept_name"/>
+        <!-- 基于部门类型的字段 -->
+        <result property="parentUserId" column="parent_user_id"/>
+        <result property="loginIp" column="login_ip"/>
+        <result property="loginTime" column="login_time"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="remark" column="remark"/>
+        <result property="leaderId" column="leader_id"/>
+        <result property="leaderNickname" column="leader_nickname"/>
+    </resultMap>
+
+    <!-- 用户完整信息结果映射（包含角色和权限） -->
+    <resultMap id="SysUserWithRolesResult" type="com.deepreach.common.core.domain.entity.SysUser" extends="SysUserResult">
+        <!-- 部门信息 -->
+        <association property="dept" column="dept_id" javaType="com.deepreach.common.core.domain.entity.SysDept">
+            <id property="deptId" column="dept_id"/>
+            <result property="parentId" column="parent_id"/>
+            <result property="ancestors" column="ancestors"/>
+            <result property="deptName" column="dept_name"/>
+            <result property="orderNum" column="dept_order_num"/>
+            <result property="leader" column="dept_leader"/>
+            <result property="phone" column="dept_phone"/>
+            <result property="email" column="dept_email"/>
+            <result property="status" column="dept_status"/>
+            <result property="delFlag" column="dept_del_flag"/>
+            <result property="deptType" column="dept_type"/>
+            <result property="level" column="level"/>
+        </association>
+
+        <!-- 角色信息 -->
+        <collection property="roles" ofType="com.deepreach.common.core.domain.entity.SysRole">
+            <id property="roleId" column="role_id"/>
+            <result property="roleName" column="role_name"/>
+            <result property="roleKey" column="role_key"/>
+            <result property="roleSort" column="role_sort"/>
+            <result property="dataScope" column="data_scope"/>
+            <result property="menuCheckStrictly" column="menu_check_strictly"/>
+            <result property="deptCheckStrictly" column="dept_check_strictly"/>
+            <result property="status" column="role_status"/>
+            <result property="delFlag" column="role_del_flag"/>
+            <result property="createTime" column="role_create_time"/>
+            <result property="updateTime" column="role_update_time"/>
+            <result property="remark" column="role_remark"/>
+            <result property="deptType" column="dept_type"/>
+        </collection>
+    </resultMap>
+
+    <!-- 用户基本信息字段 -->
+    <sql id="selectUserVo">
+        SELECT
+            u.user_id,
+            u.username,
+            u.password,
+            u.nickname,
+            u.real_name,
+            u.email,
+            u.phone,
+            u.gender,
+            u.avatar,
+            u.user_type,
+            u.status,
+            u.dept_id,
+            u.parent_user_id,
+            u.login_ip,
+            u.login_time,
+            u.create_by,
+            u.create_time,
+            u.update_by,
+            u.update_time,
+            u.remark,
+            d.dept_name,
+            d.leader_user_id AS leader_id,
+            leader.nickname AS leader_nickname
+        FROM sys_user u
+        LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0'
+        LEFT JOIN sys_user leader ON d.leader_user_id = leader.user_id
+    </sql>
+
+    <!-- 用户完整信息字段（包含角色和部门） -->
+    <sql id="selectUserWithRolesVo">
+        SELECT
+            u.user_id, u.username, u.password, u.nickname, u.real_name, u.email, u.phone, u.gender, u.avatar,
+            u.user_type, u.status, u.dept_id, u.parent_user_id, u.login_ip, u.login_time,
+            u.create_by, u.create_time, u.update_by, u.update_time, u.remark,
+            d.dept_id, d.parent_id, d.ancestors, d.dept_name, d.order_num as dept_order_num,
+            d.leader as dept_leader, d.phone as dept_phone, d.email as dept_email,
+            d.status as dept_status, d.del_flag as dept_del_flag, d.dept_type, d.level,
+            d.leader_user_id AS leader_id, leader.nickname AS leader_nickname,
+            r.role_id, r.role_name, r.role_key, r.role_sort, r.data_scope,
+            r.menu_check_strictly, r.dept_check_strictly, r.status as role_status, r.del_flag as role_del_flag,
+            r.create_time as role_create_time, r.update_time as role_update_time, r.remark as role_remark, r.dept_type
+        FROM sys_user u
+        LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0'
+        LEFT JOIN sys_user leader ON d.leader_user_id = leader.user_id
+        LEFT JOIN sys_user_role ur ON u.user_id = ur.user_id
+        LEFT JOIN sys_role r ON ur.role_id = r.role_id AND r.del_flag = '0'
+    </sql>
+
+    <!--
+        ==================== 基础查询方法 ====================
+    -->
+
+    <!-- 根据用户ID查询用户信息 -->
+    <select id="selectUserById" parameterType="Long" resultMap="SysUserResult">
+        <include refid="selectUserVo"/>
+        WHERE u.user_id = #{userId}
+    </select>
+
+    <!-- 根据用户ID查询用户完整信息（包含部门和角色） -->
+    <select id="selectUserWithDept" parameterType="Long" resultMap="SysUserWithRolesResult">
+        <include refid="selectUserWithRolesVo"/>
+        WHERE u.user_id = #{userId} AND u.status = '0'
+        ORDER BY r.role_sort
+    </select>
+
+    <!-- 根据用户名查询用户信息 -->
+    <select id="selectUserByUsername" parameterType="String" resultMap="SysUserResult">
+        <include refid="selectUserVo"/>
+        WHERE username = #{username}
+    </select>
+
+    <!-- 根据邮箱查询用户信息 -->
+    <select id="selectUserByEmail" parameterType="String" resultMap="SysUserResult">
+        <include refid="selectUserVo"/>
+        WHERE email = #{email}
+    </select>
+
+    <!-- 根据手机号查询用户信息 -->
+    <select id="selectUserByPhone" parameterType="String" resultMap="SysUserResult">
+        <include refid="selectUserVo"/>
+        WHERE phone = #{phone}
+    </select>
+
+    <!-- 查询用户的完整信息（包含角色和权限） -->
+    <select id="selectUserWithRolesAndPermissions" parameterType="String" resultMap="SysUserWithRolesResult">
+        <include refid="selectUserWithRolesVo"/>
+        WHERE u.username = #{username} AND u.status = '0'
+        ORDER BY r.role_sort
+    </select>
+
+    <!-- 查询用户的完整信息（用于UserVO构建） -->
+    <select id="selectCompleteUserInfo" parameterType="Long" resultType="com.deepreach.common.core.domain.vo.UserVO">
+        SELECT
+            u.user_id as id,
+            u.username,
+            u.nickname,
+            u.real_name as realName,
+            u.email,
+            u.phone,
+            u.gender,
+            u.avatar,
+            u.user_type as userType,
+            u.status,
+            u.dept_id as deptId,
+            d.dept_name as deptName,
+            d.dept_type as deptType,
+            d.level as agentLevel,
+            d.leader_user_id as leaderId,
+            leader.nickname as leaderNickname,
+            u.parent_user_id as parentUserId,
+            u.login_ip as loginIp,
+            u.login_time as loginTime,
+            u.create_time as createTime,
+            u.update_time as updateTime
+        FROM sys_user u
+        LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0'
+        LEFT JOIN sys_user leader ON d.leader_user_id = leader.user_id
+        WHERE u.user_id = #{userId} AND u.status = '0'
+    </select>
+
+    <!-- 查询用户列表（分页，支持多条件查询） -->
+    <select id="selectUserList" parameterType="com.deepreach.common.core.domain.entity.SysUser" resultMap="SysUserResult" useCache="false">
+        <include refid="selectUserVo"/>
+        <where>
+            u.status = '0'
+            <if test="username != null and username != ''">
+                AND u.username LIKE CONCAT('%', #{username}, '%')
+            </if>
+            <if test="nickname != null and nickname != ''">
+                AND u.nickname LIKE CONCAT('%', #{nickname}, '%')
+            </if>
+            <if test="realName != null and realName != ''">
+                AND u.real_name LIKE CONCAT('%', #{realName}, '%')
+            </if>
+            <if test="email != null and email != ''">
+                AND u.email LIKE CONCAT('%', #{email}, '%')
+            </if>
+            <if test="phone != null and phone != ''">
+                AND u.phone LIKE CONCAT('%', #{phone}, '%')
+            </if>
+            <if test="userType != null">
+                AND u.user_type = #{userType}
+            </if>
+            <if test="status != null and status != ''">
+                AND u.status = #{status}
+            </if>
+            <if test="deptId != null">
+                AND (u.dept_id = #{deptId} OR u.dept_id IN (
+                    SELECT dept_id FROM sys_dept WHERE FIND_IN_SET(#{deptId}, ancestors)
+                ))
+            </if>
+            <if test="params != null and params.beginTime != null and params.beginTime != ''">
+                AND date_format(u.create_time,'%y%m%d') &gt;= date_format(#{params.beginTime},'%y%m%d')
+            </if>
+            <if test="params != null and params.endTime != null and params.endTime != ''">
+                AND date_format(u.create_time,'%y%m%d') &lt;= date_format(#{params.endTime},'%y%m%d')
+            </if>
+        </where>
+        ORDER BY u.create_time DESC
+    </select>
+
+    <!-- 根据部门ID查询用户列表 -->
+    <select id="selectUsersByDeptId" parameterType="map" resultMap="SysUserResult" useCache="false">
+        <include refid="selectUserVo"/>
+        WHERE u.status = '0'
+        AND (u.dept_id = #{deptId} OR u.dept_id IN (
+            SELECT dept_id FROM sys_dept WHERE FIND_IN_SET(#{deptId}, ancestors)
+        ))
+        <if test="user != null">
+            <if test="user.username != null and user.username != ''">
+                AND u.username LIKE CONCAT('%', #{user.username}, '%')
+            </if>
+            <if test="user.nickname != null and user.nickname != ''">
+                AND u.nickname LIKE CONCAT('%', #{user.nickname}, '%')
+            </if>
+            <if test="user.realName != null and user.realName != ''">
+                AND u.real_name LIKE CONCAT('%', #{user.realName}, '%')
+            </if>
+            <if test="user.phone != null and user.phone != ''">
+                AND u.phone LIKE CONCAT('%', #{user.phone}, '%')
+            </if>
+            <if test="user.email != null and user.email != ''">
+                AND u.email LIKE CONCAT('%', #{user.email}, '%')
+            </if>
+            <if test="user.status != null and user.status != ''">
+                AND u.status = #{user.status}
+            </if>
+            <if test="user.params != null and user.params.beginTime != null and user.params.beginTime != ''">
+                AND date_format(u.create_time,'%y%m%d') &gt;= date_format(#{user.params.beginTime},'%y%m%d')
+            </if>
+            <if test="user.params != null and user.params.endTime != null and user.params.endTime != ''">
+                AND date_format(u.create_time,'%y%m%d') &lt;= date_format(#{user.params.endTime},'%y%m%d')
+            </if>
+        </if>
+        ORDER BY u.create_time DESC
+    </select>
+
+    <!-- 根据部门ID查询用户列表（仅当前部门） -->
+    <select id="selectUsersByDeptOnly" parameterType="map" resultMap="SysUserResult" useCache="false">
+        <include refid="selectUserVo"/>
+        WHERE u.status = '0'
+        AND u.dept_id = #{deptId}
+        <if test="user != null">
+            <if test="user.username != null and user.username != ''">
+                AND u.username LIKE CONCAT('%', #{user.username}, '%')
+            </if>
+            <if test="user.nickname != null and user.nickname != ''">
+                AND u.nickname LIKE CONCAT('%', #{user.nickname}, '%')
+            </if>
+            <if test="user.realName != null and user.realName != ''">
+                AND u.real_name LIKE CONCAT('%', #{user.realName}, '%')
+            </if>
+            <if test="user.email != null and user.email != ''">
+                AND u.email LIKE CONCAT('%', #{user.email}, '%')
+            </if>
+            <if test="user.phone != null and user.phone != ''">
+                AND u.phone LIKE CONCAT('%', #{user.phone}, '%')
+            </if>
+            <if test="user.status != null and user.status != ''">
+                AND u.status = #{user.status}
+            </if>
+            <if test="user.params != null and user.params.beginTime != null and user.params.beginTime != ''">
+                AND date_format(u.create_time,'%y%m%d') &gt;= date_format(#{user.params.beginTime},'%y%m%d')
+            </if>
+            <if test="user.params != null and user.params.endTime != null and user.params.endTime != ''">
+                AND date_format(u.create_time,'%y%m%d') &lt;= date_format(#{user.params.endTime},'%y%m%d')
+            </if>
+        </if>
+        ORDER BY u.create_time DESC
+    </select>
+
+    <select id="searchUsersByDept" parameterType="map" resultMap="SysUserResult" useCache="false">
+        <include refid="selectUserVo"/>
+        WHERE u.status = '0'
+        <if test="deptId != null">
+            AND (u.dept_id = #{deptId} OR u.dept_id IN (
+                SELECT dept_id FROM sys_dept WHERE FIND_IN_SET(#{deptId}, ancestors)
+            ))
+        </if>
+        <if test="deptType != null and deptType != ''">
+            AND d.dept_type = #{deptType}
+        </if>
+        <if test="user != null">
+            <if test="user.username != null and user.username != ''">
+                AND u.username LIKE CONCAT('%', #{user.username}, '%')
+            </if>
+            <if test="user.nickname != null and user.nickname != ''">
+                AND u.nickname LIKE CONCAT('%', #{user.nickname}, '%')
+            </if>
+            <if test="user.realName != null and user.realName != ''">
+                AND u.real_name LIKE CONCAT('%', #{user.realName}, '%')
+            </if>
+            <if test="user.phone != null and user.phone != ''">
+                AND u.phone LIKE CONCAT('%', #{user.phone}, '%')
+            </if>
+            <if test="user.email != null and user.email != ''">
+                AND u.email LIKE CONCAT('%', #{user.email}, '%')
+            </if>
+            <if test="user.status != null and user.status != ''">
+                AND u.status = #{user.status}
+            </if>
+            <if test="user.params != null and user.params.beginTime != null and user.params.beginTime != ''">
+                AND date_format(u.create_time,'%y%m%d') &gt;= date_format(#{user.params.beginTime},'%y%m%d')
+            </if>
+            <if test="user.params != null and user.params.endTime != null and user.params.endTime != ''">
+                AND date_format(u.create_time,'%y%m%d') &lt;= date_format(#{user.params.endTime},'%y%m%d')
+            </if>
+        </if>
+        ORDER BY u.create_time DESC
+    </select>
+
+    <!-- 根据部门ID列表查询用户 -->
+    <select id="selectUsersByDeptIds" parameterType="java.util.List" resultMap="SysUserResult">
+        <include refid="selectUserVo"/>
+        WHERE u.status = '0'
+        AND u.dept_id IN
+        <foreach collection="deptIds" item="deptId" open="(" separator="," close=")">
+            #{deptId}
+        </foreach>
+        ORDER BY u.create_time DESC
+    </select>
+
+    <!-- 根据部门ID列表统计累计充值金额 -->
+    <select id="sumTotalRechargeByDeptIds" parameterType="map" resultType="map">
+        SELECT
+            u.dept_id AS deptId,
+            COALESCE(SUM(b.total_recharge), 0) AS totalRecharge
+        FROM sys_user u
+        LEFT JOIN user_dr_balance b ON u.user_id = b.user_id
+        WHERE u.status = '0'
+        AND u.dept_id IN
+        <foreach collection="deptIds" item="deptId" open="(" separator="," close=")">
+            #{deptId}
+        </foreach>
+        GROUP BY u.dept_id
+    </select>
+
+    <!-- 根据用户ID列表统计累计充值金额 -->
+    <select id="sumTotalRechargeByUserIds" parameterType="map" resultType="map">
+        SELECT
+            b.user_id AS userId,
+            COALESCE(b.total_recharge, 0) AS totalRecharge
+        FROM user_dr_balance b
+        WHERE b.user_id IN
+        <foreach collection="userIds" item="userId" open="(" separator="," close=")">
+            #{userId}
+        </foreach>
+    </select>
+
+    <!-- 统计用户总数 -->
+    <select id="countUsers" parameterType="com.deepreach.common.core.domain.entity.SysUser" resultType="int">
+        SELECT COUNT(1) FROM sys_user u
+        <where>
+            u.status = '0'
+            <if test="username != null and username != ''">
+                AND u.username LIKE CONCAT('%', #{username}, '%')
+            </if>
+            <if test="nickname != null and nickname != ''">
+                AND u.nickname LIKE CONCAT('%', #{nickname}, '%')
+            </if>
+            <if test="userType != null">
+                AND u.user_type = #{userType}
+            </if>
+            <if test="deptId != null">
+                AND (u.dept_id = #{deptId} OR u.dept_id IN (
+                    SELECT dept_id FROM sys_dept WHERE FIND_IN_SET(#{deptId}, ancestors)
+                ))
+            </if>
+        </where>
+    </select>
+
+    <!-- 统计指定部门的用户数量 -->
+    <select id="countUsersByDeptId" parameterType="Long" resultType="int">
+        SELECT COUNT(1) FROM sys_user
+        WHERE status = '0'
+        AND (dept_id = #{deptId} OR dept_id IN (
+            SELECT dept_id FROM sys_dept WHERE FIND_IN_SET(#{deptId}, ancestors)
+        ))
+    </select>
+
+    <!--
+        ==================== 权限查询方法 ====================
+    -->
+
+    <!-- 查询用户拥有的角色标识集合 -->
+    <select id="selectRoleKeysByUserId" parameterType="Long" resultType="String">
+        SELECT DISTINCT r.role_key
+        FROM sys_user u
+        LEFT JOIN sys_user_role ur ON u.user_id = ur.user_id
+        LEFT JOIN sys_role r ON ur.role_id = r.role_id
+        WHERE u.user_id = #{userId} AND u.status = '0' AND r.status = '0' AND r.del_flag = '0'
+    </select>
+
+    <!-- 查询用户拥有的权限标识集合 -->
+    <select id="selectPermissionsByUserId" parameterType="Long" resultType="String">
+        SELECT DISTINCT m.perms
+        FROM sys_user u
+        LEFT JOIN sys_user_role ur ON u.user_id = ur.user_id
+        LEFT JOIN sys_role_menu rm ON ur.role_id = rm.role_id
+        LEFT JOIN sys_menu m ON rm.menu_id = m.menu_id
+        WHERE u.user_id = #{userId}
+        AND u.status = '0'
+        AND m.status = 0
+        AND m.perms IS NOT NULL
+        AND m.perms != ''
+    </select>
+
+    <!--
+        ==================== CUD操作方法 ====================
+    -->
+
+    <!-- 插入新用户 -->
+    <insert id="insertUser" parameterType="com.deepreach.common.core.domain.entity.SysUser" useGeneratedKeys="true" keyProperty="userId">
+        INSERT INTO sys_user (
+            username, password, nickname, real_name, email, phone, gender, avatar,
+            user_type, status, dept_id, parent_user_id, create_by, create_time, remark
+        ) VALUES (
+            #{username}, #{password}, #{nickname}, #{realName}, #{email}, #{phone}, #{gender}, #{avatar},
+            #{userType}, #{status}, #{deptId}, #{parentUserId}, #{createBy}, #{createTime}, #{remark}
+        )
+    </insert>
+
+    <!-- 更新用户信息 -->
+    <update id="updateUser" parameterType="com.deepreach.common.core.domain.entity.SysUser">
+        UPDATE sys_user
+        <set>
+            <if test="username != null and username != ''">username = #{username},</if>
+            <if test="nickname != null">nickname = #{nickname},</if>
+            <if test="realName != null">real_name = #{realName},</if>
+            <if test="email != null and email != ''">email = #{email},</if>
+            <if test="phone != null and phone != ''">phone = #{phone},</if>
+            <if test="gender != null">gender = #{gender},</if>
+            <if test="avatar != null">avatar = #{avatar},</if>
+            <if test="userType != null">user_type = #{userType},</if>
+            <if test="status != null and status != ''">status = #{status},</if>
+            <if test="deptId != null">dept_id = #{deptId},</if>
+            <if test="parentUserId != null">parent_user_id = #{parentUserId},</if>
+            <if test="updateBy != null and updateBy != ''">update_by = #{updateBy},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            update_time = sysdate()
+        </set>
+        WHERE user_id = #{userId}
+    </update>
+
+    <!-- 更新用户密码 -->
+    <update id="updateUserPassword">
+        UPDATE sys_user
+        SET password = #{password}, update_time = sysdate()
+        WHERE user_id = #{userId}
+    </update>
+
+    <!-- 更新用户状态 -->
+    <update id="updateUserStatus">
+        UPDATE sys_user
+        SET status = #{status}, update_time = sysdate()
+        WHERE user_id = #{userId}
+    </update>
+
+    <!-- 更新用户最后登录信息 -->
+    <update id="updateUserLoginInfo">
+        UPDATE sys_user
+        SET login_ip = #{loginIp}, login_time = #{loginTime}, update_time = sysdate()
+        WHERE user_id = #{userId}
+    </update>
+
+    <!-- 删除用户 -->
+    <delete id="deleteUserById" parameterType="Long">
+        DELETE FROM sys_user WHERE user_id = #{userId}
+    </delete>
+
+    <!-- 批量删除用户 -->
+    <delete id="deleteUserByIds" parameterType="java.util.List">
+        DELETE FROM sys_user WHERE user_id IN
+        <foreach collection="userIds" item="userId" open="(" separator="," close=")">
+            #{userId}
+        </foreach>
+    </delete>
+
+    <!--
+        ==================== 唯一性检查方法 ====================
+    -->
+
+    <!-- 检查用户名是否唯一 -->
+    <select id="checkUsernameUnique" resultType="int">
+        SELECT COUNT(1) FROM sys_user
+        WHERE username = #{username}
+        <if test="userId != null">
+            AND user_id != #{userId}
+        </if>
+    </select>
+
+    <!-- 检查邮箱是否唯一 -->
+    <select id="checkEmailUnique" resultType="int">
+        SELECT COUNT(1) FROM sys_user
+        WHERE email = #{email}
+        <if test="userId != null">
+            AND user_id != #{userId}
+        </if>
+    </select>
+
+    <!-- 检查手机号是否唯一 -->
+    <select id="checkPhoneUnique" resultType="int">
+        SELECT COUNT(1) FROM sys_user
+        WHERE phone = #{phone}
+        <if test="userId != null">
+            AND user_id != #{userId}
+        </if>
+    </select>
+
+    <!--
+        ==================== 角色管理方法 ====================
+    -->
+
+    <!-- 分配用户角色 -->
+    <insert id="assignUserRoles">
+        INSERT INTO sys_user_role (user_id, role_id) VALUES
+        <foreach collection="roleIds" item="roleId" separator=",">
+            (#{userId}, #{roleId})
+        </foreach>
+    </insert>
+
+    <!-- 删除用户的所有角色 -->
+    <delete id="deleteUserRoles" parameterType="Long">
+        DELETE FROM sys_user_role WHERE user_id = #{userId}
+    </delete>
+
+    <!-- 查询用户角色ID列表 -->
+    <select id="selectUserRoleIds" parameterType="Long" resultType="Long">
+        SELECT role_id FROM sys_user_role WHERE user_id = #{userId}
+    </select>
+
+    <!-- 检查部门下是否存在用户 -->
+    <select id="countUsersInDept" parameterType="Long" resultType="int">
+        SELECT COUNT(1) FROM sys_user
+        WHERE status = '0'
+        AND (dept_id = #{deptId} OR dept_id IN (
+            SELECT dept_id FROM sys_dept WHERE FIND_IN_SET(#{deptId}, ancestors)
+        ))
+    </select>
+
+    <!-- 角色结果映射 -->
+    <resultMap id="SysRoleResult" type="com.deepreach.common.core.domain.entity.SysRole">
+        <id property="roleId" column="role_id"/>
+        <result property="roleName" column="role_name"/>
+        <result property="roleKey" column="role_key"/>
+        <result property="roleSort" column="role_sort"/>
+        <result property="dataScope" column="data_scope"/>
+        <result property="status" column="status"/>
+        <result property="delFlag" column="del_flag"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="remark" column="remark"/>
+    </resultMap>
+
+    <!-- 查询用户拥有的角色集合 -->
+    <select id="selectRolesByUserId" parameterType="Long" resultMap="SysRoleResult">
+        SELECT DISTINCT r.role_id, r.role_name, r.role_key, r.role_sort, r.data_scope, r.status, r.del_flag, r.create_time, r.update_time
+        FROM sys_user u
+        LEFT JOIN sys_user_role ur ON u.user_id = ur.user_id
+        LEFT JOIN sys_role r ON ur.role_id = r.role_id
+        WHERE u.user_id = #{userId} AND u.status = '0' AND r.status = '0' AND r.del_flag = '0'
+    </select>
+
+    <!--
+        ==================== 基于部门类型的查询方法 ====================
+    -->
+
+    <!-- 根据部门类型查询用户列表 -->
+    <select id="selectUsersByDeptType" parameterType="String" resultMap="SysUserResult">
+        <include refid="selectUserVo"/>
+        LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0'
+        WHERE u.status = '0' AND d.dept_type = #{deptType}
+        ORDER BY u.create_time DESC
+    </select>
+
+    <!-- 根据父用户ID查询子账号列表 -->
+    <select id="selectSubAccountsByParentUserId" parameterType="Long" resultMap="SysUserResult">
+        <include refid="selectUserVo"/>
+        WHERE u.parent_user_id = #{parentUserId} AND u.status = '0'
+        ORDER BY u.create_time DESC
+    </select>
+
+    <!-- 查询下级用户列表（根据父用户ID） -->
+    <select id="selectSubUsersByParentId" parameterType="Long" resultMap="SysUserResult">
+        <include refid="selectUserVo"/>
+        WHERE u.parent_id = #{parentId} AND u.status = '0'
+        ORDER BY u.create_time DESC
+    </select>
+
+    <!-- 查询买家账户树（总账户及其子账户） -->
+    <select id="selectBuyerAccountTree" parameterType="Long" resultMap="SysUserResult">
+        <include refid="selectUserVo"/>
+        LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0'
+        WHERE (u.user_id = #{userId} OR u.parent_user_id = #{userId})
+        AND u.status = '0'
+        AND d.dept_type IN ('3', '4')
+        ORDER BY d.dept_type, u.create_time DESC
+    </select>
+
+    <!-- 统计指定部门类型的用户数量 -->
+    <select id="countUsersByDeptType" parameterType="String" resultType="int">
+        SELECT COUNT(1) FROM sys_user u
+        LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0'
+        WHERE u.status = '0' AND d.dept_type = #{deptType}
+    </select>
+
+    <!-- 统计指定用户的子账号数量 -->
+    <select id="countSubAccountsByParentUserId" parameterType="Long" resultType="int">
+        SELECT COUNT(1) FROM sys_user
+        WHERE parent_user_id = #{parentUserId} AND status = '0'
+    </select>
+
+    <!-- 查询代理层级用户 -->
+    <select id="selectUsersByAgentLevel" parameterType="Integer" resultMap="SysUserResult">
+        <include refid="selectUserVo"/>
+        LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0'
+        WHERE u.status = '0' AND d.dept_type = '2' AND d.level = #{level}
+        ORDER BY u.create_time DESC
+    </select>
+
+    <!-- 统计指定代理层级的用户数量 -->
+    <select id="countUsersByAgentLevel" parameterType="Integer" resultType="int">
+        SELECT COUNT(1) FROM sys_user u
+        LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0'
+        WHERE u.status = '0' AND d.dept_type = '2' AND d.level = #{level}
+    </select>
+
+    <!-- 查询指定部门及其子部门的用户 -->
+    <select id="selectUsersByDeptAndChildren" parameterType="Long" resultMap="SysUserResult">
+        <include refid="selectUserVo"/>
+        WHERE u.status = '0'
+        AND (u.dept_id = #{deptId} OR u.dept_id IN (
+            SELECT dept_id FROM sys_dept WHERE FIND_IN_SET(#{deptId}, ancestors)
+        ))
+        ORDER BY u.create_time DESC
+    </select>
+
+    <!-- 根据部门祖先路径查询用户 -->
+    <select id="selectUsersByDeptAncestors" parameterType="String" resultMap="SysUserResult">
+        <include refid="selectUserVo"/>
+        LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0'
+        WHERE u.status = '0'
+        AND (FIND_IN_SET(#{ancestors}, d.ancestors) OR d.ancestors LIKE CONCAT('%', #{ancestors}, '%') OR d.ancestors = #{ancestors})
+        ORDER BY u.create_time DESC
+    </select>
+
+    <!-- 查询同级部门用户 -->
+    <select id="selectSameDeptLevelUsers" parameterType="Long" resultMap="SysUserResult">
+        <include refid="selectUserVo"/>
+        LEFT JOIN sys_dept d1 ON u.dept_id = d1.dept_id AND d1.del_flag = '0'
+        LEFT JOIN sys_dept d2 ON d1.parent_id = d2.parent_id AND d2.del_flag = '0'
+        LEFT JOIN sys_user u2 ON u2.dept_id = d2.dept_id AND u2.status = '0'
+        WHERE u2.user_id = #{userId}
+        ORDER BY u.create_time DESC
+    </select>
+
+    <!-- 检查用户是否属于指定部门类型 -->
+    <select id="checkUserDeptType" resultType="boolean">
+        SELECT CASE
+            WHEN COUNT(1) > 0 THEN true
+            ELSE false
+        END
+        FROM sys_user u
+        LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0'
+        WHERE u.user_id = #{userId} AND u.status = '0' AND d.dept_type = #{deptType}
+    </select>
+
+    <!-- 检查用户是否可以创建子账号 -->
+    <select id="checkCanCreateSubAccount" parameterType="Long" resultType="boolean">
+        SELECT CASE
+            WHEN d.dept_type = '3' THEN true
+            ELSE false
+        END
+        FROM sys_user u
+        LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0'
+        WHERE u.user_id = #{userId}
+        AND u.status = '0'
+        AND d.dept_type = '3'
+    </select>
+
+    <!-- 为用户分配角色 -->
+    <insert id="insertUserRole">
+        INSERT INTO sys_user_role (user_id, role_id)
+        VALUES (#{userId}, #{roleId})
+    </insert>
+
+    <!--
+        ==================== 统计相关查询方法 ====================
+    -->
+
+    <!-- 根据部门ID列表统计各部门用户数量 -->
+    <select id="countUsersByDeptIds" parameterType="map" resultType="map">
+        SELECT
+            CASE
+                WHEN d.dept_type = '1' THEN 'system_users'
+                WHEN d.dept_type = '2' THEN 'agent_users'
+                WHEN d.dept_type = '3' THEN 'buyer_main_users'
+                WHEN d.dept_type = '4' THEN 'buyer_sub_users'
+                ELSE 'other_users'
+            END as user_type,
+            COUNT(*) as count
+        FROM sys_user u
+        INNER JOIN sys_dept d ON u.dept_id = d.dept_id
+        WHERE u.status = '0'
+        AND d.del_flag = '0'
+        AND d.dept_id IN
+        <foreach collection="deptIds" item="deptId" open="(" separator="," close=")">
+            #{deptId}
+        </foreach>
+        GROUP BY
+            CASE
+                WHEN d.dept_type = '1' THEN 'system_users'
+                WHEN d.dept_type = '2' THEN 'agent_users'
+                WHEN d.dept_type = '3' THEN 'buyer_main_users'
+                WHEN d.dept_type = '4' THEN 'buyer_sub_users'
+                ELSE 'other_users'
+            END
+    </select>
+
+    <!-- 按实例类型统计数量 -->
+    <select id="countInstancesByType" parameterType="map" resultType="map">
+        SELECT
+            i.instance_type AS instanceType,
+            COUNT(*) AS count
+        FROM ai_instance i
+        WHERE i.user_id IN
+        <foreach collection="userIds" item="userId" open="(" separator="," close=")">
+            #{userId}
+        </foreach>
+        GROUP BY i.instance_type
+    </select>
+
+    <!-- 按平台统计指定类型实例数量 -->
+    <select id="countInstancesByPlatform" parameterType="map" resultType="map">
+        SELECT
+            COALESCE(i.platform_id, 0) AS platformId,
+            COALESCE(p.platform_name, 'UNKNOWN_PLATFORM') AS platformName,
+            COUNT(*) AS count
+        FROM ai_instance i
+        LEFT JOIN platform p ON i.platform_id = p.platform_id
+        WHERE i.instance_type = #{instanceType}
+          AND i.user_id IN
+        <foreach collection="userIds" item="userId" open="(" separator="," close=")">
+            #{userId}
+        </foreach>
+        GROUP BY COALESCE(i.platform_id, 0), COALESCE(p.platform_name, 'UNKNOWN_PLATFORM')
+    </select>
+
+    <!-- 按类型统计AI人设数量 -->
+    <select id="countAiCharactersByType" parameterType="map" resultType="map">
+        SELECT
+            COALESCE(c.type, 'unknown') AS type,
+            COUNT(*) AS count
+        FROM ai_character c
+        WHERE c.user_id IN
+        <foreach collection="userIds" item="userId" open="(" separator="," close=")">
+            #{userId}
+        </foreach>
+        GROUP BY COALESCE(c.type, 'unknown')
+    </select>
+
+    <!-- 查询平台列表 -->
+    <select id="selectAllPlatforms" resultType="map">
+        SELECT
+            platform_id AS platformId,
+            COALESCE(platform_name, 'UNKNOWN_PLATFORM') AS platformName,
+            COALESCE(platform_type, 'unknown') AS platformType
+        FROM platform
+        WHERE status = '0'
+        ORDER BY platform_id
+    </select>
+
+</mapper>

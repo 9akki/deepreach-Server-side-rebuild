@@ -1,0 +1,162 @@
+package com.deepreach.web.controller;
+
+import com.deepreach.common.web.BaseController;
+import com.deepreach.common.web.Result;
+import com.deepreach.web.dto.AgentCommissionAccountDTO;
+import com.deepreach.web.dto.AgentCommissionAdjustRequest;
+import com.deepreach.web.dto.AgentCommissionRecordDTO;
+import com.deepreach.web.dto.AgentCommissionRecordQuery;
+import com.deepreach.web.dto.AgentCommissionOverviewRequest;
+import com.deepreach.web.dto.AgentCommissionOverviewResponse;
+import com.deepreach.web.dto.CommissionSettlementApplyRequest;
+import com.deepreach.web.dto.CommissionSettlementApproveRequest;
+import com.deepreach.web.dto.CommissionSettlementRejectRequest;
+import com.deepreach.web.entity.AgentCommissionSettlement;
+import com.deepreach.web.service.AgentCommissionService;
+import jakarta.validation.constraints.NotNull;
+import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
+
+import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
+@Validated
+@RestController
+@RequestMapping("/agent/commission")
+@RequiredArgsConstructor
+public class AgentCommissionController extends BaseController {
+
+    private final AgentCommissionService agentCommissionService;
+
+    /**
+     * 代理申请佣金结算
+     */
+    @PostMapping("/settlement/apply")
+    public Result<AgentCommissionSettlement> apply(@Validated @RequestBody CommissionSettlementApplyRequest request) {
+        Long currentUserId = getCurrentUserId();
+        try {
+            AgentCommissionSettlement settlement = agentCommissionService.applySettlement(
+                currentUserId,
+                request.getAmount(),
+                currentUserId,
+                request.getRemark()
+            );
+            return success(settlement);
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            return Result.error(400, ex.getMessage());
+        }
+    }
+
+    /**
+     * 审批通过
+     */
+    @PostMapping("/settlement/{id}/approve")
+    public Result<AgentCommissionSettlement> approve(@PathVariable("id") @NotNull Long settlementId,
+                                                     @Validated @RequestBody CommissionSettlementApproveRequest request) {
+        Long operatorId = getCurrentUserId();
+        AgentCommissionSettlement settlement = agentCommissionService.approveSettlement(
+            settlementId,
+            request.getApprovedAmount(),
+            operatorId,
+            request.getRemark()
+        );
+        return success(settlement);
+    }
+
+    /**
+     * 审批拒绝
+     */
+    @PostMapping("/settlement/{id}/reject")
+    public Result<AgentCommissionSettlement> reject(@PathVariable("id") @NotNull Long settlementId,
+                                                    @Validated @RequestBody CommissionSettlementRejectRequest request) {
+        Long operatorId = getCurrentUserId();
+        AgentCommissionSettlement settlement = agentCommissionService.rejectSettlement(
+            settlementId,
+            operatorId,
+            request.getRemark()
+        );
+        return success(settlement);
+    }
+
+    /**
+     * 管理员获取进行中的结算请求
+     */
+    @GetMapping("/settlement/admin/in-progress")
+    public Result<List<AgentCommissionSettlement>> listInProgressSettlements() {
+        List<AgentCommissionSettlement> settlements = agentCommissionService.listSettlementsByStatuses(
+            Collections.singletonList(AgentCommissionSettlement.STATUS_PENDING)
+        );
+        return success(settlements);
+    }
+
+    /**
+     * 管理员获取已处理完成的结算记录
+     */
+    @GetMapping("/settlement/admin/completed")
+    public Result<List<AgentCommissionSettlement>> listCompletedSettlements() {
+        List<AgentCommissionSettlement> settlements = agentCommissionService.listSettlementsByStatuses(
+            Arrays.asList(
+                AgentCommissionSettlement.STATUS_APPROVED,
+                AgentCommissionSettlement.STATUS_REJECTED,
+                AgentCommissionSettlement.STATUS_CANCELLED
+            )
+        );
+        return success(settlements);
+    }
+
+    /**
+     * 获取代理佣金账户
+     */
+    @GetMapping("/account/{agentUserId}")
+    public Result<AgentCommissionAccountDTO> getAccount(@PathVariable Long agentUserId) {
+        AgentCommissionAccountDTO account = agentCommissionService.getCommissionAccount(agentUserId);
+        return success(account);
+    }
+
+    /**
+     * 获取代理佣金明细
+     */
+    @PostMapping("/{agentUserId}/records")
+    public Result<?> getRecords(@PathVariable Long agentUserId,
+                                @RequestBody(required = false) AgentCommissionRecordQuery query) {
+        java.util.List<AgentCommissionRecordDTO> records = agentCommissionService.getCommissionRecords(agentUserId, query);
+        return success(records);
+    }
+
+    /**
+     * 获取伞下代理佣金概览
+     */
+    @PostMapping("/overview")
+    public Result<AgentCommissionOverviewResponse> getOverview(@RequestBody(required = false) AgentCommissionOverviewRequest request) {
+        Long currentUserId = getCurrentUserId();
+        AgentCommissionOverviewResponse response = agentCommissionService.getAgentCommissionOverview(currentUserId, request);
+        return success(response);
+    }
+
+    /**
+     * 手动调整代理佣金
+     */
+    @PostMapping("/manual-adjust")
+    public Result<AgentCommissionAccountDTO> manualAdjust(@Validated @RequestBody AgentCommissionAdjustRequest request) {
+        Long operatorId = getCurrentUserId();
+        AgentCommissionAccountDTO dto = agentCommissionService.manualAdjustCommission(
+            request.getAgentUserId(),
+            request.getAmount(),
+            operatorId,
+            request.getRemark()
+        );
+        return success("调整成功", dto);
+    }
+
+    /**
+     * 获取所有代理已结算佣金总额
+     */
+    @GetMapping("/settlement/total")
+    public Result<BigDecimal> getTotalSettledCommission() {
+        BigDecimal total = agentCommissionService.sumSettledCommission();
+        return success(total);
+    }
+}

@@ -1,0 +1,388 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.deepreach.common.core.mapper.SysRoleMapper">
+
+    <!-- 角色基本信息结果映射 -->
+    <resultMap id="SysRoleResult" type="com.deepreach.common.core.domain.entity.SysRole">
+        <id property="roleId" column="role_id"/>
+        <result property="roleName" column="role_name"/>
+        <result property="roleKey" column="role_key"/>
+        <result property="roleSort" column="role_sort"/>
+        <result property="dataScope" column="data_scope"/>
+        <result property="menuCheckStrictly" column="menu_check_strictly"/>
+        <result property="deptCheckStrictly" column="dept_check_strictly"/>
+        <result property="status" column="status"/>
+        <result property="delFlag" column="del_flag"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="remark" column="remark"/>
+    </resultMap>
+
+    <!-- 角色完整信息结果映射（包含菜单权限） -->
+    <resultMap id="SysRoleWithMenusResult" type="com.deepreach.common.core.domain.entity.SysRole" extends="SysRoleResult">
+        <!-- 菜单权限 -->
+        <collection property="menus" ofType="com.deepreach.common.core.domain.entity.SysMenu">
+            <id property="menuId" column="menu_id"/>
+            <result property="menuName" column="menu_name"/>
+            <result property="parentId" column="parent_id"/>
+            <result property="orderNum" column="order_num"/>
+            <result property="path" column="path"/>
+            <result property="component" column="component"/>
+            <result property="query" column="query"/>
+            <result property="isFrame" column="is_frame"/>
+            <result property="isCache" column="is_cache"/>
+            <result property="menuType" column="menu_type"/>
+            <result property="visible" column="visible"/>
+            <result property="status" column="menu_status"/>
+            <result property="perms" column="perms"/>
+            <result property="icon" column="icon"/>
+            <result property="createTime" column="menu_create_time"/>
+            <result property="updateTime" column="menu_update_time"/>
+            <result property="remark" column="menu_remark"/>
+        </collection>
+    </resultMap>
+
+    <!-- 角色基本信息字段 -->
+    <sql id="selectRoleVo">
+        SELECT r.role_id, r.role_name, r.role_key, r.role_sort, r.data_scope,
+               r.menu_check_strictly, r.dept_check_strictly, r.status, r.del_flag,
+               r.create_by, r.create_time, r.update_by, r.update_time, r.remark
+        FROM sys_role r
+    </sql>
+
+    <!-- 角色完整信息字段（包含菜单权限） -->
+    <sql id="selectRoleWithMenusVo">
+        SELECT
+            r.role_id, r.role_name, r.role_key, r.role_sort, r.data_scope,
+            r.menu_check_strictly, r.dept_check_strictly, r.status, r.del_flag,
+            r.create_by, r.create_time, r.update_by, r.update_time, r.remark,
+            m.menu_id, m.menu_name, m.parent_id, m.order_num, m.path, m.component,
+            m.query, m.is_frame, m.is_cache, m.menu_type, m.visible, m.status as menu_status,
+            m.perms, m.icon, m.create_time as menu_create_time, m.update_time as menu_update_time, m.remark as menu_remark
+        FROM sys_role r
+        LEFT JOIN sys_role_menu rm ON r.role_id = rm.role_id
+        LEFT JOIN sys_menu m ON rm.menu_id = m.menu_id
+    </sql>
+
+    <!--
+        ==================== 基础查询方法 ====================
+    -->
+
+    <!-- 根据角色ID查询角色信息 -->
+    <select id="selectRoleById" parameterType="Long" resultMap="SysRoleResult">
+        <include refid="selectRoleVo"/>
+        WHERE role_id = #{roleId}
+    </select>
+
+    <!-- 根据角色标识查询角色信息 -->
+    <select id="selectRoleByKey" parameterType="String" resultMap="SysRoleResult">
+        <include refid="selectRoleVo"/>
+        WHERE role_key = #{roleKey}
+    </select>
+
+    <!-- 查询角色的完整信息（包含菜单权限） -->
+    <select id="selectRoleWithMenus" parameterType="Long" resultMap="SysRoleWithMenusResult">
+        <include refid="selectRoleWithMenusVo"/>
+        WHERE r.role_id = #{roleId} AND r.del_flag = '0'
+        ORDER BY m.order_num
+    </select>
+
+    <!-- 查询角色列表（分页，支持多条件查询） -->
+    <select id="selectRoleList" parameterType="com.deepreach.common.core.domain.entity.SysRole" resultMap="SysRoleResult">
+        <include refid="selectRoleVo"/>
+        <where>
+            r.del_flag = '0'
+            <if test="roleName != null and roleName != ''">
+                AND r.role_name LIKE CONCAT('%', #{roleName}, '%')
+            </if>
+            <if test="roleKey != null and roleKey != ''">
+                AND r.role_key LIKE CONCAT('%', #{roleKey}, '%')
+            </if>
+            <if test="status != null and status != ''">
+                AND r.status = #{status}
+            </if>
+            <if test="dataScope != null and dataScope != ''">
+                AND r.data_scope = #{dataScope}
+            </if>
+            <if test="params.beginTime != null and params.beginTime != ''">
+                AND date_format(r.create_time,'%y%m%d') &gt;= date_format(#{params.beginTime},'%y%m%d')
+            </if>
+            <if test="params.endTime != null and params.endTime != ''">
+                AND date_format(r.create_time,'%y%m%d') &lt;= date_format(#{params.endTime},'%y%m%d')
+            </if>
+        </where>
+        ORDER BY r.role_sort
+    </select>
+
+    <!-- 查询所有正常状态的角色 -->
+    <select id="selectAllNormalRoles" resultMap="SysRoleResult">
+        <include refid="selectRoleVo"/>
+        WHERE r.status = '0' AND r.del_flag = '0'
+        ORDER BY r.role_sort
+    </select>
+
+    <!-- 查询指定用户拥有的角色列表 -->
+    <select id="selectRolesByUserId" parameterType="Long" resultMap="SysRoleResult">
+        <include refid="selectRoleVo"/>
+        LEFT JOIN sys_user_role ur ON r.role_id = ur.role_id
+        WHERE ur.user_id = #{userId} AND r.status = '0' AND r.del_flag = '0'
+        ORDER BY r.role_sort
+    </select>
+
+    <!-- 统计角色总数 -->
+    <select id="countRoles" parameterType="com.deepreach.common.core.domain.entity.SysRole" resultType="int">
+        SELECT COUNT(1) FROM sys_role r
+        <where>
+            r.del_flag = '0'
+            <if test="roleName != null and roleName != ''">
+                AND r.role_name LIKE CONCAT('%', #{roleName}, '%')
+            </if>
+            <if test="status != null and status != ''">
+                AND r.status = #{status}
+            </if>
+            <if test="dataScope != null and dataScope != ''">
+                AND r.data_scope = #{dataScope}
+            </if>
+        </where>
+    </select>
+
+    <!--
+        ==================== 关联查询方法 ====================
+    -->
+
+    <!-- 查询角色关联的菜单ID列表 -->
+    <select id="selectMenuIdsByRoleId" parameterType="Long" resultType="Long">
+        SELECT menu_id FROM sys_role_menu WHERE role_id = #{roleId}
+    </select>
+
+    <!-- 查询角色关联的部门ID列表 -->
+    <select id="selectDeptIdsByRoleId" parameterType="Long" resultType="Long">
+        SELECT DISTINCT u.dept_id
+        FROM sys_user u
+        INNER JOIN sys_user_role ur ON u.user_id = ur.user_id
+        WHERE ur.role_id = #{roleId} AND u.dept_id IS NOT NULL
+    </select>
+
+    <!-- 查询角色关联的用户数量 -->
+    <select id="countUsersByRoleId" parameterType="Long" resultType="int">
+        SELECT COUNT(1) FROM sys_user_role WHERE role_id = #{roleId}
+    </select>
+
+    <!-- 查询角色的菜单权限标识列表 -->
+    <select id="selectPermissionsByRoleId" parameterType="Long" resultType="String">
+        SELECT DISTINCT m.perms
+        FROM sys_role r
+        LEFT JOIN sys_role_menu rm ON r.role_id = rm.role_id
+        LEFT JOIN sys_menu m ON rm.menu_id = m.menu_id
+        WHERE r.role_id = #{roleId}
+        AND r.status = '0' AND r.del_flag = '0'
+        AND m.status = 0
+        AND m.perms IS NOT NULL
+        AND m.perms != ''
+    </select>
+
+    <!-- 检查角色是否有指定菜单权限 -->
+    <select id="checkRoleHasMenu" resultType="boolean">
+        SELECT COUNT(1) > 0
+        FROM sys_role_menu
+        WHERE role_id = #{roleId} AND menu_id = #{menuId}
+    </select>
+
+    <!-- 检查角色是否有指定权限标识 -->
+    <select id="checkRoleHasPermission" resultType="boolean">
+        SELECT COUNT(1) > 0
+        FROM sys_role r
+        LEFT JOIN sys_role_menu rm ON r.role_id = rm.role_id
+        LEFT JOIN sys_menu m ON rm.menu_id = m.menu_id
+        WHERE r.role_id = #{roleId}
+        AND r.status = '0' AND r.del_flag = '0'
+        AND m.status = 0
+        AND m.perms = #{permission}
+    </select>
+
+    <!-- 查询指定菜单权限的所有角色 -->
+    <select id="selectRolesByMenuId" parameterType="Long" resultMap="SysRoleResult">
+        <include refid="selectRoleVo"/>
+        LEFT JOIN sys_role_menu rm ON r.role_id = rm.role_id
+        WHERE rm.menu_id = #{menuId} AND r.status = '0' AND r.del_flag = '0'
+        ORDER BY r.role_sort
+    </select>
+
+    <!-- 查询指定权限标识的所有角色 -->
+    <select id="selectRolesByPermission" parameterType="String" resultMap="SysRoleResult">
+        <include refid="selectRoleVo"/>
+        LEFT JOIN sys_role_menu rm ON r.role_id = rm.role_id
+        LEFT JOIN sys_menu m ON rm.menu_id = m.menu_id
+        WHERE m.perms = #{permission}
+        AND r.status = '0' AND r.del_flag = '0'
+        AND m.status = 0
+        ORDER BY r.role_sort
+    </select>
+
+    <!-- 获取角色统计信息 -->
+    <select id="getRoleStatistics" parameterType="Long" resultType="java.util.Map">
+        SELECT
+            (SELECT COUNT(1) FROM sys_user_role WHERE role_id = #{roleId}) as userCount,
+            (SELECT COUNT(1) FROM sys_role_menu WHERE role_id = #{roleId}) as menuCount,
+            (SELECT COUNT(DISTINCT u.dept_id) FROM sys_user u INNER JOIN sys_user_role ur ON u.user_id = ur.user_id WHERE ur.role_id = #{roleId} AND u.dept_id IS NOT NULL) as deptCount,
+            (SELECT COUNT(1) FROM sys_user_role ur
+             LEFT JOIN sys_user u ON ur.user_id = u.user_id
+             WHERE ur.role_id = #{roleId} AND u.status = '0') as activeUserCount
+    </select>
+
+    <!--
+        ==================== CUD操作方法 ====================
+    -->
+
+    <!-- 插入新角色 -->
+    <insert id="insertRole" parameterType="com.deepreach.common.core.domain.entity.SysRole" useGeneratedKeys="true" keyProperty="roleId">
+        INSERT INTO sys_role (
+            role_name, role_key, role_sort, data_scope,
+            menu_check_strictly, dept_check_strictly, status, del_flag,
+            dept_type, create_by, create_time, remark
+        ) VALUES (
+            #{roleName}, #{roleKey}, #{roleSort}, #{dataScope},
+            #{menuCheckStrictly}, #{deptCheckStrictly}, #{status}, #{delFlag},
+            #{deptType}, #{createBy}, #{createTime}, #{remark}
+        )
+    </insert>
+
+    <!-- 更新角色信息 -->
+    <update id="updateRole" parameterType="com.deepreach.common.core.domain.entity.SysRole">
+        UPDATE sys_role
+        <set>
+            <if test="roleName != null and roleName != ''">role_name = #{roleName},</if>
+            <if test="roleKey != null and roleKey != ''">role_key = #{roleKey},</if>
+            <if test="roleSort != null">role_sort = #{roleSort},</if>
+            <if test="dataScope != null and dataScope != ''">data_scope = #{dataScope},</if>
+            <if test="menuCheckStrictly != null">menu_check_strictly = #{menuCheckStrictly},</if>
+            <if test="deptCheckStrictly != null">dept_check_strictly = #{deptCheckStrictly},</if>
+            <if test="status != null and status != ''">status = #{status},</if>
+            <if test="deptType != null and deptType != ''">dept_type = #{deptType},</if>
+            <if test="updateBy != null and updateBy != ''">update_by = #{updateBy},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            update_time = sysdate()
+        </set>
+        WHERE role_id = #{roleId}
+    </update>
+
+    <!-- 更新角色状态 -->
+    <update id="updateRoleStatus">
+        UPDATE sys_role
+        SET status = #{status}, update_time = sysdate()
+        WHERE role_id = #{roleId}
+    </update>
+
+    <!-- 删除角色 -->
+    <delete id="deleteRoleById" parameterType="Long">
+        DELETE FROM sys_role WHERE role_id = #{roleId}
+    </delete>
+
+    <!-- 批量删除角色 -->
+    <delete id="deleteRoleByIds" parameterType="java.util.List">
+        DELETE FROM sys_role WHERE role_id IN
+        <foreach collection="roleIds" item="roleId" open="(" separator="," close=")">
+            #{roleId}
+        </foreach>
+    </delete>
+
+    <!--
+        ==================== 唯一性检查方法 ====================
+    -->
+
+    <!-- 检查角色名称是否唯一 -->
+    <select id="checkRoleNameUnique" resultType="int">
+        SELECT COUNT(1) FROM sys_role
+        WHERE role_name = #{roleName}
+        <if test="roleId != null">
+            AND role_id != #{roleId}
+        </if>
+    </select>
+
+    <!-- 检查角色标识是否唯一 -->
+    <select id="checkRoleKeyUnique" resultType="int">
+        SELECT COUNT(1) FROM sys_role
+        WHERE role_key = #{roleKey}
+        <if test="roleId != null">
+            AND role_id != #{roleId}
+        </if>
+    </select>
+
+    <!--
+        ==================== 权限管理方法 ====================
+    -->
+
+    <!-- 分配角色菜单权限 -->
+    <insert id="assignRoleMenus">
+        INSERT INTO sys_role_menu (role_id, menu_id) VALUES
+        <foreach collection="menuIds" item="menuId" separator=",">
+            (#{roleId}, #{menuId})
+        </foreach>
+    </insert>
+
+    <!-- 删除角色的所有菜单权限 -->
+    <delete id="deleteRoleMenus" parameterType="Long">
+        DELETE FROM sys_role_menu WHERE role_id = #{roleId}
+    </delete>
+
+    
+    
+    <!-- 复制角色权限 -->
+    <insert id="copyRolePermissions">
+        -- 复制菜单权限
+        INSERT INTO sys_role_menu (role_id, menu_id)
+        SELECT #{targetRoleId}, menu_id FROM sys_role_menu WHERE role_id = #{sourceRoleId};
+
+            </insert>
+
+    <!--
+        ==================== 账户体系查询方法 ====================
+    -->
+
+    
+    
+    
+    
+    
+    <!-- 查询用户角色权限详情 -->
+    <select id="selectUserRolePermissionDetails" parameterType="Long" resultType="java.util.Map">
+        SELECT
+            u.user_id,
+            u.username,
+            u.account_type,
+            r.role_id,
+            r.role_name,
+            r.role_key,
+            r.role_category,
+            r.max_create_level,
+            r.max_child_accounts,
+            r.can_view_performance,
+            r.can_create_accounts,
+            r.can_recharge,
+            r.can_view_billing,
+            r.can_config_price,
+            d.dept_name,
+            d.agent_code
+        FROM sys_user u
+        LEFT JOIN sys_user_role ur ON u.user_id = ur.user_id
+        LEFT JOIN sys_role r ON ur.role_id = r.role_id
+        LEFT JOIN sys_dept d ON u.dept_id = d.dept_id
+        WHERE u.user_id = #{userId}
+        AND u.status = '0'
+        AND r.status = '0'
+        AND r.del_flag = '0'
+    </select>
+
+    <!-- 根据角色标识查询角色ID -->
+    <select id="selectRoleIdByKey" parameterType="String" resultType="Long">
+        SELECT role_id
+        FROM sys_role
+        WHERE role_key = #{roleKey}
+        AND status = '0'
+        AND del_flag = '0'
+        LIMIT 1
+    </select>
+
+</mapper>

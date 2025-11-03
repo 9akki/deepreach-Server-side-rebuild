@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.deepreach.web.mapper.CloudUserMapper">
+
+    <resultMap type="com.deepreach.common.core.domain.entity.CloudUser" id="CloudUserResult">
+        <id     property="id"             column="id"               />
+        <result property="clientUsername"   column="client_username"    />
+        <result property="endUserId"       column="end_user_id"       />
+        <result property="realNickName"    column="real_nick_name"    />
+        <result property="password"         column="password"           />
+        <result property="email"           column="email"              />
+        <result property="phone"           column="phone"              />
+        <result property="ownerType"       column="owner_type"         />
+        <result property="remark"          column="remark"             />
+        <result property="orgid"           column="orgid"              />
+        <result property="isNew"           column="is_new"             />
+    </resultMap>
+
+    <sql id="selectCloudUserVo">
+        select id, client_username, end_user_id, real_nick_name, password, email, phone,
+               owner_type, remark, orgid, is_new
+        from t_cloud_user
+    </sql>
+
+    <select id="selectById" parameterType="Long" resultMap="CloudUserResult">
+        <include refid="selectCloudUserVo"/>
+        where id = #{id}
+    </select>
+
+    <select id="selectByEndUserId" parameterType="String" resultMap="CloudUserResult">
+        <include refid="selectCloudUserVo"/>
+        where end_user_id = #{endUserId}
+    </select>
+
+    <select id="selectByClientUsername" parameterType="String" resultMap="CloudUserResult">
+        <include refid="selectCloudUserVo"/>
+        where client_username = #{clientUsername}
+    </select>
+
+    <select id="selectAll" resultMap="CloudUserResult">
+        <include refid="selectCloudUserVo"/>
+        order by create_time desc
+    </select>
+
+    <select id="selectByCondition" parameterType="com.deepreach.common.core.domain.entity.CloudUser" resultMap="CloudUserResult">
+        <include refid="selectCloudUserVo"/>
+        <where>
+            <if test="endUserId != null and endUserId != ''">
+                and end_user_id = #{endUserId}
+            </if>
+            <if test="clientUsername != null and clientUsername != ''">
+                and client_username like concat('%', #{clientUsername}, '%')
+            </if>
+            <if test="realNickName != null and realNickName != ''">
+                and real_nick_name like concat('%', #{realNickName}, '%')
+            </if>
+            <if test="email != null and email != ''">
+                and email like concat('%', #{email}, '%')
+            </if>
+            <if test="phone != null and phone != ''">
+                and phone like concat('%', #{phone}, '%')
+            </if>
+            <if test="ownerType != null and ownerType != ''">
+                and owner_type = #{ownerType}
+            </if>
+            <if test="orgid != null and orgid != ''">
+                and orgid = #{orgid}
+            </if>
+            <if test="isNew != null">
+                and is_new = #{isNew}
+            </if>
+        </where>
+        order by create_time desc
+    </select>
+
+    <insert id="insert" parameterType="com.deepreach.common.core.domain.entity.CloudUser" useGeneratedKeys="true" keyProperty="id">
+        insert into t_cloud_user(
+            <if test="clientUsername != null and clientUsername != ''">client_username,</if>
+            <if test="endUserId != null and endUserId != ''">end_user_id,</if>
+            <if test="realNickName != null and realNickName != ''">real_nick_name,</if>
+            <if test="password != null and password != ''">password,</if>
+            <if test="email != null and email != ''">email,</if>
+            <if test="phone != null and phone != ''">phone,</if>
+            <if test="ownerType != null and ownerType != ''">owner_type,</if>
+            <if test="remark != null and remark != ''">remark,</if>
+            <if test="orgid != null and orgid != ''">orgid,</if>
+            <if test="isNew != null">is_new,</if>
+            create_time
+        )values(
+            <if test="clientUsername != null and clientUsername != ''">#{clientUsername},</if>
+            <if test="endUserId != null and endUserId != ''">#{endUserId},</if>
+            <if test="realNickName != null and realNickName != ''">#{realNickName},</if>
+            <if test="password != null and password != ''">#{password},</if>
+            <if test="email != null and email != ''">#{email},</if>
+            <if test="phone != null and phone != ''">#{phone},</if>
+            <if test="ownerType != null and ownerType != ''">#{ownerType},</if>
+            <if test="remark != null and remark != ''">#{remark},</if>
+            <if test="orgid != null and orgid != ''">#{orgid},</if>
+            <if test="isNew != null">#{isNew},</if>
+            sysdate()
+        )
+    </insert>
+
+    <update id="updateById" parameterType="com.deepreach.common.core.domain.entity.CloudUser">
+        update t_cloud_user
+        <set>
+            <if test="clientUsername != null and clientUsername != ''">client_username = #{clientUsername},</if>
+            <if test="endUserId != null and endUserId != ''">end_user_id = #{endUserId},</if>
+            <if test="realNickName != null and realNickName != ''">real_nick_name = #{realNickName},</if>
+            <if test="password != null and password != ''">password = #{password},</if>
+            <if test="email != null and email != ''">email = #{email},</if>
+            <if test="phone != null and phone != ''">phone = #{phone},</if>
+            <if test="ownerType != null and ownerType != ''">owner_type = #{ownerType},</if>
+            <if test="remark != null and remark != ''">remark = #{remark},</if>
+            <if test="orgid != null and orgid != ''">orgid = #{orgid},</if>
+            <if test="isNew != null">is_new = #{isNew},</if>
+            update_time = sysdate()
+        </set>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteById" parameterType="Long">
+        delete from t_cloud_user where id = #{id}
+    </delete>
+
+    <select id="checkEndUserIdUnique" parameterType="String" resultType="int">
+        select count(1) from t_cloud_user 
+        where end_user_id = #{endUserId} 
+        <if test="id != null">
+            and id != #{id}
+        </if>
+        limit 1
+    </select>
+
+    <update id="updateStatus">
+        update t_cloud_user set status = #{status}, update_time = sysdate() where id = #{id}
+    </update>
+
+</mapper>

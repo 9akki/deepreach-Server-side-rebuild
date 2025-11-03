@@ -1,0 +1,890 @@
+2025-11-04 00:00:00 [scheduling-1] INFO  c.d.web.task.InstanceBillingTask - 开始执行每日实例计费任务，执行时间：2025-11-04T00:00:00.013764
+2025-11-04 00:00:00 [scheduling-1] DEBUG c.d.w.m.A.selectAllInstances - ==>  Preparing: SELECT instance_id, instance_name, user_id, platform_id, instance_type, 1 as status, '' as config, 0 as total_billed_days, 0 as total_billed_amount, create_time, update_time, '' as remark FROM ai_instance ORDER BY create_time DESC
+2025-11-04 00:00:00 [scheduling-1] DEBUG c.d.w.m.A.selectAllInstances - ==> Parameters: 
+2025-11-04 00:00:00 [scheduling-1] DEBUG c.d.w.m.A.selectAllInstances - <==      Total: 31
+2025-11-04 00:00:00 [scheduling-1] INFO  c.d.web.task.InstanceBillingTask - 查询到实例数量：31
+2025-11-04 00:00:00 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==>  Preparing: SELECT u.user_id, u.username, u.password, u.nickname, u.real_name, u.email, u.phone, u.gender, u.avatar, u.user_type, u.status, u.dept_id, u.parent_user_id, u.login_ip, u.login_time, u.create_by, u.create_time, u.update_by, u.update_time, u.remark, d.dept_id, d.parent_id, d.ancestors, d.dept_name, d.order_num as dept_order_num, d.leader as dept_leader, d.phone as dept_phone, d.email as dept_email, d.status as dept_status, d.del_flag as dept_del_flag, d.dept_type, d.level, d.leader_user_id AS leader_id, leader.nickname AS leader_nickname, r.role_id, r.role_name, r.role_key, r.role_sort, r.data_scope, r.menu_check_strictly, r.dept_check_strictly, r.status as role_status, r.del_flag as role_del_flag, r.create_time as role_create_time, r.update_time as role_update_time, r.remark as role_remark, r.dept_type FROM sys_user u LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0' LEFT JOIN sys_user leader ON d.leader_user_id = leader.user_id LEFT JOIN sys_user_role ur ON u.user_id = ur.user_id LEFT JOIN sys_role r ON ur.role_id = r.role_id AND r.del_flag = '0' WHERE u.user_id = ? AND u.status = '0' ORDER BY r.role_sort
+2025-11-04 00:00:00 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==> Parameters: 295(Long)
+2025-11-04 00:00:00 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - <==      Total: 0
+2025-11-04 00:00:00 [scheduling-1] WARN  c.d.web.task.InstanceBillingTask - 用户不存在，实例ID：91, 用户ID：295
+2025-11-04 00:00:00 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==>  Preparing: SELECT u.user_id, u.username, u.password, u.nickname, u.real_name, u.email, u.phone, u.gender, u.avatar, u.user_type, u.status, u.dept_id, u.parent_user_id, u.login_ip, u.login_time, u.create_by, u.create_time, u.update_by, u.update_time, u.remark, d.dept_id, d.parent_id, d.ancestors, d.dept_name, d.order_num as dept_order_num, d.leader as dept_leader, d.phone as dept_phone, d.email as dept_email, d.status as dept_status, d.del_flag as dept_del_flag, d.dept_type, d.level, d.leader_user_id AS leader_id, leader.nickname AS leader_nickname, r.role_id, r.role_name, r.role_key, r.role_sort, r.data_scope, r.menu_check_strictly, r.dept_check_strictly, r.status as role_status, r.del_flag as role_del_flag, r.create_time as role_create_time, r.update_time as role_update_time, r.remark as role_remark, r.dept_type FROM sys_user u LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0' LEFT JOIN sys_user leader ON d.leader_user_id = leader.user_id LEFT JOIN sys_user_role ur ON u.user_id = ur.user_id LEFT JOIN sys_role r ON ur.role_id = r.role_id AND r.del_flag = '0' WHERE u.user_id = ? AND u.status = '0' ORDER BY r.role_sort
+2025-11-04 00:00:00 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==> Parameters: 295(Long)
+2025-11-04 00:00:00 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - <==      Total: 0
+2025-11-04 00:00:00 [scheduling-1] WARN  c.d.web.task.InstanceBillingTask - 用户不存在，实例ID：90, 用户ID：295
+2025-11-04 00:00:00 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==>  Preparing: SELECT u.user_id, u.username, u.password, u.nickname, u.real_name, u.email, u.phone, u.gender, u.avatar, u.user_type, u.status, u.dept_id, u.parent_user_id, u.login_ip, u.login_time, u.create_by, u.create_time, u.update_by, u.update_time, u.remark, d.dept_id, d.parent_id, d.ancestors, d.dept_name, d.order_num as dept_order_num, d.leader as dept_leader, d.phone as dept_phone, d.email as dept_email, d.status as dept_status, d.del_flag as dept_del_flag, d.dept_type, d.level, d.leader_user_id AS leader_id, leader.nickname AS leader_nickname, r.role_id, r.role_name, r.role_key, r.role_sort, r.data_scope, r.menu_check_strictly, r.dept_check_strictly, r.status as role_status, r.del_flag as role_del_flag, r.create_time as role_create_time, r.update_time as role_update_time, r.remark as role_remark, r.dept_type FROM sys_user u LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0' LEFT JOIN sys_user leader ON d.leader_user_id = leader.user_id LEFT JOIN sys_user_role ur ON u.user_id = ur.user_id LEFT JOIN sys_role r ON ur.role_id = r.role_id AND r.del_flag = '0' WHERE u.user_id = ? AND u.status = '0' ORDER BY r.role_sort
+2025-11-04 00:00:00 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==> Parameters: 295(Long)
+2025-11-04 00:00:00 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - <==      Total: 0
+2025-11-04 00:00:00 [scheduling-1] WARN  c.d.web.task.InstanceBillingTask - 用户不存在，实例ID：89, 用户ID：295
+2025-11-04 00:00:00 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==>  Preparing: SELECT u.user_id, u.username, u.password, u.nickname, u.real_name, u.email, u.phone, u.gender, u.avatar, u.user_type, u.status, u.dept_id, u.parent_user_id, u.login_ip, u.login_time, u.create_by, u.create_time, u.update_by, u.update_time, u.remark, d.dept_id, d.parent_id, d.ancestors, d.dept_name, d.order_num as dept_order_num, d.leader as dept_leader, d.phone as dept_phone, d.email as dept_email, d.status as dept_status, d.del_flag as dept_del_flag, d.dept_type, d.level, d.leader_user_id AS leader_id, leader.nickname AS leader_nickname, r.role_id, r.role_name, r.role_key, r.role_sort, r.data_scope, r.menu_check_strictly, r.dept_check_strictly, r.status as role_status, r.del_flag as role_del_flag, r.create_time as role_create_time, r.update_time as role_update_time, r.remark as role_remark, r.dept_type FROM sys_user u LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0' LEFT JOIN sys_user leader ON d.leader_user_id = leader.user_id LEFT JOIN sys_user_role ur ON u.user_id = ur.user_id LEFT JOIN sys_role r ON ur.role_id = r.role_id AND r.del_flag = '0' WHERE u.user_id = ? AND u.status = '0' ORDER BY r.role_sort
+2025-11-04 00:00:00 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==> Parameters: 264(Long)
+2025-11-04 00:00:00 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - <==      Total: 1
+2025-11-04 00:00:00 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==>  Preparing: SELECT u.user_id, u.username, u.password, u.nickname, u.real_name, u.email, u.phone, u.gender, u.avatar, u.user_type, u.status, u.dept_id, u.parent_user_id, u.login_ip, u.login_time, u.create_by, u.create_time, u.update_by, u.update_time, u.remark, d.dept_id, d.parent_id, d.ancestors, d.dept_name, d.order_num as dept_order_num, d.leader as dept_leader, d.phone as dept_phone, d.email as dept_email, d.status as dept_status, d.del_flag as dept_del_flag, d.dept_type, d.level, d.leader_user_id AS leader_id, leader.nickname AS leader_nickname, r.role_id, r.role_name, r.role_key, r.role_sort, r.data_scope, r.menu_check_strictly, r.dept_check_strictly, r.status as role_status, r.del_flag as role_del_flag, r.create_time as role_create_time, r.update_time as role_update_time, r.remark as role_remark, r.dept_type FROM sys_user u LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0' LEFT JOIN sys_user leader ON d.leader_user_id = leader.user_id LEFT JOIN sys_user_role ur ON u.user_id = ur.user_id LEFT JOIN sys_role r ON ur.role_id = r.role_id AND r.del_flag = '0' WHERE u.user_id = ? AND u.status = '0' ORDER BY r.role_sort
+2025-11-04 00:00:00 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==> Parameters: 264(Long)
+2025-11-04 00:00:01 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - <==      Total: 1
+2025-11-04 00:00:01 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==>  Preparing: SELECT u.user_id, u.username, u.password, u.nickname, u.real_name, u.email, u.phone, u.gender, u.avatar, u.user_type, u.status, u.dept_id, u.parent_user_id, u.login_ip, u.login_time, u.create_by, u.create_time, u.update_by, u.update_time, u.remark, d.dept_id, d.parent_id, d.ancestors, d.dept_name, d.order_num as dept_order_num, d.leader as dept_leader, d.phone as dept_phone, d.email as dept_email, d.status as dept_status, d.del_flag as dept_del_flag, d.dept_type, d.level, d.leader_user_id AS leader_id, leader.nickname AS leader_nickname, r.role_id, r.role_name, r.role_key, r.role_sort, r.data_scope, r.menu_check_strictly, r.dept_check_strictly, r.status as role_status, r.del_flag as role_del_flag, r.create_time as role_create_time, r.update_time as role_update_time, r.remark as role_remark, r.dept_type FROM sys_user u LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0' LEFT JOIN sys_user leader ON d.leader_user_id = leader.user_id LEFT JOIN sys_user_role ur ON u.user_id = ur.user_id LEFT JOIN sys_role r ON ur.role_id = r.role_id AND r.del_flag = '0' WHERE u.user_id = ? AND u.status = '0' ORDER BY r.role_sort
+2025-11-04 00:00:01 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==> Parameters: 264(Long)
+2025-11-04 00:00:01 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - <==      Total: 1
+2025-11-04 00:00:01 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==>  Preparing: SELECT u.user_id, u.username, u.password, u.nickname, u.real_name, u.email, u.phone, u.gender, u.avatar, u.user_type, u.status, u.dept_id, u.parent_user_id, u.login_ip, u.login_time, u.create_by, u.create_time, u.update_by, u.update_time, u.remark, d.dept_id, d.parent_id, d.ancestors, d.dept_name, d.order_num as dept_order_num, d.leader as dept_leader, d.phone as dept_phone, d.email as dept_email, d.status as dept_status, d.del_flag as dept_del_flag, d.dept_type, d.level, d.leader_user_id AS leader_id, leader.nickname AS leader_nickname, r.role_id, r.role_name, r.role_key, r.role_sort, r.data_scope, r.menu_check_strictly, r.dept_check_strictly, r.status as role_status, r.del_flag as role_del_flag, r.create_time as role_create_time, r.update_time as role_update_time, r.remark as role_remark, r.dept_type FROM sys_user u LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0' LEFT JOIN sys_user leader ON d.leader_user_id = leader.user_id LEFT JOIN sys_user_role ur ON u.user_id = ur.user_id LEFT JOIN sys_role r ON ur.role_id = r.role_id AND r.del_flag = '0' WHERE u.user_id = ? AND u.status = '0' ORDER BY r.role_sort
+2025-11-04 00:00:01 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==> Parameters: 267(Long)
+2025-11-04 00:00:01 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - <==      Total: 0
+2025-11-04 00:00:01 [scheduling-1] WARN  c.d.web.task.InstanceBillingTask - 用户不存在，实例ID：85, 用户ID：267
+2025-11-04 00:00:01 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==>  Preparing: SELECT u.user_id, u.username, u.password, u.nickname, u.real_name, u.email, u.phone, u.gender, u.avatar, u.user_type, u.status, u.dept_id, u.parent_user_id, u.login_ip, u.login_time, u.create_by, u.create_time, u.update_by, u.update_time, u.remark, d.dept_id, d.parent_id, d.ancestors, d.dept_name, d.order_num as dept_order_num, d.leader as dept_leader, d.phone as dept_phone, d.email as dept_email, d.status as dept_status, d.del_flag as dept_del_flag, d.dept_type, d.level, d.leader_user_id AS leader_id, leader.nickname AS leader_nickname, r.role_id, r.role_name, r.role_key, r.role_sort, r.data_scope, r.menu_check_strictly, r.dept_check_strictly, r.status as role_status, r.del_flag as role_del_flag, r.create_time as role_create_time, r.update_time as role_update_time, r.remark as role_remark, r.dept_type FROM sys_user u LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0' LEFT JOIN sys_user leader ON d.leader_user_id = leader.user_id LEFT JOIN sys_user_role ur ON u.user_id = ur.user_id LEFT JOIN sys_role r ON ur.role_id = r.role_id AND r.del_flag = '0' WHERE u.user_id = ? AND u.status = '0' ORDER BY r.role_sort
+2025-11-04 00:00:01 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==> Parameters: 267(Long)
+2025-11-04 00:00:01 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - <==      Total: 0
+2025-11-04 00:00:01 [scheduling-1] WARN  c.d.web.task.InstanceBillingTask - 用户不存在，实例ID：84, 用户ID：267
+2025-11-04 00:00:01 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==>  Preparing: SELECT u.user_id, u.username, u.password, u.nickname, u.real_name, u.email, u.phone, u.gender, u.avatar, u.user_type, u.status, u.dept_id, u.parent_user_id, u.login_ip, u.login_time, u.create_by, u.create_time, u.update_by, u.update_time, u.remark, d.dept_id, d.parent_id, d.ancestors, d.dept_name, d.order_num as dept_order_num, d.leader as dept_leader, d.phone as dept_phone, d.email as dept_email, d.status as dept_status, d.del_flag as dept_del_flag, d.dept_type, d.level, d.leader_user_id AS leader_id, leader.nickname AS leader_nickname, r.role_id, r.role_name, r.role_key, r.role_sort, r.data_scope, r.menu_check_strictly, r.dept_check_strictly, r.status as role_status, r.del_flag as role_del_flag, r.create_time as role_create_time, r.update_time as role_update_time, r.remark as role_remark, r.dept_type FROM sys_user u LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0' LEFT JOIN sys_user leader ON d.leader_user_id = leader.user_id LEFT JOIN sys_user_role ur ON u.user_id = ur.user_id LEFT JOIN sys_role r ON ur.role_id = r.role_id AND r.del_flag = '0' WHERE u.user_id = ? AND u.status = '0' ORDER BY r.role_sort
+2025-11-04 00:00:01 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==> Parameters: 267(Long)
+2025-11-04 00:00:01 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - <==      Total: 0
+2025-11-04 00:00:01 [scheduling-1] WARN  c.d.web.task.InstanceBillingTask - 用户不存在，实例ID：83, 用户ID：267
+2025-11-04 00:00:01 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==>  Preparing: SELECT u.user_id, u.username, u.password, u.nickname, u.real_name, u.email, u.phone, u.gender, u.avatar, u.user_type, u.status, u.dept_id, u.parent_user_id, u.login_ip, u.login_time, u.create_by, u.create_time, u.update_by, u.update_time, u.remark, d.dept_id, d.parent_id, d.ancestors, d.dept_name, d.order_num as dept_order_num, d.leader as dept_leader, d.phone as dept_phone, d.email as dept_email, d.status as dept_status, d.del_flag as dept_del_flag, d.dept_type, d.level, d.leader_user_id AS leader_id, leader.nickname AS leader_nickname, r.role_id, r.role_name, r.role_key, r.role_sort, r.data_scope, r.menu_check_strictly, r.dept_check_strictly, r.status as role_status, r.del_flag as role_del_flag, r.create_time as role_create_time, r.update_time as role_update_time, r.remark as role_remark, r.dept_type FROM sys_user u LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0' LEFT JOIN sys_user leader ON d.leader_user_id = leader.user_id LEFT JOIN sys_user_role ur ON u.user_id = ur.user_id LEFT JOIN sys_role r ON ur.role_id = r.role_id AND r.del_flag = '0' WHERE u.user_id = ? AND u.status = '0' ORDER BY r.role_sort
+2025-11-04 00:00:01 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==> Parameters: 264(Long)
+2025-11-04 00:00:02 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - <==      Total: 1
+2025-11-04 00:00:02 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==>  Preparing: SELECT u.user_id, u.username, u.password, u.nickname, u.real_name, u.email, u.phone, u.gender, u.avatar, u.user_type, u.status, u.dept_id, u.parent_user_id, u.login_ip, u.login_time, u.create_by, u.create_time, u.update_by, u.update_time, u.remark, d.dept_id, d.parent_id, d.ancestors, d.dept_name, d.order_num as dept_order_num, d.leader as dept_leader, d.phone as dept_phone, d.email as dept_email, d.status as dept_status, d.del_flag as dept_del_flag, d.dept_type, d.level, d.leader_user_id AS leader_id, leader.nickname AS leader_nickname, r.role_id, r.role_name, r.role_key, r.role_sort, r.data_scope, r.menu_check_strictly, r.dept_check_strictly, r.status as role_status, r.del_flag as role_del_flag, r.create_time as role_create_time, r.update_time as role_update_time, r.remark as role_remark, r.dept_type FROM sys_user u LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0' LEFT JOIN sys_user leader ON d.leader_user_id = leader.user_id LEFT JOIN sys_user_role ur ON u.user_id = ur.user_id LEFT JOIN sys_role r ON ur.role_id = r.role_id AND r.del_flag = '0' WHERE u.user_id = ? AND u.status = '0' ORDER BY r.role_sort
+2025-11-04 00:00:02 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==> Parameters: 262(Long)
+2025-11-04 00:00:02 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - <==      Total: 1
+2025-11-04 00:00:02 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==>  Preparing: SELECT u.user_id, u.username, u.password, u.nickname, u.real_name, u.email, u.phone, u.gender, u.avatar, u.user_type, u.status, u.dept_id, u.parent_user_id, u.login_ip, u.login_time, u.create_by, u.create_time, u.update_by, u.update_time, u.remark, d.dept_id, d.parent_id, d.ancestors, d.dept_name, d.order_num as dept_order_num, d.leader as dept_leader, d.phone as dept_phone, d.email as dept_email, d.status as dept_status, d.del_flag as dept_del_flag, d.dept_type, d.level, d.leader_user_id AS leader_id, leader.nickname AS leader_nickname, r.role_id, r.role_name, r.role_key, r.role_sort, r.data_scope, r.menu_check_strictly, r.dept_check_strictly, r.status as role_status, r.del_flag as role_del_flag, r.create_time as role_create_time, r.update_time as role_update_time, r.remark as role_remark, r.dept_type FROM sys_user u LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0' LEFT JOIN sys_user leader ON d.leader_user_id = leader.user_id LEFT JOIN sys_user_role ur ON u.user_id = ur.user_id LEFT JOIN sys_role r ON ur.role_id = r.role_id AND r.del_flag = '0' WHERE u.user_id = ? AND u.status = '0' ORDER BY r.role_sort
+2025-11-04 00:00:02 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==> Parameters: 262(Long)
+2025-11-04 00:00:02 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - <==      Total: 1
+2025-11-04 00:00:02 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==>  Preparing: SELECT u.user_id, u.username, u.password, u.nickname, u.real_name, u.email, u.phone, u.gender, u.avatar, u.user_type, u.status, u.dept_id, u.parent_user_id, u.login_ip, u.login_time, u.create_by, u.create_time, u.update_by, u.update_time, u.remark, d.dept_id, d.parent_id, d.ancestors, d.dept_name, d.order_num as dept_order_num, d.leader as dept_leader, d.phone as dept_phone, d.email as dept_email, d.status as dept_status, d.del_flag as dept_del_flag, d.dept_type, d.level, d.leader_user_id AS leader_id, leader.nickname AS leader_nickname, r.role_id, r.role_name, r.role_key, r.role_sort, r.data_scope, r.menu_check_strictly, r.dept_check_strictly, r.status as role_status, r.del_flag as role_del_flag, r.create_time as role_create_time, r.update_time as role_update_time, r.remark as role_remark, r.dept_type FROM sys_user u LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0' LEFT JOIN sys_user leader ON d.leader_user_id = leader.user_id LEFT JOIN sys_user_role ur ON u.user_id = ur.user_id LEFT JOIN sys_role r ON ur.role_id = r.role_id AND r.del_flag = '0' WHERE u.user_id = ? AND u.status = '0' ORDER BY r.role_sort
+2025-11-04 00:00:02 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==> Parameters: 262(Long)
+2025-11-04 00:00:02 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - <==      Total: 1
+2025-11-04 00:00:02 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==>  Preparing: SELECT u.user_id, u.username, u.password, u.nickname, u.real_name, u.email, u.phone, u.gender, u.avatar, u.user_type, u.status, u.dept_id, u.parent_user_id, u.login_ip, u.login_time, u.create_by, u.create_time, u.update_by, u.update_time, u.remark, d.dept_id, d.parent_id, d.ancestors, d.dept_name, d.order_num as dept_order_num, d.leader as dept_leader, d.phone as dept_phone, d.email as dept_email, d.status as dept_status, d.del_flag as dept_del_flag, d.dept_type, d.level, d.leader_user_id AS leader_id, leader.nickname AS leader_nickname, r.role_id, r.role_name, r.role_key, r.role_sort, r.data_scope, r.menu_check_strictly, r.dept_check_strictly, r.status as role_status, r.del_flag as role_del_flag, r.create_time as role_create_time, r.update_time as role_update_time, r.remark as role_remark, r.dept_type FROM sys_user u LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0' LEFT JOIN sys_user leader ON d.leader_user_id = leader.user_id LEFT JOIN sys_user_role ur ON u.user_id = ur.user_id LEFT JOIN sys_role r ON ur.role_id = r.role_id AND r.del_flag = '0' WHERE u.user_id = ? AND u.status = '0' ORDER BY r.role_sort
+2025-11-04 00:00:02 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==> Parameters: 262(Long)
+2025-11-04 00:00:02 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - <==      Total: 1
+2025-11-04 00:00:02 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==>  Preparing: SELECT u.user_id, u.username, u.password, u.nickname, u.real_name, u.email, u.phone, u.gender, u.avatar, u.user_type, u.status, u.dept_id, u.parent_user_id, u.login_ip, u.login_time, u.create_by, u.create_time, u.update_by, u.update_time, u.remark, d.dept_id, d.parent_id, d.ancestors, d.dept_name, d.order_num as dept_order_num, d.leader as dept_leader, d.phone as dept_phone, d.email as dept_email, d.status as dept_status, d.del_flag as dept_del_flag, d.dept_type, d.level, d.leader_user_id AS leader_id, leader.nickname AS leader_nickname, r.role_id, r.role_name, r.role_key, r.role_sort, r.data_scope, r.menu_check_strictly, r.dept_check_strictly, r.status as role_status, r.del_flag as role_del_flag, r.create_time as role_create_time, r.update_time as role_update_time, r.remark as role_remark, r.dept_type FROM sys_user u LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0' LEFT JOIN sys_user leader ON d.leader_user_id = leader.user_id LEFT JOIN sys_user_role ur ON u.user_id = ur.user_id LEFT JOIN sys_role r ON ur.role_id = r.role_id AND r.del_flag = '0' WHERE u.user_id = ? AND u.status = '0' ORDER BY r.role_sort
+2025-11-04 00:00:02 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==> Parameters: 264(Long)
+2025-11-04 00:00:02 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - <==      Total: 1
+2025-11-04 00:00:02 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==>  Preparing: SELECT u.user_id, u.username, u.password, u.nickname, u.real_name, u.email, u.phone, u.gender, u.avatar, u.user_type, u.status, u.dept_id, u.parent_user_id, u.login_ip, u.login_time, u.create_by, u.create_time, u.update_by, u.update_time, u.remark, d.dept_id, d.parent_id, d.ancestors, d.dept_name, d.order_num as dept_order_num, d.leader as dept_leader, d.phone as dept_phone, d.email as dept_email, d.status as dept_status, d.del_flag as dept_del_flag, d.dept_type, d.level, d.leader_user_id AS leader_id, leader.nickname AS leader_nickname, r.role_id, r.role_name, r.role_key, r.role_sort, r.data_scope, r.menu_check_strictly, r.dept_check_strictly, r.status as role_status, r.del_flag as role_del_flag, r.create_time as role_create_time, r.update_time as role_update_time, r.remark as role_remark, r.dept_type FROM sys_user u LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0' LEFT JOIN sys_user leader ON d.leader_user_id = leader.user_id LEFT JOIN sys_user_role ur ON u.user_id = ur.user_id LEFT JOIN sys_role r ON ur.role_id = r.role_id AND r.del_flag = '0' WHERE u.user_id = ? AND u.status = '0' ORDER BY r.role_sort
+2025-11-04 00:00:02 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==> Parameters: 267(Long)
+2025-11-04 00:00:03 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - <==      Total: 0
+2025-11-04 00:00:03 [scheduling-1] WARN  c.d.web.task.InstanceBillingTask - 用户不存在，实例ID：75, 用户ID：267
+2025-11-04 00:00:03 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==>  Preparing: SELECT u.user_id, u.username, u.password, u.nickname, u.real_name, u.email, u.phone, u.gender, u.avatar, u.user_type, u.status, u.dept_id, u.parent_user_id, u.login_ip, u.login_time, u.create_by, u.create_time, u.update_by, u.update_time, u.remark, d.dept_id, d.parent_id, d.ancestors, d.dept_name, d.order_num as dept_order_num, d.leader as dept_leader, d.phone as dept_phone, d.email as dept_email, d.status as dept_status, d.del_flag as dept_del_flag, d.dept_type, d.level, d.leader_user_id AS leader_id, leader.nickname AS leader_nickname, r.role_id, r.role_name, r.role_key, r.role_sort, r.data_scope, r.menu_check_strictly, r.dept_check_strictly, r.status as role_status, r.del_flag as role_del_flag, r.create_time as role_create_time, r.update_time as role_update_time, r.remark as role_remark, r.dept_type FROM sys_user u LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0' LEFT JOIN sys_user leader ON d.leader_user_id = leader.user_id LEFT JOIN sys_user_role ur ON u.user_id = ur.user_id LEFT JOIN sys_role r ON ur.role_id = r.role_id AND r.del_flag = '0' WHERE u.user_id = ? AND u.status = '0' ORDER BY r.role_sort
+2025-11-04 00:00:03 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==> Parameters: 267(Long)
+2025-11-04 00:00:03 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - <==      Total: 0
+2025-11-04 00:00:03 [scheduling-1] WARN  c.d.web.task.InstanceBillingTask - 用户不存在，实例ID：74, 用户ID：267
+2025-11-04 00:00:03 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==>  Preparing: SELECT u.user_id, u.username, u.password, u.nickname, u.real_name, u.email, u.phone, u.gender, u.avatar, u.user_type, u.status, u.dept_id, u.parent_user_id, u.login_ip, u.login_time, u.create_by, u.create_time, u.update_by, u.update_time, u.remark, d.dept_id, d.parent_id, d.ancestors, d.dept_name, d.order_num as dept_order_num, d.leader as dept_leader, d.phone as dept_phone, d.email as dept_email, d.status as dept_status, d.del_flag as dept_del_flag, d.dept_type, d.level, d.leader_user_id AS leader_id, leader.nickname AS leader_nickname, r.role_id, r.role_name, r.role_key, r.role_sort, r.data_scope, r.menu_check_strictly, r.dept_check_strictly, r.status as role_status, r.del_flag as role_del_flag, r.create_time as role_create_time, r.update_time as role_update_time, r.remark as role_remark, r.dept_type FROM sys_user u LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0' LEFT JOIN sys_user leader ON d.leader_user_id = leader.user_id LEFT JOIN sys_user_role ur ON u.user_id = ur.user_id LEFT JOIN sys_role r ON ur.role_id = r.role_id AND r.del_flag = '0' WHERE u.user_id = ? AND u.status = '0' ORDER BY r.role_sort
+2025-11-04 00:00:03 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==> Parameters: 263(Long)
+2025-11-04 00:00:03 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - <==      Total: 1
+2025-11-04 00:00:03 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==>  Preparing: SELECT u.user_id, u.username, u.password, u.nickname, u.real_name, u.email, u.phone, u.gender, u.avatar, u.user_type, u.status, u.dept_id, u.parent_user_id, u.login_ip, u.login_time, u.create_by, u.create_time, u.update_by, u.update_time, u.remark, d.dept_id, d.parent_id, d.ancestors, d.dept_name, d.order_num as dept_order_num, d.leader as dept_leader, d.phone as dept_phone, d.email as dept_email, d.status as dept_status, d.del_flag as dept_del_flag, d.dept_type, d.level, d.leader_user_id AS leader_id, leader.nickname AS leader_nickname, r.role_id, r.role_name, r.role_key, r.role_sort, r.data_scope, r.menu_check_strictly, r.dept_check_strictly, r.status as role_status, r.del_flag as role_del_flag, r.create_time as role_create_time, r.update_time as role_update_time, r.remark as role_remark, r.dept_type FROM sys_user u LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0' LEFT JOIN sys_user leader ON d.leader_user_id = leader.user_id LEFT JOIN sys_user_role ur ON u.user_id = ur.user_id LEFT JOIN sys_role r ON ur.role_id = r.role_id AND r.del_flag = '0' WHERE u.user_id = ? AND u.status = '0' ORDER BY r.role_sort
+2025-11-04 00:00:03 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==> Parameters: 263(Long)
+2025-11-04 00:00:03 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - <==      Total: 1
+2025-11-04 00:00:03 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==>  Preparing: SELECT u.user_id, u.username, u.password, u.nickname, u.real_name, u.email, u.phone, u.gender, u.avatar, u.user_type, u.status, u.dept_id, u.parent_user_id, u.login_ip, u.login_time, u.create_by, u.create_time, u.update_by, u.update_time, u.remark, d.dept_id, d.parent_id, d.ancestors, d.dept_name, d.order_num as dept_order_num, d.leader as dept_leader, d.phone as dept_phone, d.email as dept_email, d.status as dept_status, d.del_flag as dept_del_flag, d.dept_type, d.level, d.leader_user_id AS leader_id, leader.nickname AS leader_nickname, r.role_id, r.role_name, r.role_key, r.role_sort, r.data_scope, r.menu_check_strictly, r.dept_check_strictly, r.status as role_status, r.del_flag as role_del_flag, r.create_time as role_create_time, r.update_time as role_update_time, r.remark as role_remark, r.dept_type FROM sys_user u LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0' LEFT JOIN sys_user leader ON d.leader_user_id = leader.user_id LEFT JOIN sys_user_role ur ON u.user_id = ur.user_id LEFT JOIN sys_role r ON ur.role_id = r.role_id AND r.del_flag = '0' WHERE u.user_id = ? AND u.status = '0' ORDER BY r.role_sort
+2025-11-04 00:00:03 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==> Parameters: 263(Long)
+2025-11-04 00:00:03 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - <==      Total: 1
+2025-11-04 00:00:03 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==>  Preparing: SELECT u.user_id, u.username, u.password, u.nickname, u.real_name, u.email, u.phone, u.gender, u.avatar, u.user_type, u.status, u.dept_id, u.parent_user_id, u.login_ip, u.login_time, u.create_by, u.create_time, u.update_by, u.update_time, u.remark, d.dept_id, d.parent_id, d.ancestors, d.dept_name, d.order_num as dept_order_num, d.leader as dept_leader, d.phone as dept_phone, d.email as dept_email, d.status as dept_status, d.del_flag as dept_del_flag, d.dept_type, d.level, d.leader_user_id AS leader_id, leader.nickname AS leader_nickname, r.role_id, r.role_name, r.role_key, r.role_sort, r.data_scope, r.menu_check_strictly, r.dept_check_strictly, r.status as role_status, r.del_flag as role_del_flag, r.create_time as role_create_time, r.update_time as role_update_time, r.remark as role_remark, r.dept_type FROM sys_user u LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0' LEFT JOIN sys_user leader ON d.leader_user_id = leader.user_id LEFT JOIN sys_user_role ur ON u.user_id = ur.user_id LEFT JOIN sys_role r ON ur.role_id = r.role_id AND r.del_flag = '0' WHERE u.user_id = ? AND u.status = '0' ORDER BY r.role_sort
+2025-11-04 00:00:03 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==> Parameters: 264(Long)
+2025-11-04 00:00:04 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - <==      Total: 1
+2025-11-04 00:00:04 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==>  Preparing: SELECT u.user_id, u.username, u.password, u.nickname, u.real_name, u.email, u.phone, u.gender, u.avatar, u.user_type, u.status, u.dept_id, u.parent_user_id, u.login_ip, u.login_time, u.create_by, u.create_time, u.update_by, u.update_time, u.remark, d.dept_id, d.parent_id, d.ancestors, d.dept_name, d.order_num as dept_order_num, d.leader as dept_leader, d.phone as dept_phone, d.email as dept_email, d.status as dept_status, d.del_flag as dept_del_flag, d.dept_type, d.level, d.leader_user_id AS leader_id, leader.nickname AS leader_nickname, r.role_id, r.role_name, r.role_key, r.role_sort, r.data_scope, r.menu_check_strictly, r.dept_check_strictly, r.status as role_status, r.del_flag as role_del_flag, r.create_time as role_create_time, r.update_time as role_update_time, r.remark as role_remark, r.dept_type FROM sys_user u LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0' LEFT JOIN sys_user leader ON d.leader_user_id = leader.user_id LEFT JOIN sys_user_role ur ON u.user_id = ur.user_id LEFT JOIN sys_role r ON ur.role_id = r.role_id AND r.del_flag = '0' WHERE u.user_id = ? AND u.status = '0' ORDER BY r.role_sort
+2025-11-04 00:00:04 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==> Parameters: 262(Long)
+2025-11-04 00:00:04 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - <==      Total: 1
+2025-11-04 00:00:04 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==>  Preparing: SELECT u.user_id, u.username, u.password, u.nickname, u.real_name, u.email, u.phone, u.gender, u.avatar, u.user_type, u.status, u.dept_id, u.parent_user_id, u.login_ip, u.login_time, u.create_by, u.create_time, u.update_by, u.update_time, u.remark, d.dept_id, d.parent_id, d.ancestors, d.dept_name, d.order_num as dept_order_num, d.leader as dept_leader, d.phone as dept_phone, d.email as dept_email, d.status as dept_status, d.del_flag as dept_del_flag, d.dept_type, d.level, d.leader_user_id AS leader_id, leader.nickname AS leader_nickname, r.role_id, r.role_name, r.role_key, r.role_sort, r.data_scope, r.menu_check_strictly, r.dept_check_strictly, r.status as role_status, r.del_flag as role_del_flag, r.create_time as role_create_time, r.update_time as role_update_time, r.remark as role_remark, r.dept_type FROM sys_user u LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0' LEFT JOIN sys_user leader ON d.leader_user_id = leader.user_id LEFT JOIN sys_user_role ur ON u.user_id = ur.user_id LEFT JOIN sys_role r ON ur.role_id = r.role_id AND r.del_flag = '0' WHERE u.user_id = ? AND u.status = '0' ORDER BY r.role_sort
+2025-11-04 00:00:04 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==> Parameters: 262(Long)
+2025-11-04 00:00:04 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - <==      Total: 1
+2025-11-04 00:00:04 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==>  Preparing: SELECT u.user_id, u.username, u.password, u.nickname, u.real_name, u.email, u.phone, u.gender, u.avatar, u.user_type, u.status, u.dept_id, u.parent_user_id, u.login_ip, u.login_time, u.create_by, u.create_time, u.update_by, u.update_time, u.remark, d.dept_id, d.parent_id, d.ancestors, d.dept_name, d.order_num as dept_order_num, d.leader as dept_leader, d.phone as dept_phone, d.email as dept_email, d.status as dept_status, d.del_flag as dept_del_flag, d.dept_type, d.level, d.leader_user_id AS leader_id, leader.nickname AS leader_nickname, r.role_id, r.role_name, r.role_key, r.role_sort, r.data_scope, r.menu_check_strictly, r.dept_check_strictly, r.status as role_status, r.del_flag as role_del_flag, r.create_time as role_create_time, r.update_time as role_update_time, r.remark as role_remark, r.dept_type FROM sys_user u LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0' LEFT JOIN sys_user leader ON d.leader_user_id = leader.user_id LEFT JOIN sys_user_role ur ON u.user_id = ur.user_id LEFT JOIN sys_role r ON ur.role_id = r.role_id AND r.del_flag = '0' WHERE u.user_id = ? AND u.status = '0' ORDER BY r.role_sort
+2025-11-04 00:00:04 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==> Parameters: 279(Long)
+2025-11-04 00:00:04 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - <==      Total: 0
+2025-11-04 00:00:04 [scheduling-1] WARN  c.d.web.task.InstanceBillingTask - 用户不存在，实例ID：63, 用户ID：279
+2025-11-04 00:00:04 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==>  Preparing: SELECT u.user_id, u.username, u.password, u.nickname, u.real_name, u.email, u.phone, u.gender, u.avatar, u.user_type, u.status, u.dept_id, u.parent_user_id, u.login_ip, u.login_time, u.create_by, u.create_time, u.update_by, u.update_time, u.remark, d.dept_id, d.parent_id, d.ancestors, d.dept_name, d.order_num as dept_order_num, d.leader as dept_leader, d.phone as dept_phone, d.email as dept_email, d.status as dept_status, d.del_flag as dept_del_flag, d.dept_type, d.level, d.leader_user_id AS leader_id, leader.nickname AS leader_nickname, r.role_id, r.role_name, r.role_key, r.role_sort, r.data_scope, r.menu_check_strictly, r.dept_check_strictly, r.status as role_status, r.del_flag as role_del_flag, r.create_time as role_create_time, r.update_time as role_update_time, r.remark as role_remark, r.dept_type FROM sys_user u LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0' LEFT JOIN sys_user leader ON d.leader_user_id = leader.user_id LEFT JOIN sys_user_role ur ON u.user_id = ur.user_id LEFT JOIN sys_role r ON ur.role_id = r.role_id AND r.del_flag = '0' WHERE u.user_id = ? AND u.status = '0' ORDER BY r.role_sort
+2025-11-04 00:00:04 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==> Parameters: 271(Long)
+2025-11-04 00:00:05 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - <==      Total: 0
+2025-11-04 00:00:05 [scheduling-1] WARN  c.d.web.task.InstanceBillingTask - 用户不存在，实例ID：62, 用户ID：271
+2025-11-04 00:00:05 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==>  Preparing: SELECT u.user_id, u.username, u.password, u.nickname, u.real_name, u.email, u.phone, u.gender, u.avatar, u.user_type, u.status, u.dept_id, u.parent_user_id, u.login_ip, u.login_time, u.create_by, u.create_time, u.update_by, u.update_time, u.remark, d.dept_id, d.parent_id, d.ancestors, d.dept_name, d.order_num as dept_order_num, d.leader as dept_leader, d.phone as dept_phone, d.email as dept_email, d.status as dept_status, d.del_flag as dept_del_flag, d.dept_type, d.level, d.leader_user_id AS leader_id, leader.nickname AS leader_nickname, r.role_id, r.role_name, r.role_key, r.role_sort, r.data_scope, r.menu_check_strictly, r.dept_check_strictly, r.status as role_status, r.del_flag as role_del_flag, r.create_time as role_create_time, r.update_time as role_update_time, r.remark as role_remark, r.dept_type FROM sys_user u LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0' LEFT JOIN sys_user leader ON d.leader_user_id = leader.user_id LEFT JOIN sys_user_role ur ON u.user_id = ur.user_id LEFT JOIN sys_role r ON ur.role_id = r.role_id AND r.del_flag = '0' WHERE u.user_id = ? AND u.status = '0' ORDER BY r.role_sort
+2025-11-04 00:00:05 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==> Parameters: 262(Long)
+2025-11-04 00:00:05 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - <==      Total: 1
+2025-11-04 00:00:05 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==>  Preparing: SELECT u.user_id, u.username, u.password, u.nickname, u.real_name, u.email, u.phone, u.gender, u.avatar, u.user_type, u.status, u.dept_id, u.parent_user_id, u.login_ip, u.login_time, u.create_by, u.create_time, u.update_by, u.update_time, u.remark, d.dept_id, d.parent_id, d.ancestors, d.dept_name, d.order_num as dept_order_num, d.leader as dept_leader, d.phone as dept_phone, d.email as dept_email, d.status as dept_status, d.del_flag as dept_del_flag, d.dept_type, d.level, d.leader_user_id AS leader_id, leader.nickname AS leader_nickname, r.role_id, r.role_name, r.role_key, r.role_sort, r.data_scope, r.menu_check_strictly, r.dept_check_strictly, r.status as role_status, r.del_flag as role_del_flag, r.create_time as role_create_time, r.update_time as role_update_time, r.remark as role_remark, r.dept_type FROM sys_user u LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0' LEFT JOIN sys_user leader ON d.leader_user_id = leader.user_id LEFT JOIN sys_user_role ur ON u.user_id = ur.user_id LEFT JOIN sys_role r ON ur.role_id = r.role_id AND r.del_flag = '0' WHERE u.user_id = ? AND u.status = '0' ORDER BY r.role_sort
+2025-11-04 00:00:05 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==> Parameters: 262(Long)
+2025-11-04 00:00:05 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - <==      Total: 1
+2025-11-04 00:00:05 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==>  Preparing: SELECT u.user_id, u.username, u.password, u.nickname, u.real_name, u.email, u.phone, u.gender, u.avatar, u.user_type, u.status, u.dept_id, u.parent_user_id, u.login_ip, u.login_time, u.create_by, u.create_time, u.update_by, u.update_time, u.remark, d.dept_id, d.parent_id, d.ancestors, d.dept_name, d.order_num as dept_order_num, d.leader as dept_leader, d.phone as dept_phone, d.email as dept_email, d.status as dept_status, d.del_flag as dept_del_flag, d.dept_type, d.level, d.leader_user_id AS leader_id, leader.nickname AS leader_nickname, r.role_id, r.role_name, r.role_key, r.role_sort, r.data_scope, r.menu_check_strictly, r.dept_check_strictly, r.status as role_status, r.del_flag as role_del_flag, r.create_time as role_create_time, r.update_time as role_update_time, r.remark as role_remark, r.dept_type FROM sys_user u LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0' LEFT JOIN sys_user leader ON d.leader_user_id = leader.user_id LEFT JOIN sys_user_role ur ON u.user_id = ur.user_id LEFT JOIN sys_role r ON ur.role_id = r.role_id AND r.del_flag = '0' WHERE u.user_id = ? AND u.status = '0' ORDER BY r.role_sort
+2025-11-04 00:00:05 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==> Parameters: 262(Long)
+2025-11-04 00:00:06 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - <==      Total: 1
+2025-11-04 00:00:06 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==>  Preparing: SELECT u.user_id, u.username, u.password, u.nickname, u.real_name, u.email, u.phone, u.gender, u.avatar, u.user_type, u.status, u.dept_id, u.parent_user_id, u.login_ip, u.login_time, u.create_by, u.create_time, u.update_by, u.update_time, u.remark, d.dept_id, d.parent_id, d.ancestors, d.dept_name, d.order_num as dept_order_num, d.leader as dept_leader, d.phone as dept_phone, d.email as dept_email, d.status as dept_status, d.del_flag as dept_del_flag, d.dept_type, d.level, d.leader_user_id AS leader_id, leader.nickname AS leader_nickname, r.role_id, r.role_name, r.role_key, r.role_sort, r.data_scope, r.menu_check_strictly, r.dept_check_strictly, r.status as role_status, r.del_flag as role_del_flag, r.create_time as role_create_time, r.update_time as role_update_time, r.remark as role_remark, r.dept_type FROM sys_user u LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0' LEFT JOIN sys_user leader ON d.leader_user_id = leader.user_id LEFT JOIN sys_user_role ur ON u.user_id = ur.user_id LEFT JOIN sys_role r ON ur.role_id = r.role_id AND r.del_flag = '0' WHERE u.user_id = ? AND u.status = '0' ORDER BY r.role_sort
+2025-11-04 00:00:06 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==> Parameters: 264(Long)
+2025-11-04 00:00:06 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - <==      Total: 1
+2025-11-04 00:00:06 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==>  Preparing: SELECT u.user_id, u.username, u.password, u.nickname, u.real_name, u.email, u.phone, u.gender, u.avatar, u.user_type, u.status, u.dept_id, u.parent_user_id, u.login_ip, u.login_time, u.create_by, u.create_time, u.update_by, u.update_time, u.remark, d.dept_id, d.parent_id, d.ancestors, d.dept_name, d.order_num as dept_order_num, d.leader as dept_leader, d.phone as dept_phone, d.email as dept_email, d.status as dept_status, d.del_flag as dept_del_flag, d.dept_type, d.level, d.leader_user_id AS leader_id, leader.nickname AS leader_nickname, r.role_id, r.role_name, r.role_key, r.role_sort, r.data_scope, r.menu_check_strictly, r.dept_check_strictly, r.status as role_status, r.del_flag as role_del_flag, r.create_time as role_create_time, r.update_time as role_update_time, r.remark as role_remark, r.dept_type FROM sys_user u LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0' LEFT JOIN sys_user leader ON d.leader_user_id = leader.user_id LEFT JOIN sys_user_role ur ON u.user_id = ur.user_id LEFT JOIN sys_role r ON ur.role_id = r.role_id AND r.del_flag = '0' WHERE u.user_id = ? AND u.status = '0' ORDER BY r.role_sort
+2025-11-04 00:00:06 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==> Parameters: 263(Long)
+2025-11-04 00:00:06 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - <==      Total: 1
+2025-11-04 00:00:06 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==>  Preparing: SELECT u.user_id, u.username, u.password, u.nickname, u.real_name, u.email, u.phone, u.gender, u.avatar, u.user_type, u.status, u.dept_id, u.parent_user_id, u.login_ip, u.login_time, u.create_by, u.create_time, u.update_by, u.update_time, u.remark, d.dept_id, d.parent_id, d.ancestors, d.dept_name, d.order_num as dept_order_num, d.leader as dept_leader, d.phone as dept_phone, d.email as dept_email, d.status as dept_status, d.del_flag as dept_del_flag, d.dept_type, d.level, d.leader_user_id AS leader_id, leader.nickname AS leader_nickname, r.role_id, r.role_name, r.role_key, r.role_sort, r.data_scope, r.menu_check_strictly, r.dept_check_strictly, r.status as role_status, r.del_flag as role_del_flag, r.create_time as role_create_time, r.update_time as role_update_time, r.remark as role_remark, r.dept_type FROM sys_user u LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0' LEFT JOIN sys_user leader ON d.leader_user_id = leader.user_id LEFT JOIN sys_user_role ur ON u.user_id = ur.user_id LEFT JOIN sys_role r ON ur.role_id = r.role_id AND r.del_flag = '0' WHERE u.user_id = ? AND u.status = '0' ORDER BY r.role_sort
+2025-11-04 00:00:06 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - ==> Parameters: 263(Long)
+2025-11-04 00:00:07 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserWithDept - <==      Total: 1
+2025-11-04 00:00:07 [scheduling-1] INFO  c.d.web.task.InstanceBillingTask - 营销实例统计：{261=9}
+2025-11-04 00:00:07 [scheduling-1] INFO  c.d.web.task.InstanceBillingTask - 侦查实例统计：{261=12}
+2025-11-04 00:00:07 [scheduling-1] DEBUG c.d.w.m.D.selectDrPriceConfigByBusinessType - ==>  Preparing: select price_id, business_type, business_name, price_unit, dr_price, billing_type, status, create_time, update_time, create_by, update_by, remark from dr_price_config where business_type = ?
+2025-11-04 00:00:07 [scheduling-1] DEBUG c.d.w.m.D.selectDrPriceConfigByBusinessType - ==> Parameters: INSTANCE_MARKETING(String)
+2025-11-04 00:00:07 [scheduling-1] DEBUG c.d.w.m.D.selectDrPriceConfigByBusinessType - <==      Total: 1
+2025-11-04 00:00:07 [scheduling-1] DEBUG c.d.w.m.D.selectDrPriceConfigByBusinessType - ==>  Preparing: select price_id, business_type, business_name, price_unit, dr_price, billing_type, status, create_time, update_time, create_by, update_by, remark from dr_price_config where business_type = ?
+2025-11-04 00:00:07 [scheduling-1] DEBUG c.d.w.m.D.selectDrPriceConfigByBusinessType - ==> Parameters: INSTANCE_PROSPECTING(String)
+2025-11-04 00:00:07 [scheduling-1] DEBUG c.d.w.m.D.selectDrPriceConfigByBusinessType - <==      Total: 1
+2025-11-04 00:00:07 [scheduling-1] DEBUG c.d.w.m.U.selectByUserId - ==>  Preparing: select balance_id, user_id, dr_balance, pre_deducted_balance, total_recharge, total_consume, total_refund, frozen_amount, version, status, create_by, create_time, update_by, update_time, remark from user_dr_balance where user_id = ?
+2025-11-04 00:00:07 [scheduling-1] DEBUG c.d.w.m.U.selectByUserId - ==> Parameters: 261(Long)
+2025-11-04 00:00:07 [scheduling-1] DEBUG c.d.w.m.U.selectByUserId - <==      Total: 1
+2025-11-04 00:00:07 [scheduling-1] DEBUG c.d.w.m.U.selectByUserId - ==>  Preparing: select balance_id, user_id, dr_balance, pre_deducted_balance, total_recharge, total_consume, total_refund, frozen_amount, version, status, create_by, create_time, update_by, update_time, remark from user_dr_balance where user_id = ?
+2025-11-04 00:00:07 [scheduling-1] DEBUG c.d.w.m.U.selectByUserId - ==> Parameters: 261(Long)
+2025-11-04 00:00:07 [scheduling-1] DEBUG c.d.w.m.U.selectByUserId - <==      Total: 1
+2025-11-04 00:00:07 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserById - ==>  Preparing: SELECT u.user_id, u.username, u.password, u.nickname, u.real_name, u.email, u.phone, u.gender, u.avatar, u.user_type, u.status, u.dept_id, u.parent_user_id, u.login_ip, u.login_time, u.create_by, u.create_time, u.update_by, u.update_time, u.remark, d.dept_name, d.leader_user_id AS leader_id, leader.nickname AS leader_nickname FROM sys_user u LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0' LEFT JOIN sys_user leader ON d.leader_user_id = leader.user_id WHERE u.user_id = ?
+2025-11-04 00:00:07 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserById - ==> Parameters: 261(Long)
+2025-11-04 00:00:08 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserById - <==      Total: 1
+2025-11-04 00:00:08 [scheduling-1] DEBUG c.d.c.c.s.impl.SysUserServiceImpl - 查询用户成功：用户ID=261, 用户名=buyer_3
+2025-11-04 00:00:08 [scheduling-1] DEBUG c.d.w.m.U.updateBalanceWithVersion - ==>  Preparing: update user_dr_balance set dr_balance = ?, pre_deducted_balance = ?, total_recharge = ?, total_consume = ?, total_refund = ?, frozen_amount = ?, version = version + 1, update_time = now() where user_id = ? and version = ?
+2025-11-04 00:00:08 [scheduling-1] DEBUG c.d.w.m.U.updateBalanceWithVersion - ==> Parameters: 2008322.0000(BigDecimal), 1411.7000(BigDecimal), 2010122.0000(BigDecimal), 388.3000(BigDecimal), 0.0000(BigDecimal), 0.0000(BigDecimal), 261(Long), 93(Integer)
+2025-11-04 00:00:08 [scheduling-1] DEBUG c.d.w.m.U.updateBalanceWithVersion - <==    Updates: 1
+2025-11-04 00:00:08 [scheduling-1] DEBUG c.d.w.m.DrBillingRecordMapper.insert - ==>  Preparing: insert into dr_billing_record ( bill_no, user_id, operator_id, bill_type, billing_type, business_type, business_id, dr_amount, balance_before, balance_after, description, remark, extra_data, consumer, status, create_by, create_time ) values ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )
+2025-11-04 00:00:08 [scheduling-1] DEBUG c.d.w.m.DrBillingRecordMapper.insert - ==> Parameters: DR20251104000007298656(String), 261(Long), 261(Long), 2(Integer), 2(Integer), INSTANCE_MARKETING(String), null, 54.0000(BigDecimal), 2009787.7000(BigDecimal), 2009733.7000(BigDecimal), 营销实例计费 - 9个实例(String), null, null, buyer_3(String), 1(Integer), system(String), 2025-11-04T00:00:07.558574(LocalDateTime)
+2025-11-04 00:00:08 [scheduling-1] DEBUG c.d.w.m.DrBillingRecordMapper.insert - <==    Updates: 1
+2025-11-04 00:00:08 [scheduling-1] DEBUG c.d.w.m.U.selectByUserId - ==>  Preparing: select balance_id, user_id, dr_balance, pre_deducted_balance, total_recharge, total_consume, total_refund, frozen_amount, version, status, create_by, create_time, update_by, update_time, remark from user_dr_balance where user_id = ?
+2025-11-04 00:00:08 [scheduling-1] DEBUG c.d.w.m.U.selectByUserId - ==> Parameters: 261(Long)
+2025-11-04 00:00:08 [scheduling-1] DEBUG c.d.w.m.U.selectByUserId - <==      Total: 1
+2025-11-04 00:00:09 [scheduling-1] INFO  c.d.web.task.InstanceBillingTask - 实例计费扣费成功，父用户ID：261, 金额：54.0000 DR, 扣费前余额：2008322.0000 DR, 扣费后余额：2008322.0000 DR, 描述：营销实例计费 - 9个实例
+2025-11-04 00:00:09 [scheduling-1] INFO  c.d.web.task.InstanceBillingTask - 营销实例计费成功，父用户ID：261, 实例数量：9, 扣费金额：54.0000 DR
+2025-11-04 00:00:09 [scheduling-1] DEBUG c.d.w.m.U.selectByUserId - ==>  Preparing: select balance_id, user_id, dr_balance, pre_deducted_balance, total_recharge, total_consume, total_refund, frozen_amount, version, status, create_by, create_time, update_by, update_time, remark from user_dr_balance where user_id = ?
+2025-11-04 00:00:09 [scheduling-1] DEBUG c.d.w.m.U.selectByUserId - ==> Parameters: 261(Long)
+2025-11-04 00:00:09 [scheduling-1] DEBUG c.d.w.m.U.selectByUserId - <==      Total: 1
+2025-11-04 00:00:09 [scheduling-1] DEBUG c.d.w.m.U.selectByUserId - ==>  Preparing: select balance_id, user_id, dr_balance, pre_deducted_balance, total_recharge, total_consume, total_refund, frozen_amount, version, status, create_by, create_time, update_by, update_time, remark from user_dr_balance where user_id = ?
+2025-11-04 00:00:09 [scheduling-1] DEBUG c.d.w.m.U.selectByUserId - ==> Parameters: 261(Long)
+2025-11-04 00:00:09 [scheduling-1] DEBUG c.d.w.m.U.selectByUserId - <==      Total: 1
+2025-11-04 00:00:09 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserById - ==>  Preparing: SELECT u.user_id, u.username, u.password, u.nickname, u.real_name, u.email, u.phone, u.gender, u.avatar, u.user_type, u.status, u.dept_id, u.parent_user_id, u.login_ip, u.login_time, u.create_by, u.create_time, u.update_by, u.update_time, u.remark, d.dept_name, d.leader_user_id AS leader_id, leader.nickname AS leader_nickname FROM sys_user u LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0' LEFT JOIN sys_user leader ON d.leader_user_id = leader.user_id WHERE u.user_id = ?
+2025-11-04 00:00:09 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserById - ==> Parameters: 261(Long)
+2025-11-04 00:00:10 [scheduling-1] DEBUG c.d.c.c.m.S.selectUserById - <==      Total: 1
+2025-11-04 00:00:10 [scheduling-1] DEBUG c.d.c.c.s.impl.SysUserServiceImpl - 查询用户成功：用户ID=261, 用户名=buyer_3
+2025-11-04 00:00:10 [scheduling-1] DEBUG c.d.w.m.U.updateBalanceWithVersion - ==>  Preparing: update user_dr_balance set dr_balance = ?, pre_deducted_balance = ?, total_recharge = ?, total_consume = ?, total_refund = ?, frozen_amount = ?, version = version + 1, update_time = now() where user_id = ? and version = ?
+2025-11-04 00:00:10 [scheduling-1] DEBUG c.d.w.m.U.updateBalanceWithVersion - ==> Parameters: 2008322.0000(BigDecimal), 1399.7000(BigDecimal), 2010122.0000(BigDecimal), 400.3000(BigDecimal), 0.0000(BigDecimal), 0.0000(BigDecimal), 261(Long), 94(Integer)
+2025-11-04 00:00:10 [scheduling-1] DEBUG c.d.w.m.U.updateBalanceWithVersion - <==    Updates: 1
+2025-11-04 00:00:10 [scheduling-1] DEBUG c.d.w.m.DrBillingRecordMapper.insert - ==>  Preparing: insert into dr_billing_record ( bill_no, user_id, operator_id, bill_type, billing_type, business_type, business_id, dr_amount, balance_before, balance_after, description, remark, extra_data, consumer, status, create_by, create_time ) values ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )
+2025-11-04 00:00:10 [scheduling-1] DEBUG c.d.w.m.DrBillingRecordMapper.insert - ==> Parameters: DR20251104000009817167(String), 261(Long), 261(Long), 2(Integer), 2(Integer), INSTANCE_PROSPECTING(String), null, 12.0000(BigDecimal), 2009733.7000(BigDecimal), 2009721.7000(BigDecimal), 侦查实例计费 - 12个实例(String), null, null, buyer_3(String), 1(Integer), system(String), 2025-11-04T00:00:09.238807(LocalDateTime)
+2025-11-04 00:00:10 [scheduling-1] DEBUG c.d.w.m.DrBillingRecordMapper.insert - <==    Updates: 1
+2025-11-04 00:00:10 [scheduling-1] DEBUG c.d.w.m.U.selectByUserId - ==>  Preparing: select balance_id, user_id, dr_balance, pre_deducted_balance, total_recharge, total_consume, total_refund, frozen_amount, version, status, create_by, create_time, update_by, update_time, remark from user_dr_balance where user_id = ?
+2025-11-04 00:00:10 [scheduling-1] DEBUG c.d.w.m.U.selectByUserId - ==> Parameters: 261(Long)
+2025-11-04 00:00:10 [scheduling-1] DEBUG c.d.w.m.U.selectByUserId - <==      Total: 1
+2025-11-04 00:00:11 [scheduling-1] INFO  c.d.web.task.InstanceBillingTask - 实例计费扣费成功，父用户ID：261, 金额：12.0000 DR, 扣费前余额：2008322.0000 DR, 扣费后余额：2008322.0000 DR, 描述：侦查实例计费 - 12个实例
+2025-11-04 00:00:11 [scheduling-1] INFO  c.d.web.task.InstanceBillingTask - 侦查实例计费成功，父用户ID：261, 实例数量：12, 扣费金额：12.0000 DR
+2025-11-04 00:00:11 [scheduling-1] INFO  c.d.web.task.InstanceBillingTask - 每日实例计费任务执行完成，成功：2, 失败：0
+2025-11-04 00:01:21 [SpringApplicationShutdownHook] INFO  c.alibaba.druid.pool.DruidDataSource - {dataSource-1} closing ...
+2025-11-04 00:01:21 [SpringApplicationShutdownHook] INFO  c.alibaba.druid.pool.DruidDataSource - {dataSource-1} closed
+2025-11-04 00:01:23 [main] INFO  c.deepreach.web.DeepReachApplication - Starting DeepReachApplication using Java 17.0.12 with PID 25523 (/Users/gak1/IDEA/deepreach/deepreach-web/target/classes started by gak1 in /Users/gak1/IDEA/deepreach)
+2025-11-04 00:01:23 [main] DEBUG c.deepreach.web.DeepReachApplication - Running with Spring Boot v3.2.0, Spring v6.1.1
+2025-11-04 00:01:23 [main] INFO  c.deepreach.web.DeepReachApplication - The following 1 profile is active: "dev"
+2025-11-04 00:01:24 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode
+2025-11-04 00:01:24 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+2025-11-04 00:01:24 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 6 ms. Found 0 Redis repository interfaces.
+2025-11-04 00:01:24 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-04 00:01:24 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-04 00:01:24 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.16]
+2025-11-04 00:01:24 [main] INFO  o.a.c.c.C.[.[localhost].[/api] - Initializing Spring embedded WebApplicationContext
+2025-11-04 00:01:24 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 901 ms
+2025-11-04 00:01:25 [main] DEBUG c.d.c.s.JwtAuthenticationFilter - Filter 'jwtAuthenticationFilter' configured for use
+2025-11-04 00:01:25 [main] ERROR i.n.r.d.DnsServerAddressStreamProviders - Unable to load io.netty.resolver.dns.macos.MacOSDnsServerAddressStreamProvider, fallback to system defaults. This may result in incorrect DNS resolutions on MacOS. Check whether you have a dependency on 'io.netty:netty-resolver-dns-native-macos'. Use DEBUG level to see the full stack: java.lang.UnsatisfiedLinkError: failed to load the required native library
+2025-11-04 00:01:25 [main] INFO  o.s.s.web.DefaultSecurityFilterChain - Will secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@790d629a, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@346e5cc, org.springframework.security.web.context.SecurityContextHolderFilter@f833223, org.springframework.security.web.header.HeaderWriterFilter@3506bc8b, org.springframework.web.filter.CorsFilter@2cd2c764, org.springframework.security.web.authentication.logout.LogoutFilter@7efba9b9, com.deepreach.common.security.JwtAuthenticationFilter@7f030c72, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@3f6a9ba0, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@1e749235, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@d17d554, org.springframework.security.web.session.SessionManagementFilter@6127ef86, org.springframework.security.web.access.ExceptionTranslationFilter@4866a755, org.springframework.security.web.access.intercept.AuthorizationFilter@31b7112d]
+2025-11-04 00:01:26 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/api'
+2025-11-04 00:01:26 [main] INFO  c.deepreach.web.DeepReachApplication - Started DeepReachApplication in 2.439 seconds (process running for 2.744)
+2025-11-04 00:01:26 [main] INFO  c.d.web.config.DataSourceHealthCheck - 开始检查数据源配置...
+2025-11-04 00:01:34 [main] INFO  c.alibaba.druid.pool.DruidDataSource - {dataSource-1} inited
+2025-11-04 00:01:35 [main] INFO  c.d.web.config.DataSourceHealthCheck - 主数据源连接成功: PRIMARY_OK
+2025-11-04 00:01:36 [main] INFO  c.d.web.config.DataSourceHealthCheck - 云电脑数据源连接成功: CLOUD_COMPUTER_OK
+2025-11-04 00:01:37 [main] INFO  c.d.web.config.DataSourceHealthCheck - 云电脑数据库中admin用户记录数: 1
+2025-11-04 00:01:37 [main] INFO  c.d.web.config.DataSourceHealthCheck - 数据源检查完成
+2025-11-04 00:03:56 [SpringApplicationShutdownHook] INFO  c.alibaba.druid.pool.DruidDataSource - {dataSource-1} closing ...
+2025-11-04 00:03:56 [SpringApplicationShutdownHook] INFO  c.alibaba.druid.pool.DruidDataSource - {dataSource-1} closed
+2025-11-04 00:03:57 [main] INFO  c.deepreach.web.DeepReachApplication - Starting DeepReachApplication using Java 17.0.12 with PID 25870 (/Users/gak1/IDEA/deepreach/deepreach-web/target/classes started by gak1 in /Users/gak1/IDEA/deepreach)
+2025-11-04 00:03:57 [main] DEBUG c.deepreach.web.DeepReachApplication - Running with Spring Boot v3.2.0, Spring v6.1.1
+2025-11-04 00:03:57 [main] INFO  c.deepreach.web.DeepReachApplication - The following 1 profile is active: "dev"
+2025-11-04 00:03:58 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode
+2025-11-04 00:03:58 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+2025-11-04 00:03:58 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 7 ms. Found 0 Redis repository interfaces.
+2025-11-04 00:03:58 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-04 00:03:58 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-04 00:03:58 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.16]
+2025-11-04 00:03:58 [main] INFO  o.a.c.c.C.[.[localhost].[/api] - Initializing Spring embedded WebApplicationContext
+2025-11-04 00:03:58 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 839 ms
+2025-11-04 00:03:58 [main] DEBUG c.d.c.s.JwtAuthenticationFilter - Filter 'jwtAuthenticationFilter' configured for use
+2025-11-04 00:03:59 [main] ERROR i.n.r.d.DnsServerAddressStreamProviders - Unable to load io.netty.resolver.dns.macos.MacOSDnsServerAddressStreamProvider, fallback to system defaults. This may result in incorrect DNS resolutions on MacOS. Check whether you have a dependency on 'io.netty:netty-resolver-dns-native-macos'. Use DEBUG level to see the full stack: java.lang.UnsatisfiedLinkError: failed to load the required native library
+2025-11-04 00:03:59 [main] INFO  o.s.s.web.DefaultSecurityFilterChain - Will secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@790d629a, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@346e5cc, org.springframework.security.web.context.SecurityContextHolderFilter@f833223, org.springframework.security.web.header.HeaderWriterFilter@3506bc8b, org.springframework.web.filter.CorsFilter@2cd2c764, org.springframework.security.web.authentication.logout.LogoutFilter@7efba9b9, com.deepreach.common.security.JwtAuthenticationFilter@75c33608, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@3f6a9ba0, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@1e749235, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@d17d554, org.springframework.security.web.session.SessionManagementFilter@6127ef86, org.springframework.security.web.access.ExceptionTranslationFilter@4866a755, org.springframework.security.web.access.intercept.AuthorizationFilter@31b7112d]
+2025-11-04 00:04:00 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/api'
+2025-11-04 00:04:00 [main] INFO  c.deepreach.web.DeepReachApplication - Started DeepReachApplication in 2.741 seconds (process running for 3.008)
+2025-11-04 00:04:00 [main] INFO  c.d.web.config.DataSourceHealthCheck - 开始检查数据源配置...
+2025-11-04 00:04:08 [main] INFO  c.alibaba.druid.pool.DruidDataSource - {dataSource-1} inited
+2025-11-04 00:04:08 [main] INFO  c.d.web.config.DataSourceHealthCheck - 主数据源连接成功: PRIMARY_OK
+2025-11-04 00:04:10 [main] INFO  c.d.web.config.DataSourceHealthCheck - 云电脑数据源连接成功: CLOUD_COMPUTER_OK
+2025-11-04 00:04:11 [main] INFO  c.d.web.config.DataSourceHealthCheck - 云电脑数据库中admin用户记录数: 1
+2025-11-04 00:04:11 [main] INFO  c.d.web.config.DataSourceHealthCheck - 数据源检查完成
+2025-11-04 00:27:30 [SpringApplicationShutdownHook] INFO  c.alibaba.druid.pool.DruidDataSource - {dataSource-1} closing ...
+2025-11-04 00:27:30 [SpringApplicationShutdownHook] INFO  c.alibaba.druid.pool.DruidDataSource - {dataSource-1} closed
+2025-11-04 00:27:34 [main] INFO  c.deepreach.web.DeepReachApplication - Starting DeepReachApplication using Java 17.0.12 with PID 27638 (/Users/gak1/IDEA/deepreach/deepreach-web/target/classes started by gak1 in /Users/gak1/IDEA/deepreach)
+2025-11-04 00:27:34 [main] DEBUG c.deepreach.web.DeepReachApplication - Running with Spring Boot v3.2.0, Spring v6.1.1
+2025-11-04 00:27:34 [main] INFO  c.deepreach.web.DeepReachApplication - The following 1 profile is active: "dev"
+2025-11-04 00:27:34 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode
+2025-11-04 00:27:34 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+2025-11-04 00:27:34 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 7 ms. Found 0 Redis repository interfaces.
+2025-11-04 00:27:35 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-04 00:27:35 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-04 00:27:35 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.16]
+2025-11-04 00:27:35 [main] INFO  o.a.c.c.C.[.[localhost].[/api] - Initializing Spring embedded WebApplicationContext
+2025-11-04 00:27:35 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 949 ms
+2025-11-04 00:27:35 [main] DEBUG c.d.c.s.JwtAuthenticationFilter - Filter 'jwtAuthenticationFilter' configured for use
+2025-11-04 00:27:35 [main] ERROR i.n.r.d.DnsServerAddressStreamProviders - Unable to load io.netty.resolver.dns.macos.MacOSDnsServerAddressStreamProvider, fallback to system defaults. This may result in incorrect DNS resolutions on MacOS. Check whether you have a dependency on 'io.netty:netty-resolver-dns-native-macos'. Use DEBUG level to see the full stack: java.lang.UnsatisfiedLinkError: failed to load the required native library
+2025-11-04 00:27:36 [main] INFO  o.s.s.web.DefaultSecurityFilterChain - Will secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@346e5cc, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@2cd2c764, org.springframework.security.web.context.SecurityContextHolderFilter@5186b78a, org.springframework.security.web.header.HeaderWriterFilter@4bac0be5, org.springframework.web.filter.CorsFilter@d17d554, org.springframework.security.web.authentication.logout.LogoutFilter@4b8cde43, com.deepreach.common.security.JwtAuthenticationFilter@7f030c72, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@1e749235, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@870a9f2, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@1f1c7fde, org.springframework.security.web.session.SessionManagementFilter@542754be, org.springframework.security.web.access.ExceptionTranslationFilter@1361e880, org.springframework.security.web.access.intercept.AuthorizationFilter@47fc9ce]
+2025-11-04 00:27:36 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/api'
+2025-11-04 00:27:36 [main] INFO  c.deepreach.web.DeepReachApplication - Started DeepReachApplication in 2.891 seconds (process running for 3.297)
+2025-11-04 00:27:36 [main] INFO  c.d.web.config.DataSourceHealthCheck - 开始检查数据源配置...
+2025-11-04 00:27:46 [main] INFO  c.alibaba.druid.pool.DruidDataSource - {dataSource-1} inited
+2025-11-04 00:27:46 [main] INFO  c.d.web.config.DataSourceHealthCheck - 主数据源连接成功: PRIMARY_OK
+2025-11-04 00:27:47 [main] INFO  c.d.web.config.DataSourceHealthCheck - 云电脑数据源连接成功: CLOUD_COMPUTER_OK
+2025-11-04 00:27:48 [main] INFO  c.d.web.config.DataSourceHealthCheck - 云电脑数据库中admin用户记录数: 1
+2025-11-04 00:27:48 [main] INFO  c.d.web.config.DataSourceHealthCheck - 数据源检查完成
+2025-11-04 00:30:09 [SpringApplicationShutdownHook] INFO  c.alibaba.druid.pool.DruidDataSource - {dataSource-1} closing ...
+2025-11-04 00:30:09 [SpringApplicationShutdownHook] INFO  c.alibaba.druid.pool.DruidDataSource - {dataSource-1} closed
+2025-11-04 00:30:12 [main] INFO  c.deepreach.web.DeepReachApplication - Starting DeepReachApplication using Java 17.0.12 with PID 28156 (/Users/gak1/IDEA/deepreach/deepreach-web/target/classes started by gak1 in /Users/gak1/IDEA/deepreach)
+2025-11-04 00:30:12 [main] DEBUG c.deepreach.web.DeepReachApplication - Running with Spring Boot v3.2.0, Spring v6.1.1
+2025-11-04 00:30:12 [main] INFO  c.deepreach.web.DeepReachApplication - The following 1 profile is active: "dev"
+2025-11-04 00:30:12 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode
+2025-11-04 00:30:12 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+2025-11-04 00:30:12 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 7 ms. Found 0 Redis repository interfaces.
+2025-11-04 00:30:13 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-04 00:30:13 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-04 00:30:13 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.16]
+2025-11-04 00:30:13 [main] INFO  o.a.c.c.C.[.[localhost].[/api] - Initializing Spring embedded WebApplicationContext
+2025-11-04 00:30:13 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 870 ms
+2025-11-04 00:30:13 [main] DEBUG c.d.c.s.JwtAuthenticationFilter - Filter 'jwtAuthenticationFilter' configured for use
+2025-11-04 00:30:14 [main] ERROR i.n.r.d.DnsServerAddressStreamProviders - Unable to load io.netty.resolver.dns.macos.MacOSDnsServerAddressStreamProvider, fallback to system defaults. This may result in incorrect DNS resolutions on MacOS. Check whether you have a dependency on 'io.netty:netty-resolver-dns-native-macos'. Use DEBUG level to see the full stack: java.lang.UnsatisfiedLinkError: failed to load the required native library
+2025-11-04 00:30:14 [main] INFO  o.s.s.web.DefaultSecurityFilterChain - Will secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@2cd2c764, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@d17d554, org.springframework.security.web.context.SecurityContextHolderFilter@3f6a9ba0, org.springframework.security.web.header.HeaderWriterFilter@368d51ca, org.springframework.web.filter.CorsFilter@1f1c7fde, org.springframework.security.web.authentication.logout.LogoutFilter@34c6b52e, com.deepreach.common.security.JwtAuthenticationFilter@68d8ae27, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@870a9f2, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@6c2e7591, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@2b409174, org.springframework.security.web.session.SessionManagementFilter@af57949, org.springframework.security.web.access.ExceptionTranslationFilter@3506bc8b, org.springframework.security.web.access.intercept.AuthorizationFilter@1b5d1d9]
+2025-11-04 00:30:14 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/api'
+2025-11-04 00:30:14 [main] INFO  c.deepreach.web.DeepReachApplication - Started DeepReachApplication in 2.399 seconds (process running for 2.657)
+2025-11-04 00:30:14 [main] INFO  c.d.web.config.DataSourceHealthCheck - 开始检查数据源配置...
+2025-11-04 00:30:23 [main] INFO  c.alibaba.druid.pool.DruidDataSource - {dataSource-1} inited
+2025-11-04 00:30:23 [main] INFO  c.d.web.config.DataSourceHealthCheck - 主数据源连接成功: PRIMARY_OK
+2025-11-04 00:30:25 [main] INFO  c.d.web.config.DataSourceHealthCheck - 云电脑数据源连接成功: CLOUD_COMPUTER_OK
+2025-11-04 00:30:26 [main] INFO  c.d.web.config.DataSourceHealthCheck - 云电脑数据库中admin用户记录数: 1
+2025-11-04 00:30:26 [main] INFO  c.d.web.config.DataSourceHealthCheck - 数据源检查完成
+2025-11-04 01:42:47 [SpringApplicationShutdownHook] INFO  c.alibaba.druid.pool.DruidDataSource - {dataSource-1} closing ...
+2025-11-04 01:42:47 [SpringApplicationShutdownHook] INFO  c.alibaba.druid.pool.DruidDataSource - {dataSource-1} closed
+2025-11-04 01:42:50 [main] INFO  c.deepreach.web.DeepReachApplication - Starting DeepReachApplication using Java 17.0.12 with PID 34424 (/Users/gak1/IDEA/deepreach/deepreach-web/target/classes started by gak1 in /Users/gak1/IDEA/deepreach)
+2025-11-04 01:42:50 [main] DEBUG c.deepreach.web.DeepReachApplication - Running with Spring Boot v3.2.0, Spring v6.1.1
+2025-11-04 01:42:50 [main] INFO  c.deepreach.web.DeepReachApplication - The following 1 profile is active: "dev"
+2025-11-04 01:42:50 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode
+2025-11-04 01:42:50 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+2025-11-04 01:42:50 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 6 ms. Found 0 Redis repository interfaces.
+2025-11-04 01:42:51 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-04 01:42:51 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-04 01:42:51 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.16]
+2025-11-04 01:42:51 [main] INFO  o.a.c.c.C.[.[localhost].[/api] - Initializing Spring embedded WebApplicationContext
+2025-11-04 01:42:51 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 869 ms
+2025-11-04 01:42:51 [main] DEBUG c.d.c.s.JwtAuthenticationFilter - Filter 'jwtAuthenticationFilter' configured for use
+2025-11-04 01:42:51 [main] ERROR i.n.r.d.DnsServerAddressStreamProviders - Unable to load io.netty.resolver.dns.macos.MacOSDnsServerAddressStreamProvider, fallback to system defaults. This may result in incorrect DNS resolutions on MacOS. Check whether you have a dependency on 'io.netty:netty-resolver-dns-native-macos'. Use DEBUG level to see the full stack: java.lang.UnsatisfiedLinkError: failed to load the required native library
+2025-11-04 01:42:51 [main] INFO  o.s.s.web.DefaultSecurityFilterChain - Will secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@346e5cc, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@2cd2c764, org.springframework.security.web.context.SecurityContextHolderFilter@5186b78a, org.springframework.security.web.header.HeaderWriterFilter@4bac0be5, org.springframework.web.filter.CorsFilter@d17d554, org.springframework.security.web.authentication.logout.LogoutFilter@4b8cde43, com.deepreach.common.security.JwtAuthenticationFilter@7f030c72, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@1e749235, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@870a9f2, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@1f1c7fde, org.springframework.security.web.session.SessionManagementFilter@542754be, org.springframework.security.web.access.ExceptionTranslationFilter@1361e880, org.springframework.security.web.access.intercept.AuthorizationFilter@47fc9ce]
+2025-11-04 01:42:52 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/api'
+2025-11-04 01:42:52 [main] INFO  c.deepreach.web.DeepReachApplication - Started DeepReachApplication in 2.503 seconds (process running for 2.962)
+2025-11-04 01:42:52 [main] INFO  c.d.web.config.DataSourceHealthCheck - 开始检查数据源配置...
+2025-11-04 01:42:52 [main] ERROR c.alibaba.druid.pool.DruidDataSource - init datasource error, url: jdbc:mysql://206.82.1.18:33900/smspike?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+com.mysql.cj.jdbc.exceptions.CommunicationsException: Communications link failure
+
+The last packet sent successfully to the server was 0 milliseconds ago. The driver has not received any packets from the server.
+	at com.mysql.cj.jdbc.exceptions.SQLError.createCommunicationsException(SQLError.java:175)
+	at com.mysql.cj.jdbc.exceptions.SQLExceptionsMapping.translateException(SQLExceptionsMapping.java:64)
+	at com.mysql.cj.jdbc.ConnectionImpl.createNewIO(ConnectionImpl.java:825)
+	at com.mysql.cj.jdbc.ConnectionImpl.<init>(ConnectionImpl.java:446)
+	at com.mysql.cj.jdbc.ConnectionImpl.getInstance(ConnectionImpl.java:239)
+	at com.mysql.cj.jdbc.NonRegisteringDriver.connect(NonRegisteringDriver.java:188)
+	at com.alibaba.druid.pool.DruidAbstractDataSource.createPhysicalConnection(DruidAbstractDataSource.java:1703)
+	at com.alibaba.druid.pool.DruidAbstractDataSource.createPhysicalConnection(DruidAbstractDataSource.java:1801)
+	at com.alibaba.druid.pool.DruidDataSource.init(DruidDataSource.java:939)
+	at com.alibaba.druid.pool.DruidDataSource.getConnection(DruidDataSource.java:1463)
+	at com.alibaba.druid.pool.DruidDataSource.getConnection(DruidDataSource.java:1459)
+	at com.alibaba.druid.pool.DruidDataSource.getConnection(DruidDataSource.java:83)
+	at org.springframework.jdbc.datasource.DataSourceUtils.fetchConnection(DataSourceUtils.java:160)
+	at org.springframework.jdbc.datasource.DataSourceUtils.doGetConnection(DataSourceUtils.java:118)
+	at org.springframework.jdbc.datasource.DataSourceUtils.getConnection(DataSourceUtils.java:81)
+	at org.springframework.jdbc.core.JdbcTemplate.execute(JdbcTemplate.java:388)
+	at org.springframework.jdbc.core.JdbcTemplate.query(JdbcTemplate.java:476)
+	at org.springframework.jdbc.core.JdbcTemplate.query(JdbcTemplate.java:486)
+	at org.springframework.jdbc.core.JdbcTemplate.queryForObject(JdbcTemplate.java:519)
+	at org.springframework.jdbc.core.JdbcTemplate.queryForObject(JdbcTemplate.java:526)
+	at com.deepreach.web.config.DataSourceHealthCheck.run(DataSourceHealthCheck.java:35)
+	at org.springframework.boot.SpringApplication.callRunner(SpringApplication.java:786)
+	at org.springframework.boot.SpringApplication.lambda$callRunners$3(SpringApplication.java:770)
+	at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.accept(ForEachOps.java:183)
+	at java.base/java.util.stream.SortedOps$SizedRefSortingSink.end(SortedOps.java:357)
+	at java.base/java.util.stream.AbstractPipeline.copyInto(AbstractPipeline.java:510)
+	at java.base/java.util.stream.AbstractPipeline.wrapAndCopyInto(AbstractPipeline.java:499)
+	at java.base/java.util.stream.ForEachOps$ForEachOp.evaluateSequential(ForEachOps.java:150)
+	at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.evaluateSequential(ForEachOps.java:173)
+	at java.base/java.util.stream.AbstractPipeline.evaluate(AbstractPipeline.java:234)
+	at java.base/java.util.stream.ReferencePipeline.forEach(ReferencePipeline.java:596)
+	at org.springframework.boot.SpringApplication.callRunners(SpringApplication.java:765)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:330)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1342)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1331)
+	at com.deepreach.web.DeepReachApplication.main(DeepReachApplication.java:37)
+Caused by: com.mysql.cj.exceptions.CJCommunicationsException: Communications link failure
+
+The last packet sent successfully to the server was 0 milliseconds ago. The driver has not received any packets from the server.
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45)
+	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:500)
+	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:481)
+	at com.mysql.cj.exceptions.ExceptionFactory.createException(ExceptionFactory.java:62)
+	at com.mysql.cj.exceptions.ExceptionFactory.createException(ExceptionFactory.java:105)
+	at com.mysql.cj.exceptions.ExceptionFactory.createException(ExceptionFactory.java:150)
+	at com.mysql.cj.exceptions.ExceptionFactory.createCommunicationsException(ExceptionFactory.java:166)
+	at com.mysql.cj.protocol.a.NativeProtocol.readMessage(NativeProtocol.java:582)
+	at com.mysql.cj.protocol.a.NativeProtocol.readServerCapabilities(NativeProtocol.java:537)
+	at com.mysql.cj.protocol.a.NativeProtocol.beforeHandshake(NativeProtocol.java:424)
+	at com.mysql.cj.protocol.a.NativeProtocol.connect(NativeProtocol.java:1428)
+	at com.mysql.cj.NativeSession.connect(NativeSession.java:134)
+	at com.mysql.cj.jdbc.ConnectionImpl.connectOneTryOnly(ConnectionImpl.java:945)
+	at com.mysql.cj.jdbc.ConnectionImpl.createNewIO(ConnectionImpl.java:815)
+	... 33 common frames omitted
+Caused by: java.io.EOFException: Can not read response from server. Expected to read 4 bytes, read 0 bytes before connection was unexpectedly lost.
+	at com.mysql.cj.protocol.FullReadInputStream.readFully(FullReadInputStream.java:67)
+	at com.mysql.cj.protocol.a.SimplePacketReader.readHeaderLocal(SimplePacketReader.java:81)
+	at com.mysql.cj.protocol.a.SimplePacketReader.readHeader(SimplePacketReader.java:63)
+	at com.mysql.cj.protocol.a.SimplePacketReader.readHeader(SimplePacketReader.java:45)
+	at com.mysql.cj.protocol.a.NativeProtocol.readMessage(NativeProtocol.java:576)
+	... 39 common frames omitted
+2025-11-04 01:42:52 [main] ERROR c.alibaba.druid.pool.DruidDataSource - {dataSource-1} init error
+com.mysql.cj.jdbc.exceptions.CommunicationsException: Communications link failure
+
+The last packet sent successfully to the server was 0 milliseconds ago. The driver has not received any packets from the server.
+	at com.mysql.cj.jdbc.exceptions.SQLError.createCommunicationsException(SQLError.java:175)
+	at com.mysql.cj.jdbc.exceptions.SQLExceptionsMapping.translateException(SQLExceptionsMapping.java:64)
+	at com.mysql.cj.jdbc.ConnectionImpl.createNewIO(ConnectionImpl.java:825)
+	at com.mysql.cj.jdbc.ConnectionImpl.<init>(ConnectionImpl.java:446)
+	at com.mysql.cj.jdbc.ConnectionImpl.getInstance(ConnectionImpl.java:239)
+	at com.mysql.cj.jdbc.NonRegisteringDriver.connect(NonRegisteringDriver.java:188)
+	at com.alibaba.druid.pool.DruidAbstractDataSource.createPhysicalConnection(DruidAbstractDataSource.java:1703)
+	at com.alibaba.druid.pool.DruidAbstractDataSource.createPhysicalConnection(DruidAbstractDataSource.java:1801)
+	at com.alibaba.druid.pool.DruidDataSource.init(DruidDataSource.java:939)
+	at com.alibaba.druid.pool.DruidDataSource.getConnection(DruidDataSource.java:1463)
+	at com.alibaba.druid.pool.DruidDataSource.getConnection(DruidDataSource.java:1459)
+	at com.alibaba.druid.pool.DruidDataSource.getConnection(DruidDataSource.java:83)
+	at org.springframework.jdbc.datasource.DataSourceUtils.fetchConnection(DataSourceUtils.java:160)
+	at org.springframework.jdbc.datasource.DataSourceUtils.doGetConnection(DataSourceUtils.java:118)
+	at org.springframework.jdbc.datasource.DataSourceUtils.getConnection(DataSourceUtils.java:81)
+	at org.springframework.jdbc.core.JdbcTemplate.execute(JdbcTemplate.java:388)
+	at org.springframework.jdbc.core.JdbcTemplate.query(JdbcTemplate.java:476)
+	at org.springframework.jdbc.core.JdbcTemplate.query(JdbcTemplate.java:486)
+	at org.springframework.jdbc.core.JdbcTemplate.queryForObject(JdbcTemplate.java:519)
+	at org.springframework.jdbc.core.JdbcTemplate.queryForObject(JdbcTemplate.java:526)
+	at com.deepreach.web.config.DataSourceHealthCheck.run(DataSourceHealthCheck.java:35)
+	at org.springframework.boot.SpringApplication.callRunner(SpringApplication.java:786)
+	at org.springframework.boot.SpringApplication.lambda$callRunners$3(SpringApplication.java:770)
+	at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.accept(ForEachOps.java:183)
+	at java.base/java.util.stream.SortedOps$SizedRefSortingSink.end(SortedOps.java:357)
+	at java.base/java.util.stream.AbstractPipeline.copyInto(AbstractPipeline.java:510)
+	at java.base/java.util.stream.AbstractPipeline.wrapAndCopyInto(AbstractPipeline.java:499)
+	at java.base/java.util.stream.ForEachOps$ForEachOp.evaluateSequential(ForEachOps.java:150)
+	at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.evaluateSequential(ForEachOps.java:173)
+	at java.base/java.util.stream.AbstractPipeline.evaluate(AbstractPipeline.java:234)
+	at java.base/java.util.stream.ReferencePipeline.forEach(ReferencePipeline.java:596)
+	at org.springframework.boot.SpringApplication.callRunners(SpringApplication.java:765)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:330)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1342)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1331)
+	at com.deepreach.web.DeepReachApplication.main(DeepReachApplication.java:37)
+Caused by: com.mysql.cj.exceptions.CJCommunicationsException: Communications link failure
+
+The last packet sent successfully to the server was 0 milliseconds ago. The driver has not received any packets from the server.
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45)
+	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:500)
+	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:481)
+	at com.mysql.cj.exceptions.ExceptionFactory.createException(ExceptionFactory.java:62)
+	at com.mysql.cj.exceptions.ExceptionFactory.createException(ExceptionFactory.java:105)
+	at com.mysql.cj.exceptions.ExceptionFactory.createException(ExceptionFactory.java:150)
+	at com.mysql.cj.exceptions.ExceptionFactory.createCommunicationsException(ExceptionFactory.java:166)
+	at com.mysql.cj.protocol.a.NativeProtocol.readMessage(NativeProtocol.java:582)
+	at com.mysql.cj.protocol.a.NativeProtocol.readServerCapabilities(NativeProtocol.java:537)
+	at com.mysql.cj.protocol.a.NativeProtocol.beforeHandshake(NativeProtocol.java:424)
+	at com.mysql.cj.protocol.a.NativeProtocol.connect(NativeProtocol.java:1428)
+	at com.mysql.cj.NativeSession.connect(NativeSession.java:134)
+	at com.mysql.cj.jdbc.ConnectionImpl.connectOneTryOnly(ConnectionImpl.java:945)
+	at com.mysql.cj.jdbc.ConnectionImpl.createNewIO(ConnectionImpl.java:815)
+	... 33 common frames omitted
+Caused by: java.io.EOFException: Can not read response from server. Expected to read 4 bytes, read 0 bytes before connection was unexpectedly lost.
+	at com.mysql.cj.protocol.FullReadInputStream.readFully(FullReadInputStream.java:67)
+	at com.mysql.cj.protocol.a.SimplePacketReader.readHeaderLocal(SimplePacketReader.java:81)
+	at com.mysql.cj.protocol.a.SimplePacketReader.readHeader(SimplePacketReader.java:63)
+	at com.mysql.cj.protocol.a.SimplePacketReader.readHeader(SimplePacketReader.java:45)
+	at com.mysql.cj.protocol.a.NativeProtocol.readMessage(NativeProtocol.java:576)
+	... 39 common frames omitted
+2025-11-04 01:42:52 [main] INFO  c.alibaba.druid.pool.DruidDataSource - {dataSource-1} inited
+2025-11-04 01:42:52 [main] ERROR c.d.web.config.DataSourceHealthCheck - 主数据源连接失败
+org.springframework.jdbc.CannotGetJdbcConnectionException: Failed to obtain JDBC Connection
+	at org.springframework.jdbc.datasource.DataSourceUtils.getConnection(DataSourceUtils.java:84)
+	at org.springframework.jdbc.core.JdbcTemplate.execute(JdbcTemplate.java:388)
+	at org.springframework.jdbc.core.JdbcTemplate.query(JdbcTemplate.java:476)
+	at org.springframework.jdbc.core.JdbcTemplate.query(JdbcTemplate.java:486)
+	at org.springframework.jdbc.core.JdbcTemplate.queryForObject(JdbcTemplate.java:519)
+	at org.springframework.jdbc.core.JdbcTemplate.queryForObject(JdbcTemplate.java:526)
+	at com.deepreach.web.config.DataSourceHealthCheck.run(DataSourceHealthCheck.java:35)
+	at org.springframework.boot.SpringApplication.callRunner(SpringApplication.java:786)
+	at org.springframework.boot.SpringApplication.lambda$callRunners$3(SpringApplication.java:770)
+	at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.accept(ForEachOps.java:183)
+	at java.base/java.util.stream.SortedOps$SizedRefSortingSink.end(SortedOps.java:357)
+	at java.base/java.util.stream.AbstractPipeline.copyInto(AbstractPipeline.java:510)
+	at java.base/java.util.stream.AbstractPipeline.wrapAndCopyInto(AbstractPipeline.java:499)
+	at java.base/java.util.stream.ForEachOps$ForEachOp.evaluateSequential(ForEachOps.java:150)
+	at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.evaluateSequential(ForEachOps.java:173)
+	at java.base/java.util.stream.AbstractPipeline.evaluate(AbstractPipeline.java:234)
+	at java.base/java.util.stream.ReferencePipeline.forEach(ReferencePipeline.java:596)
+	at org.springframework.boot.SpringApplication.callRunners(SpringApplication.java:765)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:330)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1342)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1331)
+	at com.deepreach.web.DeepReachApplication.main(DeepReachApplication.java:37)
+Caused by: com.mysql.cj.jdbc.exceptions.CommunicationsException: Communications link failure
+
+The last packet sent successfully to the server was 0 milliseconds ago. The driver has not received any packets from the server.
+	at com.mysql.cj.jdbc.exceptions.SQLError.createCommunicationsException(SQLError.java:175)
+	at com.mysql.cj.jdbc.exceptions.SQLExceptionsMapping.translateException(SQLExceptionsMapping.java:64)
+	at com.mysql.cj.jdbc.ConnectionImpl.createNewIO(ConnectionImpl.java:825)
+	at com.mysql.cj.jdbc.ConnectionImpl.<init>(ConnectionImpl.java:446)
+	at com.mysql.cj.jdbc.ConnectionImpl.getInstance(ConnectionImpl.java:239)
+	at com.mysql.cj.jdbc.NonRegisteringDriver.connect(NonRegisteringDriver.java:188)
+	at com.alibaba.druid.pool.DruidAbstractDataSource.createPhysicalConnection(DruidAbstractDataSource.java:1703)
+	at com.alibaba.druid.pool.DruidAbstractDataSource.createPhysicalConnection(DruidAbstractDataSource.java:1801)
+	at com.alibaba.druid.pool.DruidDataSource.init(DruidDataSource.java:939)
+	at com.alibaba.druid.pool.DruidDataSource.getConnection(DruidDataSource.java:1463)
+	at com.alibaba.druid.pool.DruidDataSource.getConnection(DruidDataSource.java:1459)
+	at com.alibaba.druid.pool.DruidDataSource.getConnection(DruidDataSource.java:83)
+	at org.springframework.jdbc.datasource.DataSourceUtils.fetchConnection(DataSourceUtils.java:160)
+	at org.springframework.jdbc.datasource.DataSourceUtils.doGetConnection(DataSourceUtils.java:118)
+	at org.springframework.jdbc.datasource.DataSourceUtils.getConnection(DataSourceUtils.java:81)
+	... 21 common frames omitted
+Caused by: com.mysql.cj.exceptions.CJCommunicationsException: Communications link failure
+
+The last packet sent successfully to the server was 0 milliseconds ago. The driver has not received any packets from the server.
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45)
+	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:500)
+	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:481)
+	at com.mysql.cj.exceptions.ExceptionFactory.createException(ExceptionFactory.java:62)
+	at com.mysql.cj.exceptions.ExceptionFactory.createException(ExceptionFactory.java:105)
+	at com.mysql.cj.exceptions.ExceptionFactory.createException(ExceptionFactory.java:150)
+	at com.mysql.cj.exceptions.ExceptionFactory.createCommunicationsException(ExceptionFactory.java:166)
+	at com.mysql.cj.protocol.a.NativeProtocol.readMessage(NativeProtocol.java:582)
+	at com.mysql.cj.protocol.a.NativeProtocol.readServerCapabilities(NativeProtocol.java:537)
+	at com.mysql.cj.protocol.a.NativeProtocol.beforeHandshake(NativeProtocol.java:424)
+	at com.mysql.cj.protocol.a.NativeProtocol.connect(NativeProtocol.java:1428)
+	at com.mysql.cj.NativeSession.connect(NativeSession.java:134)
+	at com.mysql.cj.jdbc.ConnectionImpl.connectOneTryOnly(ConnectionImpl.java:945)
+	at com.mysql.cj.jdbc.ConnectionImpl.createNewIO(ConnectionImpl.java:815)
+	... 33 common frames omitted
+Caused by: java.io.EOFException: Can not read response from server. Expected to read 4 bytes, read 0 bytes before connection was unexpectedly lost.
+	at com.mysql.cj.protocol.FullReadInputStream.readFully(FullReadInputStream.java:67)
+	at com.mysql.cj.protocol.a.SimplePacketReader.readHeaderLocal(SimplePacketReader.java:81)
+	at com.mysql.cj.protocol.a.SimplePacketReader.readHeader(SimplePacketReader.java:63)
+	at com.mysql.cj.protocol.a.SimplePacketReader.readHeader(SimplePacketReader.java:45)
+	at com.mysql.cj.protocol.a.NativeProtocol.readMessage(NativeProtocol.java:576)
+	... 39 common frames omitted
+2025-11-04 01:42:52 [main] ERROR c.d.web.config.DataSourceHealthCheck - 云电脑数据源连接失败
+org.springframework.jdbc.CannotGetJdbcConnectionException: Failed to obtain JDBC Connection
+	at org.springframework.jdbc.datasource.DataSourceUtils.getConnection(DataSourceUtils.java:84)
+	at org.springframework.jdbc.core.JdbcTemplate.execute(JdbcTemplate.java:388)
+	at org.springframework.jdbc.core.JdbcTemplate.query(JdbcTemplate.java:476)
+	at org.springframework.jdbc.core.JdbcTemplate.query(JdbcTemplate.java:486)
+	at org.springframework.jdbc.core.JdbcTemplate.queryForObject(JdbcTemplate.java:519)
+	at org.springframework.jdbc.core.JdbcTemplate.queryForObject(JdbcTemplate.java:526)
+	at com.deepreach.web.config.DataSourceHealthCheck.run(DataSourceHealthCheck.java:43)
+	at org.springframework.boot.SpringApplication.callRunner(SpringApplication.java:786)
+	at org.springframework.boot.SpringApplication.lambda$callRunners$3(SpringApplication.java:770)
+	at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.accept(ForEachOps.java:183)
+	at java.base/java.util.stream.SortedOps$SizedRefSortingSink.end(SortedOps.java:357)
+	at java.base/java.util.stream.AbstractPipeline.copyInto(AbstractPipeline.java:510)
+	at java.base/java.util.stream.AbstractPipeline.wrapAndCopyInto(AbstractPipeline.java:499)
+	at java.base/java.util.stream.ForEachOps$ForEachOp.evaluateSequential(ForEachOps.java:150)
+	at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.evaluateSequential(ForEachOps.java:173)
+	at java.base/java.util.stream.AbstractPipeline.evaluate(AbstractPipeline.java:234)
+	at java.base/java.util.stream.ReferencePipeline.forEach(ReferencePipeline.java:596)
+	at org.springframework.boot.SpringApplication.callRunners(SpringApplication.java:765)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:330)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1342)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1331)
+	at com.deepreach.web.DeepReachApplication.main(DeepReachApplication.java:37)
+Caused by: com.mysql.cj.jdbc.exceptions.CommunicationsException: Communications link failure
+
+The last packet sent successfully to the server was 0 milliseconds ago. The driver has not received any packets from the server.
+	at com.mysql.cj.jdbc.exceptions.SQLError.createCommunicationsException(SQLError.java:175)
+	at com.mysql.cj.jdbc.exceptions.SQLExceptionsMapping.translateException(SQLExceptionsMapping.java:64)
+	at com.mysql.cj.jdbc.ConnectionImpl.createNewIO(ConnectionImpl.java:825)
+	at com.mysql.cj.jdbc.ConnectionImpl.<init>(ConnectionImpl.java:446)
+	at com.mysql.cj.jdbc.ConnectionImpl.getInstance(ConnectionImpl.java:239)
+	at com.mysql.cj.jdbc.NonRegisteringDriver.connect(NonRegisteringDriver.java:188)
+	at org.springframework.jdbc.datasource.SimpleDriverDataSource.getConnectionFromDriver(SimpleDriverDataSource.java:144)
+	at org.springframework.jdbc.datasource.AbstractDriverBasedDataSource.getConnectionFromDriver(AbstractDriverBasedDataSource.java:205)
+	at org.springframework.jdbc.datasource.AbstractDriverBasedDataSource.getConnection(AbstractDriverBasedDataSource.java:169)
+	at org.springframework.jdbc.datasource.DataSourceUtils.fetchConnection(DataSourceUtils.java:160)
+	at org.springframework.jdbc.datasource.DataSourceUtils.doGetConnection(DataSourceUtils.java:118)
+	at org.springframework.jdbc.datasource.DataSourceUtils.getConnection(DataSourceUtils.java:81)
+	... 21 common frames omitted
+Caused by: com.mysql.cj.exceptions.CJCommunicationsException: Communications link failure
+
+The last packet sent successfully to the server was 0 milliseconds ago. The driver has not received any packets from the server.
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45)
+	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:500)
+	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:481)
+	at com.mysql.cj.exceptions.ExceptionFactory.createException(ExceptionFactory.java:62)
+	at com.mysql.cj.exceptions.ExceptionFactory.createException(ExceptionFactory.java:105)
+	at com.mysql.cj.exceptions.ExceptionFactory.createException(ExceptionFactory.java:150)
+	at com.mysql.cj.exceptions.ExceptionFactory.createCommunicationsException(ExceptionFactory.java:166)
+	at com.mysql.cj.protocol.a.NativeProtocol.readMessage(NativeProtocol.java:582)
+	at com.mysql.cj.protocol.a.NativeProtocol.readServerCapabilities(NativeProtocol.java:537)
+	at com.mysql.cj.protocol.a.NativeProtocol.beforeHandshake(NativeProtocol.java:424)
+	at com.mysql.cj.protocol.a.NativeProtocol.connect(NativeProtocol.java:1428)
+	at com.mysql.cj.NativeSession.connect(NativeSession.java:134)
+	at com.mysql.cj.jdbc.ConnectionImpl.connectOneTryOnly(ConnectionImpl.java:945)
+	at com.mysql.cj.jdbc.ConnectionImpl.createNewIO(ConnectionImpl.java:815)
+	... 30 common frames omitted
+Caused by: java.io.EOFException: Can not read response from server. Expected to read 4 bytes, read 0 bytes before connection was unexpectedly lost.
+	at com.mysql.cj.protocol.FullReadInputStream.readFully(FullReadInputStream.java:67)
+	at com.mysql.cj.protocol.a.SimplePacketReader.readHeaderLocal(SimplePacketReader.java:81)
+	at com.mysql.cj.protocol.a.SimplePacketReader.readHeader(SimplePacketReader.java:63)
+	at com.mysql.cj.protocol.a.SimplePacketReader.readHeader(SimplePacketReader.java:45)
+	at com.mysql.cj.protocol.a.NativeProtocol.readMessage(NativeProtocol.java:576)
+	... 36 common frames omitted
+2025-11-04 01:42:52 [main] INFO  c.d.web.config.DataSourceHealthCheck - 数据源检查完成
+2025-11-04 01:42:52 [Druid-ConnectionPool-Create-939665240] ERROR c.alibaba.druid.pool.DruidDataSource - create connection SQLException, url: jdbc:mysql://206.82.1.18:33900/smspike?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false, errorCode 0, state 08S01
+com.mysql.cj.jdbc.exceptions.CommunicationsException: Communications link failure
+
+The last packet sent successfully to the server was 0 milliseconds ago. The driver has not received any packets from the server.
+	at com.mysql.cj.jdbc.exceptions.SQLError.createCommunicationsException(SQLError.java:175)
+	at com.mysql.cj.jdbc.exceptions.SQLExceptionsMapping.translateException(SQLExceptionsMapping.java:64)
+	at com.mysql.cj.jdbc.ConnectionImpl.createNewIO(ConnectionImpl.java:825)
+	at com.mysql.cj.jdbc.ConnectionImpl.<init>(ConnectionImpl.java:446)
+	at com.mysql.cj.jdbc.ConnectionImpl.getInstance(ConnectionImpl.java:239)
+	at com.mysql.cj.jdbc.NonRegisteringDriver.connect(NonRegisteringDriver.java:188)
+	at com.alibaba.druid.pool.DruidAbstractDataSource.createPhysicalConnection(DruidAbstractDataSource.java:1703)
+	at com.alibaba.druid.pool.DruidAbstractDataSource.createPhysicalConnection(DruidAbstractDataSource.java:1801)
+	at com.alibaba.druid.pool.DruidDataSource$CreateConnectionThread.run(DruidDataSource.java:2947)
+Caused by: com.mysql.cj.exceptions.CJCommunicationsException: Communications link failure
+
+The last packet sent successfully to the server was 0 milliseconds ago. The driver has not received any packets from the server.
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45)
+	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:500)
+	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:481)
+	at com.mysql.cj.exceptions.ExceptionFactory.createException(ExceptionFactory.java:62)
+	at com.mysql.cj.exceptions.ExceptionFactory.createException(ExceptionFactory.java:105)
+	at com.mysql.cj.exceptions.ExceptionFactory.createException(ExceptionFactory.java:150)
+	at com.mysql.cj.exceptions.ExceptionFactory.createCommunicationsException(ExceptionFactory.java:166)
+	at com.mysql.cj.protocol.a.NativeProtocol.readMessage(NativeProtocol.java:582)
+	at com.mysql.cj.protocol.a.NativeProtocol.readServerCapabilities(NativeProtocol.java:537)
+	at com.mysql.cj.protocol.a.NativeProtocol.beforeHandshake(NativeProtocol.java:424)
+	at com.mysql.cj.protocol.a.NativeProtocol.connect(NativeProtocol.java:1428)
+	at com.mysql.cj.NativeSession.connect(NativeSession.java:134)
+	at com.mysql.cj.jdbc.ConnectionImpl.connectOneTryOnly(ConnectionImpl.java:945)
+	at com.mysql.cj.jdbc.ConnectionImpl.createNewIO(ConnectionImpl.java:815)
+	... 6 common frames omitted
+Caused by: java.io.EOFException: Can not read response from server. Expected to read 4 bytes, read 0 bytes before connection was unexpectedly lost.
+	at com.mysql.cj.protocol.FullReadInputStream.readFully(FullReadInputStream.java:67)
+	at com.mysql.cj.protocol.a.SimplePacketReader.readHeaderLocal(SimplePacketReader.java:81)
+	at com.mysql.cj.protocol.a.SimplePacketReader.readHeader(SimplePacketReader.java:63)
+	at com.mysql.cj.protocol.a.SimplePacketReader.readHeader(SimplePacketReader.java:45)
+	at com.mysql.cj.protocol.a.NativeProtocol.readMessage(NativeProtocol.java:576)
+	... 12 common frames omitted
+2025-11-04 01:42:52 [Druid-ConnectionPool-Create-939665240] ERROR c.alibaba.druid.pool.DruidDataSource - create connection SQLException, url: jdbc:mysql://206.82.1.18:33900/smspike?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false, errorCode 0, state 08S01
+com.mysql.cj.jdbc.exceptions.CommunicationsException: Communications link failure
+
+The last packet sent successfully to the server was 0 milliseconds ago. The driver has not received any packets from the server.
+	at com.mysql.cj.jdbc.exceptions.SQLError.createCommunicationsException(SQLError.java:175)
+	at com.mysql.cj.jdbc.exceptions.SQLExceptionsMapping.translateException(SQLExceptionsMapping.java:64)
+	at com.mysql.cj.jdbc.ConnectionImpl.createNewIO(ConnectionImpl.java:825)
+	at com.mysql.cj.jdbc.ConnectionImpl.<init>(ConnectionImpl.java:446)
+	at com.mysql.cj.jdbc.ConnectionImpl.getInstance(ConnectionImpl.java:239)
+	at com.mysql.cj.jdbc.NonRegisteringDriver.connect(NonRegisteringDriver.java:188)
+	at com.alibaba.druid.pool.DruidAbstractDataSource.createPhysicalConnection(DruidAbstractDataSource.java:1703)
+	at com.alibaba.druid.pool.DruidAbstractDataSource.createPhysicalConnection(DruidAbstractDataSource.java:1801)
+	at com.alibaba.druid.pool.DruidDataSource$CreateConnectionThread.run(DruidDataSource.java:2947)
+Caused by: com.mysql.cj.exceptions.CJCommunicationsException: Communications link failure
+
+The last packet sent successfully to the server was 0 milliseconds ago. The driver has not received any packets from the server.
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45)
+	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:500)
+	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:481)
+	at com.mysql.cj.exceptions.ExceptionFactory.createException(ExceptionFactory.java:62)
+	at com.mysql.cj.exceptions.ExceptionFactory.createException(ExceptionFactory.java:105)
+	at com.mysql.cj.exceptions.ExceptionFactory.createException(ExceptionFactory.java:150)
+	at com.mysql.cj.exceptions.ExceptionFactory.createCommunicationsException(ExceptionFactory.java:166)
+	at com.mysql.cj.protocol.a.NativeProtocol.readMessage(NativeProtocol.java:582)
+	at com.mysql.cj.protocol.a.NativeProtocol.readServerCapabilities(NativeProtocol.java:537)
+	at com.mysql.cj.protocol.a.NativeProtocol.beforeHandshake(NativeProtocol.java:424)
+	at com.mysql.cj.protocol.a.NativeProtocol.connect(NativeProtocol.java:1428)
+	at com.mysql.cj.NativeSession.connect(NativeSession.java:134)
+	at com.mysql.cj.jdbc.ConnectionImpl.connectOneTryOnly(ConnectionImpl.java:945)
+	at com.mysql.cj.jdbc.ConnectionImpl.createNewIO(ConnectionImpl.java:815)
+	... 6 common frames omitted
+Caused by: java.io.EOFException: Can not read response from server. Expected to read 4 bytes, read 0 bytes before connection was unexpectedly lost.
+	at com.mysql.cj.protocol.FullReadInputStream.readFully(FullReadInputStream.java:67)
+	at com.mysql.cj.protocol.a.SimplePacketReader.readHeaderLocal(SimplePacketReader.java:81)
+	at com.mysql.cj.protocol.a.SimplePacketReader.readHeader(SimplePacketReader.java:63)
+	at com.mysql.cj.protocol.a.SimplePacketReader.readHeader(SimplePacketReader.java:45)
+	at com.mysql.cj.protocol.a.NativeProtocol.readMessage(NativeProtocol.java:576)
+	... 12 common frames omitted
+2025-11-04 01:42:52 [Druid-ConnectionPool-Create-939665240] INFO  c.a.d.pool.DruidAbstractDataSource - {dataSource-1} failContinuous is true
+2025-11-04 01:42:53 [Druid-ConnectionPool-Create-939665240] ERROR c.alibaba.druid.pool.DruidDataSource - create connection SQLException, url: jdbc:mysql://206.82.1.18:33900/smspike?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false, errorCode 0, state 08S01
+com.mysql.cj.jdbc.exceptions.CommunicationsException: Communications link failure
+
+The last packet sent successfully to the server was 0 milliseconds ago. The driver has not received any packets from the server.
+	at com.mysql.cj.jdbc.exceptions.SQLError.createCommunicationsException(SQLError.java:175)
+	at com.mysql.cj.jdbc.exceptions.SQLExceptionsMapping.translateException(SQLExceptionsMapping.java:64)
+	at com.mysql.cj.jdbc.ConnectionImpl.createNewIO(ConnectionImpl.java:825)
+	at com.mysql.cj.jdbc.ConnectionImpl.<init>(ConnectionImpl.java:446)
+	at com.mysql.cj.jdbc.ConnectionImpl.getInstance(ConnectionImpl.java:239)
+	at com.mysql.cj.jdbc.NonRegisteringDriver.connect(NonRegisteringDriver.java:188)
+	at com.alibaba.druid.pool.DruidAbstractDataSource.createPhysicalConnection(DruidAbstractDataSource.java:1703)
+	at com.alibaba.druid.pool.DruidAbstractDataSource.createPhysicalConnection(DruidAbstractDataSource.java:1801)
+	at com.alibaba.druid.pool.DruidDataSource$CreateConnectionThread.run(DruidDataSource.java:2947)
+Caused by: com.mysql.cj.exceptions.CJCommunicationsException: Communications link failure
+
+The last packet sent successfully to the server was 0 milliseconds ago. The driver has not received any packets from the server.
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45)
+	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:500)
+	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:481)
+	at com.mysql.cj.exceptions.ExceptionFactory.createException(ExceptionFactory.java:62)
+	at com.mysql.cj.exceptions.ExceptionFactory.createException(ExceptionFactory.java:105)
+	at com.mysql.cj.exceptions.ExceptionFactory.createException(ExceptionFactory.java:150)
+	at com.mysql.cj.exceptions.ExceptionFactory.createCommunicationsException(ExceptionFactory.java:166)
+	at com.mysql.cj.protocol.a.NativeProtocol.readMessage(NativeProtocol.java:582)
+	at com.mysql.cj.protocol.a.NativeProtocol.readServerCapabilities(NativeProtocol.java:537)
+	at com.mysql.cj.protocol.a.NativeProtocol.beforeHandshake(NativeProtocol.java:424)
+	at com.mysql.cj.protocol.a.NativeProtocol.connect(NativeProtocol.java:1428)
+	at com.mysql.cj.NativeSession.connect(NativeSession.java:134)
+	at com.mysql.cj.jdbc.ConnectionImpl.connectOneTryOnly(ConnectionImpl.java:945)
+	at com.mysql.cj.jdbc.ConnectionImpl.createNewIO(ConnectionImpl.java:815)
+	... 6 common frames omitted
+Caused by: java.io.EOFException: Can not read response from server. Expected to read 4 bytes, read 0 bytes before connection was unexpectedly lost.
+	at com.mysql.cj.protocol.FullReadInputStream.readFully(FullReadInputStream.java:67)
+	at com.mysql.cj.protocol.a.SimplePacketReader.readHeaderLocal(SimplePacketReader.java:81)
+	at com.mysql.cj.protocol.a.SimplePacketReader.readHeader(SimplePacketReader.java:63)
+	at com.mysql.cj.protocol.a.SimplePacketReader.readHeader(SimplePacketReader.java:45)
+	at com.mysql.cj.protocol.a.NativeProtocol.readMessage(NativeProtocol.java:576)
+	... 12 common frames omitted
+2025-11-04 01:42:53 [Druid-ConnectionPool-Create-939665240] ERROR c.alibaba.druid.pool.DruidDataSource - create connection SQLException, url: jdbc:mysql://206.82.1.18:33900/smspike?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false, errorCode 0, state 08S01
+com.mysql.cj.jdbc.exceptions.CommunicationsException: Communications link failure
+
+The last packet sent successfully to the server was 0 milliseconds ago. The driver has not received any packets from the server.
+	at com.mysql.cj.jdbc.exceptions.SQLError.createCommunicationsException(SQLError.java:175)
+	at com.mysql.cj.jdbc.exceptions.SQLExceptionsMapping.translateException(SQLExceptionsMapping.java:64)
+	at com.mysql.cj.jdbc.ConnectionImpl.createNewIO(ConnectionImpl.java:825)
+	at com.mysql.cj.jdbc.ConnectionImpl.<init>(ConnectionImpl.java:446)
+	at com.mysql.cj.jdbc.ConnectionImpl.getInstance(ConnectionImpl.java:239)
+	at com.mysql.cj.jdbc.NonRegisteringDriver.connect(NonRegisteringDriver.java:188)
+	at com.alibaba.druid.pool.DruidAbstractDataSource.createPhysicalConnection(DruidAbstractDataSource.java:1703)
+	at com.alibaba.druid.pool.DruidAbstractDataSource.createPhysicalConnection(DruidAbstractDataSource.java:1801)
+	at com.alibaba.druid.pool.DruidDataSource$CreateConnectionThread.run(DruidDataSource.java:2947)
+Caused by: com.mysql.cj.exceptions.CJCommunicationsException: Communications link failure
+
+The last packet sent successfully to the server was 0 milliseconds ago. The driver has not received any packets from the server.
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45)
+	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:500)
+	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:481)
+	at com.mysql.cj.exceptions.ExceptionFactory.createException(ExceptionFactory.java:62)
+	at com.mysql.cj.exceptions.ExceptionFactory.createException(ExceptionFactory.java:105)
+	at com.mysql.cj.exceptions.ExceptionFactory.createException(ExceptionFactory.java:150)
+	at com.mysql.cj.exceptions.ExceptionFactory.createCommunicationsException(ExceptionFactory.java:166)
+	at com.mysql.cj.protocol.a.NativeProtocol.readMessage(NativeProtocol.java:582)
+	at com.mysql.cj.protocol.a.NativeProtocol.readServerCapabilities(NativeProtocol.java:537)
+	at com.mysql.cj.protocol.a.NativeProtocol.beforeHandshake(NativeProtocol.java:424)
+	at com.mysql.cj.protocol.a.NativeProtocol.connect(NativeProtocol.java:1428)
+	at com.mysql.cj.NativeSession.connect(NativeSession.java:134)
+	at com.mysql.cj.jdbc.ConnectionImpl.connectOneTryOnly(ConnectionImpl.java:945)
+	at com.mysql.cj.jdbc.ConnectionImpl.createNewIO(ConnectionImpl.java:815)
+	... 6 common frames omitted
+Caused by: java.io.EOFException: Can not read response from server. Expected to read 4 bytes, read 0 bytes before connection was unexpectedly lost.
+	at com.mysql.cj.protocol.FullReadInputStream.readFully(FullReadInputStream.java:67)
+	at com.mysql.cj.protocol.a.SimplePacketReader.readHeaderLocal(SimplePacketReader.java:81)
+	at com.mysql.cj.protocol.a.SimplePacketReader.readHeader(SimplePacketReader.java:63)
+	at com.mysql.cj.protocol.a.SimplePacketReader.readHeader(SimplePacketReader.java:45)
+	at com.mysql.cj.protocol.a.NativeProtocol.readMessage(NativeProtocol.java:576)
+	... 12 common frames omitted
+2025-11-04 01:42:54 [Druid-ConnectionPool-Create-939665240] ERROR c.alibaba.druid.pool.DruidDataSource - create connection SQLException, url: jdbc:mysql://206.82.1.18:33900/smspike?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false, errorCode 0, state 08S01
+com.mysql.cj.jdbc.exceptions.CommunicationsException: Communications link failure
+
+The last packet sent successfully to the server was 0 milliseconds ago. The driver has not received any packets from the server.
+	at com.mysql.cj.jdbc.exceptions.SQLError.createCommunicationsException(SQLError.java:175)
+	at com.mysql.cj.jdbc.exceptions.SQLExceptionsMapping.translateException(SQLExceptionsMapping.java:64)
+	at com.mysql.cj.jdbc.ConnectionImpl.createNewIO(ConnectionImpl.java:825)
+	at com.mysql.cj.jdbc.ConnectionImpl.<init>(ConnectionImpl.java:446)
+	at com.mysql.cj.jdbc.ConnectionImpl.getInstance(ConnectionImpl.java:239)
+	at com.mysql.cj.jdbc.NonRegisteringDriver.connect(NonRegisteringDriver.java:188)
+	at com.alibaba.druid.pool.DruidAbstractDataSource.createPhysicalConnection(DruidAbstractDataSource.java:1703)
+	at com.alibaba.druid.pool.DruidAbstractDataSource.createPhysicalConnection(DruidAbstractDataSource.java:1801)
+	at com.alibaba.druid.pool.DruidDataSource$CreateConnectionThread.run(DruidDataSource.java:2947)
+Caused by: com.mysql.cj.exceptions.CJCommunicationsException: Communications link failure
+
+The last packet sent successfully to the server was 0 milliseconds ago. The driver has not received any packets from the server.
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45)
+	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:500)
+	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:481)
+	at com.mysql.cj.exceptions.ExceptionFactory.createException(ExceptionFactory.java:62)
+	at com.mysql.cj.exceptions.ExceptionFactory.createException(ExceptionFactory.java:105)
+	at com.mysql.cj.exceptions.ExceptionFactory.createException(ExceptionFactory.java:150)
+	at com.mysql.cj.exceptions.ExceptionFactory.createCommunicationsException(ExceptionFactory.java:166)
+	at com.mysql.cj.protocol.a.NativeProtocol.readMessage(NativeProtocol.java:582)
+	at com.mysql.cj.protocol.a.NativeProtocol.readServerCapabilities(NativeProtocol.java:537)
+	at com.mysql.cj.protocol.a.NativeProtocol.beforeHandshake(NativeProtocol.java:424)
+	at com.mysql.cj.protocol.a.NativeProtocol.connect(NativeProtocol.java:1428)
+	at com.mysql.cj.NativeSession.connect(NativeSession.java:134)
+	at com.mysql.cj.jdbc.ConnectionImpl.connectOneTryOnly(ConnectionImpl.java:945)
+	at com.mysql.cj.jdbc.ConnectionImpl.createNewIO(ConnectionImpl.java:815)
+	... 6 common frames omitted
+Caused by: java.io.EOFException: Can not read response from server. Expected to read 4 bytes, read 0 bytes before connection was unexpectedly lost.
+	at com.mysql.cj.protocol.FullReadInputStream.readFully(FullReadInputStream.java:67)
+	at com.mysql.cj.protocol.a.SimplePacketReader.readHeaderLocal(SimplePacketReader.java:81)
+	at com.mysql.cj.protocol.a.SimplePacketReader.readHeader(SimplePacketReader.java:63)
+	at com.mysql.cj.protocol.a.SimplePacketReader.readHeader(SimplePacketReader.java:45)
+	at com.mysql.cj.protocol.a.NativeProtocol.readMessage(NativeProtocol.java:576)
+	... 12 common frames omitted
+2025-11-04 01:42:55 [Druid-ConnectionPool-Create-939665240] ERROR c.alibaba.druid.pool.DruidDataSource - create connection SQLException, url: jdbc:mysql://206.82.1.18:33900/smspike?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false, errorCode 0, state 08S01
+com.mysql.cj.jdbc.exceptions.CommunicationsException: Communications link failure
+
+The last packet sent successfully to the server was 0 milliseconds ago. The driver has not received any packets from the server.
+	at com.mysql.cj.jdbc.exceptions.SQLError.createCommunicationsException(SQLError.java:175)
+	at com.mysql.cj.jdbc.exceptions.SQLExceptionsMapping.translateException(SQLExceptionsMapping.java:64)
+	at com.mysql.cj.jdbc.ConnectionImpl.createNewIO(ConnectionImpl.java:825)
+	at com.mysql.cj.jdbc.ConnectionImpl.<init>(ConnectionImpl.java:446)
+	at com.mysql.cj.jdbc.ConnectionImpl.getInstance(ConnectionImpl.java:239)
+	at com.mysql.cj.jdbc.NonRegisteringDriver.connect(NonRegisteringDriver.java:188)
+	at com.alibaba.druid.pool.DruidAbstractDataSource.createPhysicalConnection(DruidAbstractDataSource.java:1703)
+	at com.alibaba.druid.pool.DruidAbstractDataSource.createPhysicalConnection(DruidAbstractDataSource.java:1801)
+	at com.alibaba.druid.pool.DruidDataSource$CreateConnectionThread.run(DruidDataSource.java:2947)
+Caused by: com.mysql.cj.exceptions.CJCommunicationsException: Communications link failure
+
+The last packet sent successfully to the server was 0 milliseconds ago. The driver has not received any packets from the server.
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45)
+	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:500)
+	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:481)
+	at com.mysql.cj.exceptions.ExceptionFactory.createException(ExceptionFactory.java:62)
+	at com.mysql.cj.exceptions.ExceptionFactory.createException(ExceptionFactory.java:105)
+	at com.mysql.cj.exceptions.ExceptionFactory.createException(ExceptionFactory.java:150)
+	at com.mysql.cj.exceptions.ExceptionFactory.createCommunicationsException(ExceptionFactory.java:166)
+	at com.mysql.cj.protocol.a.NativeProtocol.readMessage(NativeProtocol.java:582)
+	at com.mysql.cj.protocol.a.NativeProtocol.readServerCapabilities(NativeProtocol.java:537)
+	at com.mysql.cj.protocol.a.NativeProtocol.beforeHandshake(NativeProtocol.java:424)
+	at com.mysql.cj.protocol.a.NativeProtocol.connect(NativeProtocol.java:1428)
+	at com.mysql.cj.NativeSession.connect(NativeSession.java:134)
+	at com.mysql.cj.jdbc.ConnectionImpl.connectOneTryOnly(ConnectionImpl.java:945)
+	at com.mysql.cj.jdbc.ConnectionImpl.createNewIO(ConnectionImpl.java:815)
+	... 6 common frames omitted
+Caused by: java.io.EOFException: Can not read response from server. Expected to read 4 bytes, read 0 bytes before connection was unexpectedly lost.
+	at com.mysql.cj.protocol.FullReadInputStream.readFully(FullReadInputStream.java:67)
+	at com.mysql.cj.protocol.a.SimplePacketReader.readHeaderLocal(SimplePacketReader.java:81)
+	at com.mysql.cj.protocol.a.SimplePacketReader.readHeader(SimplePacketReader.java:63)
+	at com.mysql.cj.protocol.a.SimplePacketReader.readHeader(SimplePacketReader.java:45)
+	at com.mysql.cj.protocol.a.NativeProtocol.readMessage(NativeProtocol.java:576)
+	... 12 common frames omitted
+2025-11-04 01:42:55 [Druid-ConnectionPool-Create-939665240] ERROR c.alibaba.druid.pool.DruidDataSource - create connection SQLException, url: jdbc:mysql://206.82.1.18:33900/smspike?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false, errorCode 0, state 08S01
+com.mysql.cj.jdbc.exceptions.CommunicationsException: Communications link failure
+
+The last packet sent successfully to the server was 0 milliseconds ago. The driver has not received any packets from the server.
+	at com.mysql.cj.jdbc.exceptions.SQLError.createCommunicationsException(SQLError.java:175)
+	at com.mysql.cj.jdbc.exceptions.SQLExceptionsMapping.translateException(SQLExceptionsMapping.java:64)
+	at com.mysql.cj.jdbc.ConnectionImpl.createNewIO(ConnectionImpl.java:825)
+	at com.mysql.cj.jdbc.ConnectionImpl.<init>(ConnectionImpl.java:446)
+	at com.mysql.cj.jdbc.ConnectionImpl.getInstance(ConnectionImpl.java:239)
+	at com.mysql.cj.jdbc.NonRegisteringDriver.connect(NonRegisteringDriver.java:188)
+	at com.alibaba.druid.pool.DruidAbstractDataSource.createPhysicalConnection(DruidAbstractDataSource.java:1703)
+	at com.alibaba.druid.pool.DruidAbstractDataSource.createPhysicalConnection(DruidAbstractDataSource.java:1801)
+	at com.alibaba.druid.pool.DruidDataSource$CreateConnectionThread.run(DruidDataSource.java:2947)
+Caused by: com.mysql.cj.exceptions.CJCommunicationsException: Communications link failure
+
+The last packet sent successfully to the server was 0 milliseconds ago. The driver has not received any packets from the server.
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45)
+	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:500)
+	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:481)
+	at com.mysql.cj.exceptions.ExceptionFactory.createException(ExceptionFactory.java:62)
+	at com.mysql.cj.exceptions.ExceptionFactory.createException(ExceptionFactory.java:105)
+	at com.mysql.cj.exceptions.ExceptionFactory.createException(ExceptionFactory.java:150)
+	at com.mysql.cj.exceptions.ExceptionFactory.createCommunicationsException(ExceptionFactory.java:166)
+	at com.mysql.cj.protocol.a.NativeProtocol.readMessage(NativeProtocol.java:582)
+	at com.mysql.cj.protocol.a.NativeProtocol.readServerCapabilities(NativeProtocol.java:537)
+	at com.mysql.cj.protocol.a.NativeProtocol.beforeHandshake(NativeProtocol.java:424)
+	at com.mysql.cj.protocol.a.NativeProtocol.connect(NativeProtocol.java:1428)
+	at com.mysql.cj.NativeSession.connect(NativeSession.java:134)
+	at com.mysql.cj.jdbc.ConnectionImpl.connectOneTryOnly(ConnectionImpl.java:945)
+	at com.mysql.cj.jdbc.ConnectionImpl.createNewIO(ConnectionImpl.java:815)
+	... 6 common frames omitted
+Caused by: java.io.EOFException: Can not read response from server. Expected to read 4 bytes, read 0 bytes before connection was unexpectedly lost.
+	at com.mysql.cj.protocol.FullReadInputStream.readFully(FullReadInputStream.java:67)
+	at com.mysql.cj.protocol.a.SimplePacketReader.readHeaderLocal(SimplePacketReader.java:81)
+	at com.mysql.cj.protocol.a.SimplePacketReader.readHeader(SimplePacketReader.java:63)
+	at com.mysql.cj.protocol.a.SimplePacketReader.readHeader(SimplePacketReader.java:45)
+	at com.mysql.cj.protocol.a.NativeProtocol.readMessage(NativeProtocol.java:576)
+	... 12 common frames omitted
+2025-11-04 01:42:56 [Druid-ConnectionPool-Create-939665240] ERROR c.alibaba.druid.pool.DruidDataSource - create connection SQLException, url: jdbc:mysql://206.82.1.18:33900/smspike?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false, errorCode 0, state 08S01
+com.mysql.cj.jdbc.exceptions.CommunicationsException: Communications link failure
+
+The last packet sent successfully to the server was 0 milliseconds ago. The driver has not received any packets from the server.
+	at com.mysql.cj.jdbc.exceptions.SQLError.createCommunicationsException(SQLError.java:175)
+	at com.mysql.cj.jdbc.exceptions.SQLExceptionsMapping.translateException(SQLExceptionsMapping.java:64)
+	at com.mysql.cj.jdbc.ConnectionImpl.createNewIO(ConnectionImpl.java:825)
+	at com.mysql.cj.jdbc.ConnectionImpl.<init>(ConnectionImpl.java:446)
+	at com.mysql.cj.jdbc.ConnectionImpl.getInstance(ConnectionImpl.java:239)
+	at com.mysql.cj.jdbc.NonRegisteringDriver.connect(NonRegisteringDriver.java:188)
+	at com.alibaba.druid.pool.DruidAbstractDataSource.createPhysicalConnection(DruidAbstractDataSource.java:1703)
+	at com.alibaba.druid.pool.DruidAbstractDataSource.createPhysicalConnection(DruidAbstractDataSource.java:1801)
+	at com.alibaba.druid.pool.DruidDataSource$CreateConnectionThread.run(DruidDataSource.java:2947)
+Caused by: com.mysql.cj.exceptions.CJCommunicationsException: Communications link failure
+
+The last packet sent successfully to the server was 0 milliseconds ago. The driver has not received any packets from the server.
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45)
+	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:500)
+	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:481)
+	at com.mysql.cj.exceptions.ExceptionFactory.createException(ExceptionFactory.java:62)
+	at com.mysql.cj.exceptions.ExceptionFactory.createException(ExceptionFactory.java:105)
+	at com.mysql.cj.exceptions.ExceptionFactory.createException(ExceptionFactory.java:150)
+	at com.mysql.cj.exceptions.ExceptionFactory.createCommunicationsException(ExceptionFactory.java:166)
+	at com.mysql.cj.protocol.a.NativeProtocol.readMessage(NativeProtocol.java:582)
+	at com.mysql.cj.protocol.a.NativeProtocol.readServerCapabilities(NativeProtocol.java:537)
+	at com.mysql.cj.protocol.a.NativeProtocol.beforeHandshake(NativeProtocol.java:424)
+	at com.mysql.cj.protocol.a.NativeProtocol.connect(NativeProtocol.java:1428)
+	at com.mysql.cj.NativeSession.connect(NativeSession.java:134)
+	at com.mysql.cj.jdbc.ConnectionImpl.connectOneTryOnly(ConnectionImpl.java:945)
+	at com.mysql.cj.jdbc.ConnectionImpl.createNewIO(ConnectionImpl.java:815)
+	... 6 common frames omitted
+Caused by: java.io.EOFException: Can not read response from server. Expected to read 4 bytes, read 0 bytes before connection was unexpectedly lost.
+	at com.mysql.cj.protocol.FullReadInputStream.readFully(FullReadInputStream.java:67)
+	at com.mysql.cj.protocol.a.SimplePacketReader.readHeaderLocal(SimplePacketReader.java:81)
+	at com.mysql.cj.protocol.a.SimplePacketReader.readHeader(SimplePacketReader.java:63)
+	at com.mysql.cj.protocol.a.SimplePacketReader.readHeader(SimplePacketReader.java:45)
+	at com.mysql.cj.protocol.a.NativeProtocol.readMessage(NativeProtocol.java:576)
+	... 12 common frames omitted
+2025-11-04 01:43:02 [main] INFO  c.deepreach.web.DeepReachApplication - Starting DeepReachApplication using Java 17.0.12 with PID 34482 (/Users/gak1/IDEA/deepreach/deepreach-web/target/classes started by gak1 in /Users/gak1/IDEA/deepreach)
+2025-11-04 01:43:02 [main] DEBUG c.deepreach.web.DeepReachApplication - Running with Spring Boot v3.2.0, Spring v6.1.1
+2025-11-04 01:43:02 [main] INFO  c.deepreach.web.DeepReachApplication - The following 1 profile is active: "dev"
+2025-11-04 01:43:03 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode
+2025-11-04 01:43:03 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+2025-11-04 01:43:03 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 7 ms. Found 0 Redis repository interfaces.
+2025-11-04 01:43:03 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-04 01:43:03 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-04 01:43:03 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.16]
+2025-11-04 01:43:03 [main] INFO  o.a.c.c.C.[.[localhost].[/api] - Initializing Spring embedded WebApplicationContext
+2025-11-04 01:43:03 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 842 ms
+2025-11-04 01:43:03 [main] DEBUG c.d.c.s.JwtAuthenticationFilter - Filter 'jwtAuthenticationFilter' configured for use
+2025-11-04 01:43:04 [main] ERROR i.n.r.d.DnsServerAddressStreamProviders - Unable to load io.netty.resolver.dns.macos.MacOSDnsServerAddressStreamProvider, fallback to system defaults. This may result in incorrect DNS resolutions on MacOS. Check whether you have a dependency on 'io.netty:netty-resolver-dns-native-macos'. Use DEBUG level to see the full stack: java.lang.UnsatisfiedLinkError: failed to load the required native library
+2025-11-04 01:43:04 [main] INFO  o.s.s.web.DefaultSecurityFilterChain - Will secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@790d629a, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@346e5cc, org.springframework.security.web.context.SecurityContextHolderFilter@f833223, org.springframework.security.web.header.HeaderWriterFilter@3506bc8b, org.springframework.web.filter.CorsFilter@2cd2c764, org.springframework.security.web.authentication.logout.LogoutFilter@7efba9b9, com.deepreach.common.security.JwtAuthenticationFilter@75c33608, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@3f6a9ba0, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@1e749235, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@d17d554, org.springframework.security.web.session.SessionManagementFilter@6127ef86, org.springframework.security.web.access.ExceptionTranslationFilter@4866a755, org.springframework.security.web.access.intercept.AuthorizationFilter@31b7112d]
+2025-11-04 01:43:05 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/api'
+2025-11-04 01:43:05 [main] INFO  c.deepreach.web.DeepReachApplication - Started DeepReachApplication in 2.564 seconds (process running for 2.901)
+2025-11-04 01:43:05 [main] INFO  c.d.web.config.DataSourceHealthCheck - 开始检查数据源配置...
+2025-11-04 01:43:13 [main] INFO  c.alibaba.druid.pool.DruidDataSource - {dataSource-1} inited
+2025-11-04 01:43:13 [main] INFO  c.d.web.config.DataSourceHealthCheck - 主数据源连接成功: PRIMARY_OK
+2025-11-04 01:43:14 [main] INFO  c.d.web.config.DataSourceHealthCheck - 云电脑数据源连接成功: CLOUD_COMPUTER_OK
+2025-11-04 01:43:15 [main] INFO  c.d.web.config.DataSourceHealthCheck - 云电脑数据库中admin用户记录数: 1
+2025-11-04 01:43:15 [main] INFO  c.d.web.config.DataSourceHealthCheck - 数据源检查完成

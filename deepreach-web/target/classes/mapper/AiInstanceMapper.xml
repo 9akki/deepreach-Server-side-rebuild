@@ -1,0 +1,666 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.deepreach.web.mapper.AiInstanceMapper">
+
+    <!-- 实例基本信息结果映射 -->
+    <resultMap id="AiInstanceResult" type="com.deepreach.web.entity.AiInstance">
+        <id property="instanceId" column="instance_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="instanceName" column="instance_name"/>
+        <result property="instanceType" column="instance_type"/>
+        <result property="platformId" column="platform_id"/>
+        <result property="characterId" column="character_id"/>
+        <result property="proxyId" column="proxy_id"/>
+        <result property="createTime" column="create_time"/>
+        <result property="createBy" column="create_by"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="updateBy" column="update_by"/>
+    </resultMap>
+
+    <!-- Instance实体类结果映射（用于计费任务） -->
+    <resultMap id="InstanceResult" type="com.deepreach.common.core.domain.entity.Instance">
+        <id property="instanceId" column="instance_id"/>
+        <result property="instanceName" column="instance_name"/>
+        <result property="userId" column="user_id"/>
+        <result property="platform" column="platform_id"/>
+        <result property="type" column="instance_type"/>
+        <result property="status" column="1"/> <!-- 固定为活跃状态 -->
+        <result property="config" column="''"/> <!-- 空配置 -->
+        <result property="totalBilledDays" column="0"/> <!-- 固定为0 -->
+        <result property="totalBilledAmount" column="0"/> <!-- 固定为0 -->
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="remark" column="''"/> <!-- 空备注 -->
+    </resultMap>
+
+    <!-- 实例完整信息结果映射 -->
+    <resultMap id="AiInstanceCompleteResult" type="com.deepreach.web.entity.AiInstance" extends="AiInstanceResult">
+        <!-- 可以在这里添加关联信息的映射 -->
+    </resultMap>
+
+    <!-- 实例视图对象结果映射（包含平台名称、人设名称和代理地址） -->
+    <resultMap id="AiInstanceVOResult" type="com.deepreach.web.domain.vo.AiInstanceVO">
+        <id property="instanceId" column="instance_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="instanceName" column="instance_name"/>
+        <result property="instanceType" column="instance_type"/>
+        <result property="instanceTypeDisplay" column="instance_type_display"/>
+        <result property="platformId" column="platform_id"/>
+        <result property="platformName" column="platform_name"/>
+        <result property="characterId" column="character_id"/>
+        <result property="characterName" column="character_name"/>
+        <result property="proxyId" column="proxy_id"/>
+        <result property="proxyAddress" column="proxy_address"/>
+        <result property="createTime" column="create_time"/>
+        <result property="createBy" column="create_by"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="updateBy" column="update_by"/>
+    </resultMap>
+
+    <!-- 实例类型统计结果映射 -->
+    <resultMap id="InstanceTypeStatisticsResult" type="com.deepreach.web.entity.dto.InstanceTypeStatistics">
+        <result property="instanceType" column="instance_type"/>
+        <result property="count" column="count"/>
+    </resultMap>
+
+    <!-- 平台使用统计结果映射 -->
+    <resultMap id="PlatformUsageStatisticsResult" type="com.deepreach.web.entity.dto.PlatformUsageStatistics">
+        <result property="platformId" column="platform_id"/>
+        <result property="count" column="count"/>
+    </resultMap>
+
+    <!-- 人设使用统计结果映射 -->
+    <resultMap id="CharacterUsageStatisticsResult" type="com.deepreach.web.entity.dto.CharacterUsageStatistics">
+        <result property="characterId" column="character_id"/>
+        <result property="count" column="count"/>
+    </resultMap>
+
+    <!-- 基本列名 -->
+    <sql id="Base_Column_List">
+        instance_id, user_id, instance_name, instance_type, platform_id, character_id, proxy_id,
+        create_time, create_by, update_time, update_by
+    </sql>
+
+    <!-- 完整列名 -->
+    <sql id="Complete_Column_List">
+        instance_id, user_id, instance_name, instance_type, platform_id, character_id, proxy_id,
+        create_time, create_by, update_time, update_by
+    </sql>
+
+    <!-- 根据实例ID查询实例信息 -->
+    <select id="selectById" parameterType="Long" resultMap="AiInstanceResult">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM ai_instance
+        WHERE instance_id = #{instanceId}
+    </select>
+
+    <!-- 根据用户ID查询实例列表 -->
+    <select id="selectByUserId" parameterType="Long" resultMap="AiInstanceResult">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM ai_instance
+        WHERE user_id = #{userId}
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 根据用户ID列表批量查询实例 -->
+    <select id="selectByUserIds" parameterType="map" resultMap="AiInstanceResult">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM ai_instance
+        WHERE user_id IN
+        <foreach collection="userIds" item="userId" open="(" separator="," close=")">
+            #{userId}
+        </foreach>
+        ORDER BY user_id ASC, create_time DESC
+    </select>
+
+    <!-- 根据实例类型查询实例列表 -->
+    <select id="selectByInstanceType" parameterType="String" resultMap="AiInstanceResult">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM ai_instance
+        WHERE instance_type = #{instanceType}
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 根据平台ID查询实例列表 -->
+    <select id="selectByPlatformId" parameterType="Integer" resultMap="AiInstanceResult">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM ai_instance
+        WHERE platform_id = #{platformId}
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 根据人设ID查询实例列表 -->
+    <select id="selectByCharacterId" parameterType="Integer" resultMap="AiInstanceResult">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM ai_instance
+        WHERE character_id = #{characterId}
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 根据条件查询实例列表 -->
+    <select id="selectList" parameterType="com.deepreach.web.entity.AiInstance" resultMap="AiInstanceResult">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM ai_instance
+        <where>
+            <if test="instanceId != null">
+                AND instance_id = #{instanceId}
+            </if>
+            <if test="userId != null">
+                AND user_id = #{userId}
+            </if>
+            <if test="instanceName != null and instanceName != ''">
+                AND instance_name LIKE CONCAT('%', #{instanceName}, '%')
+            </if>
+            <if test="instanceType != null and instanceType != ''">
+                AND instance_type = #{instanceType}
+            </if>
+            <if test="platformId != null">
+                AND platform_id = #{platformId}
+            </if>
+            <if test="characterId != null">
+                AND character_id = #{characterId}
+            </if>
+            <if test="proxyId != null">
+                AND proxy_id = #{proxyId}
+            </if>
+            <if test="createTime != null">
+                AND create_time = #{createTime}
+            </if>
+        </where>
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 根据条件查询实例列表（带用户权限控制） -->
+    <select id="selectListWithUserPermission" resultMap="AiInstanceResult">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM ai_instance
+        <where>
+            <!-- 权限限制：只能查询当前用户创建的实例 -->
+            user_id = #{currentUserId}
+
+            <!-- 其他查询条件 -->
+            <if test="instance != null">
+                <if test="instance.instanceId != null">
+                    AND instance_id = #{instance.instanceId}
+                </if>
+                <if test="instance.instanceName != null and instance.instanceName != ''">
+                    AND instance_name LIKE CONCAT('%', #{instance.instanceName}, '%')
+                </if>
+                <if test="instance.instanceType != null and instance.instanceType != ''">
+                    AND instance_type = #{instance.instanceType}
+                </if>
+                <if test="instance.platformId != null">
+                    AND platform_id = #{instance.platformId}
+                </if>
+                <if test="instance.characterId != null">
+                    AND character_id = #{instance.characterId}
+                </if>
+                <if test="instance.proxyId != null">
+                    AND proxy_id = #{instance.proxyId}
+                </if>
+                <if test="instance.createTime != null">
+                    AND create_time = #{instance.createTime}
+                </if>
+            </if>
+        </where>
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 查询实例总数 -->
+    <select id="countInstances" parameterType="com.deepreach.web.entity.AiInstance" resultType="int">
+        SELECT COUNT(1)
+        FROM ai_instance
+        <where>
+            <if test="instanceId != null">
+                AND instance_id = #{instanceId}
+            </if>
+            <if test="userId != null">
+                AND user_id = #{userId}
+            </if>
+            <if test="instanceName != null and instanceName != ''">
+                AND instance_name LIKE CONCAT('%', #{instanceName}, '%')
+            </if>
+            <if test="instanceType != null and instanceType != ''">
+                AND instance_type = #{instanceType}
+            </if>
+            <if test="platformId != null">
+                AND platform_id = #{platformId}
+            </if>
+            <if test="characterId != null">
+                AND character_id = #{characterId}
+            </if>
+        </where>
+    </select>
+
+    <!-- 统计用户的实例数量 -->
+    <select id="countByUserId" parameterType="Long" resultType="int">
+        SELECT COUNT(1)
+        FROM ai_instance
+        WHERE user_id = #{userId}
+    </select>
+
+    <!-- 统计指定类型的实例数量 -->
+    <select id="countByInstanceType" parameterType="String" resultType="int">
+        SELECT COUNT(1)
+        FROM ai_instance
+        WHERE instance_type = #{instanceType}
+    </select>
+
+    <!-- 统计指定平台的实例数量 -->
+    <select id="countByPlatformId" parameterType="Integer" resultType="int">
+        SELECT COUNT(1)
+        FROM ai_instance
+        WHERE platform_id = #{platformId}
+    </select>
+
+    <!-- 插入新实例 -->
+    <insert id="insert" parameterType="com.deepreach.web.entity.AiInstance" useGeneratedKeys="true" keyProperty="instanceId">
+        INSERT INTO ai_instance (
+            user_id, instance_name, instance_type, platform_id, character_id, proxy_id,
+            create_time, create_by, update_time, update_by
+        ) VALUES (
+            #{userId}, #{instanceName}, #{instanceType}, #{platformId}, #{characterId}, #{proxyId},
+            #{createTime}, #{createBy}, #{updateTime}, #{updateBy}
+        )
+    </insert>
+
+    <!-- 更新实例信息 -->
+    <update id="update" parameterType="com.deepreach.web.entity.AiInstance">
+        UPDATE ai_instance
+        <set>
+            <if test="instanceName != null and instanceName != ''">
+                instance_name = #{instanceName},
+            </if>
+            <if test="instanceType != null and instanceType != ''">
+                instance_type = #{instanceType},
+            </if>
+            <if test="platformId != null">
+                platform_id = #{platformId},
+            </if>
+            <if test="characterId != null">
+                character_id = #{characterId},
+            </if>
+            <if test="proxyId != null">
+                proxy_id = #{proxyId},
+            </if>
+            <if test="updateBy != null">
+                update_by = #{updateBy},
+            </if>
+            <if test="updateTime != null">
+                update_time = #{updateTime},
+            </if>
+        </set>
+        WHERE instance_id = #{instanceId}
+    </update>
+
+    <!-- 删除实例 -->
+    <delete id="deleteById" parameterType="Long">
+        DELETE FROM ai_instance WHERE instance_id = #{instanceId}
+    </delete>
+
+    <!-- 批量删除实例 -->
+    <delete id="deleteByIds" parameterType="list">
+        DELETE FROM ai_instance WHERE instance_id IN
+        <foreach collection="instanceIds" item="instanceId" open="(" separator="," close=")">
+            #{instanceId}
+        </foreach>
+    </delete>
+
+    <!-- 检查实例名称是否唯一 -->
+    <select id="checkInstanceNameUnique" resultType="int">
+        SELECT COUNT(1)
+        FROM ai_instance
+        WHERE instance_name = #{instanceName} AND user_id = #{userId}
+        <if test="instanceId != null">
+            AND instance_id != #{instanceId}
+        </if>
+    </select>
+
+    <!-- 检查用户是否可以删除实例 -->
+    <select id="canDelete" resultType="boolean">
+        SELECT COUNT(1) > 0
+        FROM ai_instance
+        WHERE instance_id = #{instanceId} AND user_id = #{userId}
+    </select>
+
+    <!-- 查询最新实例列表 -->
+    <select id="selectLatestInstances" parameterType="int" resultMap="AiInstanceResult">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM ai_instance
+        ORDER BY create_time DESC
+        <if test="limit != null and limit > 0">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 查询实例的完整信息 -->
+    <select id="selectCompleteInfo" parameterType="Long" resultMap="AiInstanceCompleteResult">
+        SELECT
+        <include refid="Complete_Column_List"/>
+        FROM ai_instance
+        WHERE instance_id = #{instanceId}
+    </select>
+
+    <!-- 更新实例绑定的人设 -->
+    <update id="updateCharacterId">
+        UPDATE ai_instance
+        SET character_id = #{characterId},
+            update_time = NOW()
+        WHERE instance_id = #{instanceId}
+    </update>
+
+    <!-- 更新实例代理ID -->
+    <update id="updateProxyId">
+        UPDATE ai_instance
+        SET proxy_id = #{proxyId},
+            update_time = NOW()
+        WHERE instance_id = #{instanceId}
+    </update>
+
+    <!-- 更新实例平台绑定 -->
+    <update id="updatePlatformId">
+        UPDATE ai_instance
+        SET platform_id = #{platformId},
+            update_time = NOW()
+        WHERE instance_id = #{instanceId}
+    </update>
+
+    <!-- 查询指定时间范围内的实例 -->
+    <select id="selectByTimeRange" resultMap="AiInstanceResult">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM ai_instance
+        WHERE create_time BETWEEN #{startTime} AND #{endTime}
+        <if test="userId != null">
+            AND user_id = #{userId}
+        </if>
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 搜索实例 -->
+    <select id="searchInstances" resultMap="AiInstanceResult">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM ai_instance
+        WHERE (instance_name LIKE CONCAT('%', #{keyword}, '%')
+               OR proxy_id LIKE CONCAT('%', #{keyword}, '%'))
+        <if test="userId != null">
+            AND user_id = #{userId}
+        </if>
+        ORDER BY create_time DESC
+        <if test="limit != null and limit > 0">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 获取实例统计信息 -->
+    <select id="getInstanceStatistics" resultType="map">
+        SELECT
+            COUNT(1) as totalCount,
+            COUNT(CASE WHEN instance_type = '0' THEN 1 END) as marketingCount,
+            COUNT(CASE WHEN instance_type = '1' THEN 1 END) as prospectingCount,
+            COUNT(CASE WHEN character_id IS NOT NULL THEN 1 END) as withCharacterCount,
+            COUNT(CASE WHEN proxy_id IS NOT NULL AND proxy_id != '' THEN 1 END) as withProxyCount,
+            COUNT(CASE WHEN create_time >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 END) as weeklyCount,
+            COUNT(CASE WHEN create_time >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as monthlyCount
+        FROM ai_instance
+    </select>
+
+    <!-- 获取用户的实例统计信息 -->
+    <select id="getUserInstanceStatistics" parameterType="Long" resultType="map">
+        SELECT
+            COUNT(1) as totalCount,
+            COUNT(CASE WHEN instance_type = '0' THEN 1 END) as marketingCount,
+            COUNT(CASE WHEN instance_type = '1' THEN 1 END) as prospectingCount,
+            COUNT(CASE WHEN character_id IS NOT NULL THEN 1 END) as withCharacterCount,
+            COUNT(CASE WHEN proxy_id IS NOT NULL AND proxy_id != '' THEN 1 END) as withProxyCount,
+            COUNT(CASE WHEN create_time >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 END) as weeklyCount,
+            COUNT(CASE WHEN create_time >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as monthlyCount
+        FROM ai_instance
+        WHERE user_id = #{userId}
+    </select>
+
+    <!-- 检查实例是否存在 -->
+    <select id="existsById" parameterType="Long" resultType="boolean">
+        SELECT COUNT(1) > 0
+        FROM ai_instance
+        WHERE instance_id = #{instanceId}
+    </select>
+
+    <!-- 检查用户是否有权限访问实例 -->
+    <select id="hasAccessPermission" resultType="boolean">
+        SELECT COUNT(1) > 0
+        FROM ai_instance
+        WHERE instance_id = #{instanceId} AND user_id = #{userId}
+    </select>
+
+    <!-- 查询用户可访问的实例列表 -->
+    <select id="selectAccessibleInstances" parameterType="Long" resultMap="AiInstanceResult">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM ai_instance
+        WHERE user_id = #{userId}
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 获取实例类型统计 -->
+    <select id="getInstanceTypeStatistics" resultMap="InstanceTypeStatisticsResult">
+        SELECT
+            instance_type,
+            COUNT(1) as count
+        FROM ai_instance
+        <where>
+            <if test="userId != null">
+                user_id = #{userId}
+            </if>
+        </where>
+        GROUP BY instance_type
+    </select>
+
+    <!-- 获取平台使用统计 -->
+    <select id="getPlatformUsageStatistics" resultMap="PlatformUsageStatisticsResult">
+        SELECT
+            platform_id,
+            COUNT(1) as count
+        FROM ai_instance
+        <where>
+            <if test="userId != null">
+                user_id = #{userId}
+            </if>
+        </where>
+        GROUP BY platform_id
+        ORDER BY count DESC
+    </select>
+
+    <!-- 获取人设使用统计 -->
+    <select id="getCharacterUsageStatistics" resultMap="CharacterUsageStatisticsResult">
+        SELECT
+            character_id,
+            COUNT(1) as count
+        FROM ai_instance
+        <where>
+            character_id IS NOT NULL
+            <if test="userId != null">
+                AND user_id = #{userId}
+            </if>
+        </where>
+        GROUP BY character_id
+        ORDER BY count DESC
+    </select>
+
+    <!-- 查询未绑定人设的实例 -->
+    <select id="selectUnboundCharacterInstances" resultMap="AiInstanceResult">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM ai_instance
+        WHERE character_id IS NULL
+        <if test="userId != null">
+            AND user_id = #{userId}
+        </if>
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 查询配置了代理的实例 -->
+    <select id="selectWithProxyInstances" resultMap="AiInstanceResult">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM ai_instance
+        WHERE proxy_id IS NOT NULL AND proxy_id != ''
+        <if test="userId != null">
+            AND user_id = #{userId}
+        </if>
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 批量更新实例配置 -->
+    <update id="batchUpdateInstanceConfig">
+        UPDATE ai_instance
+        <set>
+            <if test="platformId != null">
+                platform_id = #{platformId},
+            </if>
+            <if test="characterId != null">
+                character_id = #{characterId},
+            </if>
+            update_time = NOW()
+        </set>
+        WHERE instance_id IN
+        <foreach collection="instanceIds" item="instanceId" open="(" separator="," close=")">
+            #{instanceId}
+        </foreach>
+    </update>
+
+    <!-- 获取实例活动统计 -->
+    <select id="getInstanceActivityStatistics" resultType="map">
+        SELECT
+            COUNT(CASE WHEN create_time >= DATE_SUB(NOW(), INTERVAL #{days} DAY) THEN 1 END) as createdCount,
+            COUNT(CASE WHEN update_time >= DATE_SUB(NOW(), INTERVAL #{days} DAY) THEN 1 END) as updatedCount,
+            COUNT(CASE WHEN create_time >= DATE_SUB(NOW(), INTERVAL #{days} DAY) AND instance_type = '0' THEN 1 END) as marketingCreated,
+            COUNT(CASE WHEN create_time >= DATE_SUB(NOW(), INTERVAL #{days} DAY) AND instance_type = '1' THEN 1 END) as prospectingCreated
+        FROM ai_instance
+        <where>
+            <if test="userId != null">
+                user_id = #{userId}
+            </if>
+        </where>
+    </select>
+
+    <!-- 根据条件查询实例列表（带平台名称和人设名称） -->
+    <select id="selectListVOWithUserPermission" resultMap="AiInstanceVOResult">
+        SELECT
+        i.instance_id,
+        i.user_id,
+        i.instance_name,
+        i.instance_type,
+        CASE i.instance_type
+            WHEN '0' THEN '营销'
+            WHEN '1' THEN '拓客'
+            ELSE '未知类型'
+        END AS instance_type_display,
+        i.platform_id,
+        COALESCE(p.platform_name, '未知平台') AS platform_name,
+        i.character_id,
+        COALESCE(c.name, '未绑定人设') AS character_name,
+        i.proxy_id,
+        COALESCE(CONCAT(pr.proxy_host, ':', pr.proxy_port, ' (',
+                CASE pr.proxy_type
+                    WHEN 0 THEN 'HTTP'
+                    WHEN 1 THEN 'SOCKS5'
+                    ELSE '未知类型'
+                END, ')'), '') AS proxy_address,
+        i.create_time,
+        i.create_by,
+        i.update_time,
+        i.update_by
+        FROM ai_instance i
+        LEFT JOIN platform p ON i.platform_id = p.platform_id
+        LEFT JOIN ai_character c ON i.character_id = c.id
+        LEFT JOIN proxy pr ON i.proxy_id = pr.proxy_id
+        <where>
+            <!-- 权限限制：只能查询当前用户创建的实例 -->
+            i.user_id = #{currentUserId}
+
+            <!-- 其他查询条件 -->
+            <if test="instance != null">
+                <if test="instance.instanceId != null">
+                    AND i.instance_id = #{instance.instanceId}
+                </if>
+                <if test="instance.instanceName != null and instance.instanceName != ''">
+                    AND i.instance_name LIKE CONCAT('%', #{instance.instanceName}, '%')
+                </if>
+                <if test="instance.instanceType != null and instance.instanceType != ''">
+                    AND i.instance_type = #{instance.instanceType}
+                </if>
+                <if test="instance.platformId != null">
+                    AND i.platform_id = #{instance.platformId}
+                </if>
+                <if test="instance.characterId != null">
+                    AND i.character_id = #{instance.characterId}
+                </if>
+                <if test="instance.proxyId != null">
+                    AND i.proxy_id = #{instance.proxyId}
+                </if>
+                <if test="instance.createTime != null">
+                    AND i.create_time = #{instance.createTime}
+                </if>
+            </if>
+        </where>
+        ORDER BY i.create_time DESC
+    </select>
+
+<!-- 查询所有实例（用于计费任务） -->
+    <select id="selectAllInstances" resultMap="InstanceResult">
+        SELECT
+            instance_id,
+            instance_name,
+            user_id,
+            platform_id,
+            instance_type,
+            1 as status,
+            '' as config,
+            0 as total_billed_days,
+            0 as total_billed_amount,
+            create_time,
+            update_time,
+            '' as remark
+        FROM ai_instance
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 根据用户ID、实例类型和平台ID查询实例列表 -->
+    <select id="selectByUserIdAndTypeAndPlatform" parameterType="map" resultMap="AiInstanceResult">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM ai_instance
+        WHERE user_id = #{params.userId}
+        <if test="params.instanceType != null and params.instanceType != ''">
+            AND instance_type = #{params.instanceType}
+        </if>
+        <if test="params.platformId != null">
+            AND platform_id = #{params.platformId}
+        </if>
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 根据用户ID和实例类型查询实例列表 -->
+    <select id="selectByUserIdAndType" parameterType="map" resultMap="AiInstanceResult">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM ai_instance
+        WHERE user_id = #{params.userId}
+        <if test="params.instanceType != null and params.instanceType != ''">
+            AND instance_type = #{params.instanceType}
+        </if>
+        ORDER BY create_time DESC
+    </select>
+
+</mapper>

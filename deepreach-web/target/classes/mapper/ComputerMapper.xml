@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.deepreach.web.mapper.ComputerMapper">
+
+    <resultMap type="com.deepreach.common.core.domain.entity.Computer" id="ComputerResult">
+        <id     property="id"             column="id"               />
+        <result property="computerId"      column="computer_id"       />
+        <result property="bundleId"        column="bundle_id"         />
+        <result property="policyGroupId"   column="policy_group_Id"    />
+        <result property="officeSiteId"    column="office_siteId"      />
+        <result property="createTime"      column="create_time"       />
+        <result property="updateTime"      column="update_time"       />
+    </resultMap>
+
+    <sql id="selectComputerVo">
+        select id, computer_id, bundle_id, policy_group_Id, office_siteId, create_time, update_time
+        from t_computer
+    </sql>
+
+    <select id="selectById" parameterType="Long" resultMap="ComputerResult">
+        <include refid="selectComputerVo"/>
+        where id = #{id}
+    </select>
+
+    <select id="selectByComputerId" parameterType="String" resultMap="ComputerResult">
+        <include refid="selectComputerVo"/>
+        where computer_id = #{computerId}
+    </select>
+
+    <select id="selectAll" resultMap="ComputerResult">
+        <include refid="selectComputerVo"/>
+        order by create_time desc
+    </select>
+
+    <select id="selectByCondition" parameterType="com.deepreach.common.core.domain.entity.Computer" resultMap="ComputerResult">
+        <include refid="selectComputerVo"/>
+        <where>
+            <if test="computerId != null and computerId != ''">
+                and computer_id = #{computerId}
+            </if>
+            <if test="bundleId != null and bundleId != ''">
+                and bundle_id = #{bundleId}
+            </if>
+            <if test="policyGroupId != null and policyGroupId != ''">
+                and policy_group_Id = #{policyGroupId}
+            </if>
+            <if test="officeSiteId != null and officeSiteId != ''">
+                and office_siteId = #{officeSiteId}
+            </if>
+        </where>
+        order by create_time desc
+    </select>
+
+    <select id="selectByOfficeSiteId" parameterType="String" resultMap="ComputerResult">
+        <include refid="selectComputerVo"/>
+        where office_site_id = #{officeSiteId}
+        order by create_time desc
+    </select>
+
+    <insert id="insert" parameterType="com.deepreach.common.core.domain.entity.Computer" useGeneratedKeys="true" keyProperty="id">
+        insert into t_computer(
+            <if test="computerId != null and computerId != ''">computer_id,</if>
+            <if test="bundleId != null and bundleId != ''">bundle_id,</if>
+            <if test="policyGroupId != null and policyGroupId != ''">policy_group_Id,</if>
+            <if test="officeSiteId != null and officeSiteId != ''">office_siteId,</if>
+            create_time
+        )values(
+            <if test="computerId != null and computerId != ''">#{computerId},</if>
+            <if test="bundleId != null and bundleId != ''">#{bundleId},</if>
+            <if test="policyGroupId != null and policyGroupId != ''">#{policyGroupId},</if>
+            <if test="officeSiteId != null and officeSiteId != ''">#{officeSiteId},</if>
+            sysdate()
+        )
+    </insert>
+
+    <update id="updateById" parameterType="com.deepreach.common.core.domain.entity.Computer">
+        update t_computer
+        <set>
+            <if test="computerId != null and computerId != ''">computer_id = #{computerId},</if>
+            <if test="bundleId != null and bundleId != ''">bundle_id = #{bundleId},</if>
+            <if test="policyGroupId != null and policyGroupId != ''">policy_group_Id = #{policyGroupId},</if>
+            <if test="officeSiteId != null and officeSiteId != ''">office_siteId = #{officeSiteId},</if>
+            update_time = sysdate()
+        </set>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteById" parameterType="Long">
+        delete from t_computer where id = #{id}
+    </delete>
+
+    <select id="checkComputerIdUnique" parameterType="String" resultType="int">
+        select count(1) from t_computer 
+        where computer_id = #{computerId} 
+        <if test="id != null">
+            and id != #{id}
+        </if>
+        limit 1
+    </select>
+
+    <update id="updateStatus">
+        update t_computer set status = #{status}, update_time = sysdate() where id = #{id}
+    </update>
+
+    <select id="countByOfficeSiteId" parameterType="String" resultType="int">
+        select count(1) from t_computer where office_siteId = #{officeSiteId}
+    </select>
+
+</mapper>
