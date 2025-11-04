@@ -1113,8 +1113,7 @@ public class AiInstanceServiceImpl implements AiInstanceService {
             }
 
             // 检查是否为买家子账户（部门类型为4，且有父用户）
-            if (currentUser.getDept() == null || !"4".equals(currentUser.getDept().getDeptType())
-                || currentUser.getParentUserId() == null) {
+            if (!currentUser.isBuyerSubIdentity() || currentUser.getParentUserId() == null) {
                 throw new IllegalArgumentException("只有买家子账户可以创建实例");
             }
 
@@ -1154,6 +1153,8 @@ public class AiInstanceServiceImpl implements AiInstanceService {
             }
 
             BigDecimal availableBalance = parentBalance.getDrBalance();
+
+            // 预扣费硬编码！
             BigDecimal marketingInstancePrice = new BigDecimal("100.00"); // 营销实例预扣费
 
             if (availableBalance.compareTo(marketingInstancePrice) < 0) {

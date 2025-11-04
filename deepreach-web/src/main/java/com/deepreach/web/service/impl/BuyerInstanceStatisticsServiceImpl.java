@@ -1,9 +1,10 @@
 package com.deepreach.web.service.impl;
 
-import com.deepreach.common.core.domain.entity.SysDept;
 import com.deepreach.common.core.domain.entity.SysUser;
-import com.deepreach.common.core.mapper.SysDeptMapper;
 import com.deepreach.common.core.mapper.SysUserMapper;
+import com.deepreach.common.core.service.SysUserService;
+import com.deepreach.common.security.UserRoleUtils;
+import com.deepreach.common.security.enums.UserIdentity;
 import com.deepreach.web.entity.AiInstance;
 import com.deepreach.web.entity.UserDrBalance;
 import com.deepreach.web.entity.dto.AiCharacterStatistics;
@@ -21,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,7 +40,7 @@ import java.util.stream.Collectors;
 public class BuyerInstanceStatisticsServiceImpl implements BuyerInstanceStatisticsService {
 
     private final SysUserMapper userMapper;
-    private final SysDeptMapper deptMapper;
+    private final SysUserService userService;
     private final AiInstanceMapper aiInstanceMapper;
     private final AiCharacterMapper aiCharacterMapper;
     private final UserDrBalanceMapper userDrBalanceMapper;
@@ -63,7 +65,6 @@ public class BuyerInstanceStatisticsServiceImpl implements BuyerInstanceStatisti
         BuyerHierarchyData hierarchyData = resolveHierarchyData(buyerMainUser);
 
         Map<String, Object> overview = buildBaseOverview(hierarchyData);
-        overview.put("subDeptCount", hierarchyData.getSubDeptMap().size());
         overview.put("subUserCount", hierarchyData.getSubUsers().size());
         overview.put("instanceCount", hierarchyData.getAllInstances().size());
         overview.put("instanceTypeStatistics", buildInstanceTypeStatistics(hierarchyData.getAllInstances()));
@@ -82,6 +83,11 @@ public class BuyerInstanceStatisticsServiceImpl implements BuyerInstanceStatisti
         if (buyerMainUser == null) {
             throw new IllegalArgumentException("买家总账户用户不存在");
         }
+        Set<String> roleKeys = userMapper.selectRoleKeysByUserId(buyerMainUserId);
+        if (!UserRoleUtils.hasIdentity(roleKeys, UserIdentity.BUYER_MAIN)) {
+            throw new IllegalArgumentException("指定用户不是买家总账户用户");
+        }
+        buyerMainUser.setRoles(roleKeys);
         return buyerMainUser;
     }
 
@@ -93,49 +99,35 @@ public class BuyerInstanceStatisticsServiceImpl implements BuyerInstanceStatisti
         if (buyerMainUser == null) {
             throw new IllegalArgumentException("买家总账户用户不存在");
         }
+        Set<String> roleKeys = userMapper.selectRoleKeysByUserId(buyerMainUser.getUserId());
+        if (!UserRoleUtils.hasIdentity(roleKeys, UserIdentity.BUYER_MAIN)) {
+            throw new IllegalArgumentException("指定用户不是买家总账户用户");
+        }
+        buyerMainUser.setRoles(roleKeys);
         return buyerMainUser;
     }
 
     private BuyerHierarchyData resolveHierarchyData(SysUser buyerMainUser) {
-        Long buyerMainDeptId = buyerMainUser.getDeptId();
-        if (buyerMainDeptId == null) {
-            throw new IllegalArgumentException("买家总账户用户未关联部门");
+        Long buyerMainUserId = buyerMainUser.getUserId();
+        if (buyerMainUserId == null) {
+            throw new IllegalArgumentException("买家总账户用户ID无效");
         }
 
-        SysDept buyerMainDept = deptMapper.selectDeptById(buyerMainDeptId);
-        if (buyerMainDept == null) {
-            throw new IllegalArgumentException("买家总账户所属部门不存在");
-        }
-        if (!"3".equals(buyerMainDept.getDeptType())) {
-            throw new IllegalArgumentException("指定用户不是买家总账户用户");
-        }
-
-        List<Long> deptTreeIds = deptMapper.selectChildDeptIdsRecursive(buyerMainDeptId);
-        Set<Long> childDeptIdSet = CollectionUtils.isEmpty(deptTreeIds)
-            ? Collections.emptySet()
-            : deptTreeIds.stream()
+        List<SysUser> buyerSubUsers = userService.selectUsersWithinHierarchy(buyerMainUserId, "buyer_sub", null);
+        List<SysUser> sortedSubUsers = CollectionUtils.isEmpty(buyerSubUsers)
+            ? Collections.emptyList()
+            : buyerSubUsers.stream()
                 .filter(Objects::nonNull)
-                .filter(id -> !Objects.equals(id, buyerMainDeptId))
-                .collect(Collectors.toSet());
+                .sorted(Comparator.comparing(SysUser::getCreateTime, Comparator.nullsLast(Comparator.naturalOrder())).reversed())
+                .collect(Collectors.toList());
 
-        Map<Long, SysDept> buyerSubDeptMap = Collections.emptyMap();
-        if (!CollectionUtils.isEmpty(childDeptIdSet)) {
-            List<SysDept> childDepts = deptMapper.selectDeptsByIds(childDeptIdSet);
-            buyerSubDeptMap = childDepts.stream()
-                .filter(Objects::nonNull)
-                .filter(dept -> "4".equals(dept.getDeptType()))
-                .collect(Collectors.toMap(SysDept::getDeptId, Function.identity(), (a, b) -> a, LinkedHashMap::new));
-        }
-
-        List<SysUser> sortedSubUsers = Collections.emptyList();
-        if (!CollectionUtils.isEmpty(buyerSubDeptMap)) {
-            List<Long> buyerSubDeptIds = new ArrayList<>(buyerSubDeptMap.keySet());
-            List<SysUser> buyerSubUsers = userMapper.selectUsersByDeptIds(buyerSubDeptIds);
-            if (!CollectionUtils.isEmpty(buyerSubUsers)) {
-                sortedSubUsers = new ArrayList<>(buyerSubUsers);
-                sortedSubUsers.sort(Comparator.comparing(SysUser::getCreateTime, Comparator.nullsLast(Comparator.naturalOrder())).reversed());
-            }
-        }
+        Set<Long> subUserIdSet = sortedSubUsers.stream()
+            .map(SysUser::getUserId)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet());
+        Map<Long, Set<String>> subRoleKeys = loadRoleKeys(subUserIdSet);
+        sortedSubUsers.forEach(user ->
+            user.setRoles(subRoleKeys.getOrDefault(user.getUserId(), Collections.emptySet())));
 
         List<Long> buyerSubUserIds = sortedSubUsers.stream()
             .map(SysUser::getUserId)
@@ -152,12 +144,11 @@ public class BuyerInstanceStatisticsServiceImpl implements BuyerInstanceStatisti
                 .filter(instance -> instance.getUserId() != null)
                 .collect(Collectors.groupingBy(AiInstance::getUserId, HashMap::new, Collectors.toList()));
 
-        return new BuyerHierarchyData(buyerMainUser, buyerMainDept, buyerSubDeptMap, sortedSubUsers, allInstances, instanceMap);
+        return new BuyerHierarchyData(buyerMainUser, sortedSubUsers, allInstances, instanceMap);
     }
 
     private Map<String, Object> buildDetailedStatistics(BuyerHierarchyData hierarchyData) {
         Map<String, Object> result = buildBaseOverview(hierarchyData);
-        result.put("subDeptCount", hierarchyData.getSubDeptMap().size());
         result.put("subUserCount", hierarchyData.getSubUsers().size());
         result.put("instanceCount", hierarchyData.getAllInstances().size());
         result.put("instanceTypeStatistics", buildInstanceTypeStatistics(hierarchyData.getAllInstances()));
@@ -168,12 +159,10 @@ public class BuyerInstanceStatisticsServiceImpl implements BuyerInstanceStatisti
     private Map<String, Object> buildBaseOverview(BuyerHierarchyData hierarchyData) {
         Map<String, Object> overview = new LinkedHashMap<>();
         SysUser buyerMainUser = hierarchyData.getBuyerMainUser();
-        SysDept buyerMainDept = hierarchyData.getBuyerMainDept();
         overview.put("buyerMainUserId", buyerMainUser.getUserId());
         overview.put("buyerMainUsername", buyerMainUser.getUsername());
         overview.put("buyerMainNickname", buyerMainUser.getNickname());
-        overview.put("buyerMainDeptId", buyerMainDept.getDeptId());
-        overview.put("buyerMainDeptName", buyerMainDept.getDeptName());
+        overview.put("buyerMainRoles", buyerMainUser.getRoles());
         return overview;
     }
 
@@ -222,7 +211,6 @@ public class BuyerInstanceStatisticsServiceImpl implements BuyerInstanceStatisti
         }
 
         Map<Long, List<AiInstance>> instanceMap = hierarchyData.getInstanceMap();
-        Map<Long, SysDept> subDeptMap = hierarchyData.getSubDeptMap();
         List<Map<String, Object>> subUserDetails = new ArrayList<>();
         for (SysUser subUser : hierarchyData.getSubUsers()) {
             Map<String, Object> detail = new LinkedHashMap<>();
@@ -230,13 +218,7 @@ public class BuyerInstanceStatisticsServiceImpl implements BuyerInstanceStatisti
             detail.put("username", subUser.getUsername());
             detail.put("nickname", subUser.getNickname());
             detail.put("realName", subUser.getRealName());
-            detail.put("deptId", subUser.getDeptId());
-
-            SysDept subDept = subDeptMap.get(subUser.getDeptId());
-            if (subDept != null) {
-                detail.put("deptName", subDept.getDeptName());
-                detail.put("deptStatus", subDept.getStatus());
-            }
+            detail.put("roles", subUser.getRoles());
 
             List<AiInstance> userInstances = instanceMap.getOrDefault(subUser.getUserId(), Collections.emptyList());
             detail.put("instanceCount", userInstances.size());
@@ -302,23 +284,58 @@ public class BuyerInstanceStatisticsServiceImpl implements BuyerInstanceStatisti
         return userIds;
     }
 
+    private Map<Long, Set<String>> loadRoleKeys(Set<Long> userIds) {
+        Map<Long, Set<String>> result = new HashMap<>();
+        if (CollectionUtils.isEmpty(userIds)) {
+            return result;
+        }
+        List<Map<String, Object>> rows = userMapper.selectUserRoleMappings(userIds);
+        if (rows == null) {
+            return result;
+        }
+        for (Map<String, Object> row : rows) {
+            if (row == null || row.isEmpty()) {
+                continue;
+            }
+            Object roleKeyObj = row.get("roleKey");
+            Long userId = parseLong(row.get("userId"));
+            if (userId == null || !(roleKeyObj instanceof String)) {
+                continue;
+            }
+            String roleKey = ((String) roleKeyObj).trim();
+            if (roleKey.isEmpty()) {
+                continue;
+            }
+            result.computeIfAbsent(userId, id -> new HashSet<>()).add(roleKey);
+        }
+        return result;
+    }
+
+    private Long parseLong(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Number) {
+            return ((Number) value).longValue();
+        }
+        try {
+            return Long.parseLong(value.toString());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
     private static class BuyerHierarchyData {
         private final SysUser buyerMainUser;
-        private final SysDept buyerMainDept;
-        private final Map<Long, SysDept> subDeptMap;
         private final List<SysUser> subUsers;
         private final List<AiInstance> allInstances;
         private final Map<Long, List<AiInstance>> instanceMap;
 
         BuyerHierarchyData(SysUser buyerMainUser,
-                           SysDept buyerMainDept,
-                           Map<Long, SysDept> subDeptMap,
                            List<SysUser> subUsers,
                            List<AiInstance> allInstances,
                            Map<Long, List<AiInstance>> instanceMap) {
             this.buyerMainUser = buyerMainUser;
-            this.buyerMainDept = buyerMainDept;
-            this.subDeptMap = subDeptMap != null ? subDeptMap : Collections.emptyMap();
             this.subUsers = subUsers != null ? subUsers : Collections.emptyList();
             this.allInstances = allInstances != null ? allInstances : Collections.emptyList();
             this.instanceMap = instanceMap != null ? instanceMap : Collections.emptyMap();
@@ -326,14 +343,6 @@ public class BuyerInstanceStatisticsServiceImpl implements BuyerInstanceStatisti
 
         public SysUser getBuyerMainUser() {
             return buyerMainUser;
-        }
-
-        public SysDept getBuyerMainDept() {
-            return buyerMainDept;
-        }
-
-        public Map<Long, SysDept> getSubDeptMap() {
-            return subDeptMap;
         }
 
         public List<SysUser> getSubUsers() {

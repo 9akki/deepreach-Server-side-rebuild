@@ -7,7 +7,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.Set;
 
 /**
@@ -56,25 +55,8 @@ public class UserInfo {
     @Schema(description = "账号状态")
     private String status;
 
-    @Schema(description = "部门ID")
-    private Long deptId;
-
-    @Schema(description = "部门名称")
-    private String deptName;
-
-    // ==================== 基于部门类型的扩展字段 ====================
-
-    @Schema(description = "部门类型（1系统 2代理 3买家总账户 4买家子账户）")
-    private String deptType;
-
-    @Schema(description = "代理层级（仅代理部门有效）")
-    private Integer agentLevel;
-
-    @Schema(description = "父用户ID（仅买家子账户有效）")
+    @Schema(description = "父用户ID（子账号使用）")
     private Long parentUserId;
-
-    @Schema(description = "父用户名称（仅买家子账户有效）")
-    private String parentUserName;
 
     @Schema(description = "显示名称")
     private String displayName;
@@ -114,15 +96,11 @@ public class UserInfo {
                 .nickname(loginUser.getNickname())
                 .email(loginUser.getEmail())
                 .phone(loginUser.getPhone())
-                .deptId(loginUser.getDeptId())
-                .deptType(loginUser.getDeptType())
-                .deptName(loginUser.getDeptName())
-                .agentLevel(loginUser.getAgentLevel())
                 .parentUserId(loginUser.getParentUserId())
-                .parentUserName(loginUser.getParentUserName())
                 .displayName(loginUser.getDisplayName())
                 .roles(loginUser.getRoles())
                 .permissions(loginUser.getPermissions())
+                .status(loginUser.getStatus())
                 .loginTime(loginUser.getLoginTime())
                 .build();
     }
@@ -154,26 +132,6 @@ public class UserInfo {
             updateTime = sysUser.getUpdateTime();
         }
 
-        // 获取部门信息
-        com.deepreach.common.core.domain.entity.SysDept dept = sysUser.getDept();
-        String deptType = null;
-        String deptName = null;
-        Integer agentLevel = null;
-        Long parentUserId = null;
-        String parentUserName = null;
-
-        if (dept != null) {
-            deptType = dept.getDeptType();
-            deptName = dept.getDeptName();
-            agentLevel = dept.getLevel();
-
-            // 如果是买家子账户，获取父用户信息
-            if (dept.isBuyerSubDept() && sysUser.getParentUserId() != null) {
-                parentUserId = sysUser.getParentUserId();
-                // TODO: 可以在这里查询父用户名称
-            }
-        }
-
         return UserInfo.builder()
                 .id(sysUser.getUserId())
                 .username(sysUser.getUsername())
@@ -185,12 +143,7 @@ public class UserInfo {
                 .avatar(sysUser.getAvatar())
                 .userType(sysUser.getUserType())
                 .status(sysUser.getStatus())
-                .deptId(sysUser.getDeptId())
-                .deptType(deptType)
-                .deptName(deptName)
-                .agentLevel(agentLevel)
-                .parentUserId(parentUserId)
-                .parentUserName(parentUserName)
+                .parentUserId(sysUser.getParentUserId())
                 .displayName(sysUser.getDisplayName())
                 .loginIp(sysUser.getLoginIp())
                 .loginTime(loginTime)
@@ -289,61 +242,5 @@ public class UserInfo {
         }
     }
 
-    // ==================== 基于部门类型的业务判断方法 ====================
 
-    /**
-     * 判断是否为系统部门用户
-     */
-    public boolean isSystemDeptUser() {
-        return "1".equals(this.deptType);
-    }
-
-    /**
-     * 判断是否为代理部门用户
-     */
-    public boolean isAgentDeptUser() {
-        return "2".equals(this.deptType);
-    }
-
-    /**
-     * 判断是否为买家总账户用户
-     */
-    public boolean isBuyerMainAccountUser() {
-        return "3".equals(this.deptType);
-    }
-
-    /**
-     * 判断是否为买家子账户用户
-     */
-    public boolean isBuyerSubAccountUser() {
-        return "4".equals(this.deptType);
-    }
-
-    /**
-     * 判断是否为买家用户（总账户或子账户）
-     */
-    public boolean isBuyerUser() {
-        return isBuyerMainAccountUser() || isBuyerSubAccountUser();
-    }
-
-    /**
-     * 判断是否为后台用户
-     */
-    public boolean isBackendDeptUser() {
-        return isSystemDeptUser() || isAgentDeptUser() || isBuyerMainAccountUser();
-    }
-
-    /**
-     * 判断是否为前端用户
-     */
-    public boolean isFrontendUser() {
-        return isBuyerSubAccountUser();
-    }
-
-    /**
-     * 判断是否有父用户（是否为子账号）
-     */
-    public boolean hasParentUser() {
-        return this.parentUserId != null && this.parentUserId > 0;
-    }
 }

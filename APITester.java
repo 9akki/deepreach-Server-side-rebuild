@@ -154,7 +154,7 @@ public class APITester {
         testInterface(results, "GET", "/system/role/by-dept-type/1", null, "按部门类型查询角色");
 
         // 3.6 创建角色
-        String roleData = "{\"roleName\":\"测试角色\",\"roleKey\":\"test_role\",\"roleSort\":999,\"dataScope\":\"4\",\"status\":\"0\",\"deptType\":\"1\"}";
+        String roleData = "{\"roleName\":\"测试角色\",\"roleKey\":\"test_role\",\"roleSort\":999,\"dataScope\":\"4\",\"status\":\"0\"}";
         testInterface(results, "POST", "/system/role", roleData, "创建角色");
 
         // 3.15 获取角色菜单ID列表
@@ -177,7 +177,7 @@ public class APITester {
         testInterface(results, "GET", "/system/dept/1", null, "获取部门详情");
 
         // 4.6 创建部门
-        String deptData = "{\"parentId\":1,\"deptName\":\"测试部门\",\"orderNum\":999,\"status\":\"0\",\"deptType\":\"1\"}";
+        String deptData = "{\"parentId\":1,\"deptName\":\"测试部门\",\"orderNum\":999,\"status\":\"0\"}";
         testInterface(results, "POST", "/system/dept", deptData, "创建部门");
 
         // 4.21 根据部门类型查询部门列表

@@ -168,9 +168,9 @@ spring:
 
   # 开发环境数据源
   datasource:
-    url: jdbc:mysql://206.82.1.18:33900/smspike?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
-    username: smspike
-    password: h5wBHxi34miDKwsc
+    url: jdbc:mysql://110.42.110.38:3306/newsmspike?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+    username: newsmspike
+    password: KY7zrNkhy6kdTSjP
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   # 云电脑数据源配置

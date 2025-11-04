@@ -19,6 +19,8 @@
         <result property="deptDisplayName" column="dept_name"/>
         <!-- 基于部门类型的字段 -->
         <result property="parentUserId" column="parent_user_id"/>
+        <result property="parentUsername" column="parent_username"/>
+        <result property="invitationCode" column="invitation_code"/>
         <result property="loginIp" column="login_ip"/>
         <result property="loginTime" column="login_time"/>
         <result property="createBy" column="create_by"/>
@@ -44,31 +46,14 @@
             <result property="email" column="dept_email"/>
             <result property="status" column="dept_status"/>
             <result property="delFlag" column="dept_del_flag"/>
-            <result property="deptType" column="dept_type"/>
             <result property="level" column="level"/>
         </association>
 
-        <!-- 角色信息 -->
-        <collection property="roles" ofType="com.deepreach.common.core.domain.entity.SysRole">
-            <id property="roleId" column="role_id"/>
-            <result property="roleName" column="role_name"/>
-            <result property="roleKey" column="role_key"/>
-            <result property="roleSort" column="role_sort"/>
-            <result property="dataScope" column="data_scope"/>
-            <result property="menuCheckStrictly" column="menu_check_strictly"/>
-            <result property="deptCheckStrictly" column="dept_check_strictly"/>
-            <result property="status" column="role_status"/>
-            <result property="delFlag" column="role_del_flag"/>
-            <result property="createTime" column="role_create_time"/>
-            <result property="updateTime" column="role_update_time"/>
-            <result property="remark" column="role_remark"/>
-            <result property="deptType" column="dept_type"/>
-        </collection>
     </resultMap>
 
     <!-- 用户基本信息字段 -->
     <sql id="selectUserVo">
-        SELECT
+        SELECT DISTINCT
             u.user_id,
             u.username,
             u.password,
@@ -82,6 +67,7 @@
             u.status,
             u.dept_id,
             u.parent_user_id,
+            u.invitation_code,
             u.login_ip,
             u.login_time,
             u.create_by,
@@ -91,28 +77,30 @@
             u.remark,
             d.dept_name,
             d.leader_user_id AS leader_id,
-            leader.nickname AS leader_nickname
+            leader.nickname AS leader_nickname,
+            parent.username AS parent_username
         FROM sys_user u
         LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0'
         LEFT JOIN sys_user leader ON d.leader_user_id = leader.user_id
+        LEFT JOIN sys_user parent ON u.parent_user_id = parent.user_id
     </sql>
 
     <!-- 用户完整信息字段（包含角色和部门） -->
     <sql id="selectUserWithRolesVo">
         SELECT
             u.user_id, u.username, u.password, u.nickname, u.real_name, u.email, u.phone, u.gender, u.avatar,
-            u.user_type, u.status, u.dept_id, u.parent_user_id, u.login_ip, u.login_time,
+            u.user_type, u.status, u.dept_id, u.parent_user_id, u.invitation_code, u.login_ip, u.login_time,
             u.create_by, u.create_time, u.update_by, u.update_time, u.remark,
             d.dept_id, d.parent_id, d.ancestors, d.dept_name, d.order_num as dept_order_num,
             d.leader as dept_leader, d.phone as dept_phone, d.email as dept_email,
-            d.status as dept_status, d.del_flag as dept_del_flag, d.dept_type, d.level,
+            d.status as dept_status, d.del_flag as dept_del_flag, d.level,
             d.leader_user_id AS leader_id, leader.nickname AS leader_nickname,
-            r.role_id, r.role_name, r.role_key, r.role_sort, r.data_scope,
-            r.menu_check_strictly, r.dept_check_strictly, r.status as role_status, r.del_flag as role_del_flag,
-            r.create_time as role_create_time, r.update_time as role_update_time, r.remark as role_remark, r.dept_type
+            parent.username AS parent_username,
+            r.role_key
         FROM sys_user u
         LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0'
         LEFT JOIN sys_user leader ON d.leader_user_id = leader.user_id
+        LEFT JOIN sys_user parent ON u.parent_user_id = parent.user_id
         LEFT JOIN sys_user_role ur ON u.user_id = ur.user_id
         LEFT JOIN sys_role r ON ur.role_id = r.role_id AND r.del_flag = '0'
     </sql>
@@ -168,32 +156,28 @@
             u.real_name as realName,
             u.email,
             u.phone,
-            u.gender,
             u.avatar,
             u.user_type as userType,
             u.status,
-            u.dept_id as deptId,
-            d.dept_name as deptName,
-            d.dept_type as deptType,
-            d.level as agentLevel,
-            d.leader_user_id as leaderId,
-            leader.nickname as leaderNickname,
             u.parent_user_id as parentUserId,
+            u.invitation_code as invitationCode,
             u.login_ip as loginIp,
             u.login_time as loginTime,
             u.create_time as createTime,
             u.update_time as updateTime
         FROM sys_user u
-        LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0'
-        LEFT JOIN sys_user leader ON d.leader_user_id = leader.user_id
         WHERE u.user_id = #{userId} AND u.status = '0'
     </select>
 
     <!-- 查询用户列表（分页，支持多条件查询） -->
     <select id="selectUserList" parameterType="com.deepreach.common.core.domain.entity.SysUser" resultMap="SysUserResult" useCache="false">
         <include refid="selectUserVo"/>
+        LEFT JOIN sys_user_role ur_filter ON u.user_id = ur_filter.user_id
+        LEFT JOIN sys_role r_filter ON ur_filter.role_id = r_filter.role_id AND r_filter.del_flag = '0'
         <where>
-            u.status = '0'
+            <if test="status != null and status != ''">
+                AND u.status = #{status}
+            </if>
             <if test="username != null and username != ''">
                 AND u.username LIKE CONCAT('%', #{username}, '%')
             </if>
@@ -212,19 +196,39 @@
             <if test="userType != null">
                 AND u.user_type = #{userType}
             </if>
-            <if test="status != null and status != ''">
-                AND u.status = #{status}
-            </if>
             <if test="deptId != null">
-                AND (u.dept_id = #{deptId} OR u.dept_id IN (
-                    SELECT dept_id FROM sys_dept WHERE FIND_IN_SET(#{deptId}, ancestors)
-                ))
+                AND u.dept_id = #{deptId}
             </if>
             <if test="params != null and params.beginTime != null and params.beginTime != ''">
-                AND date_format(u.create_time,'%y%m%d') &gt;= date_format(#{params.beginTime},'%y%m%d')
+                AND u.create_time &gt;= #{params.beginTime}
             </if>
             <if test="params != null and params.endTime != null and params.endTime != ''">
-                AND date_format(u.create_time,'%y%m%d') &lt;= date_format(#{params.endTime},'%y%m%d')
+                AND u.create_time &lt;= #{params.endTime}
+            </if>
+            <if test="params != null and params.keyword != null and params.keyword != ''">
+                AND (
+                    u.username LIKE CONCAT('%', #{params.keyword}, '%')
+                    OR u.nickname LIKE CONCAT('%', #{params.keyword}, '%')
+                    OR u.real_name LIKE CONCAT('%', #{params.keyword}, '%')
+                )
+            </if>
+            <if test="params != null and params.userIds != null and params.userIds.size() &gt; 0">
+                AND u.user_id IN
+                <foreach collection="params.userIds" item="uid" open="(" separator="," close=")">
+                    #{uid}
+                </foreach>
+            </if>
+            <if test="params != null and params.excludeUserIds != null and params.excludeUserIds.size() &gt; 0">
+                AND u.user_id NOT IN
+                <foreach collection="params.excludeUserIds" item="euid" open="(" separator="," close=")">
+                    #{euid}
+                </foreach>
+            </if>
+            <if test="params != null and params.roleKeys != null and params.roleKeys.size() &gt; 0">
+                AND r_filter.role_key IN
+                <foreach collection="params.roleKeys" item="rk" open="(" separator="," close=")">
+                    #{rk}
+                </foreach>
             </if>
         </where>
         ORDER BY u.create_time DESC
@@ -308,9 +312,6 @@
                 SELECT dept_id FROM sys_dept WHERE FIND_IN_SET(#{deptId}, ancestors)
             ))
         </if>
-        <if test="deptType != null and deptType != ''">
-            AND d.dept_type = #{deptType}
-        </if>
         <if test="user != null">
             <if test="user.username != null and user.username != ''">
                 AND u.username LIKE CONCAT('%', #{user.username}, '%')
@@ -393,9 +394,7 @@
                 AND u.user_type = #{userType}
             </if>
             <if test="deptId != null">
-                AND (u.dept_id = #{deptId} OR u.dept_id IN (
-                    SELECT dept_id FROM sys_dept WHERE FIND_IN_SET(#{deptId}, ancestors)
-                ))
+                AND u.dept_id = #{deptId}
             </if>
         </where>
     </select>
@@ -444,10 +443,10 @@
     <insert id="insertUser" parameterType="com.deepreach.common.core.domain.entity.SysUser" useGeneratedKeys="true" keyProperty="userId">
         INSERT INTO sys_user (
             username, password, nickname, real_name, email, phone, gender, avatar,
-            user_type, status, dept_id, parent_user_id, create_by, create_time, remark
+            user_type, status, dept_id, parent_user_id, invitation_code, create_by, create_time, remark
         ) VALUES (
             #{username}, #{password}, #{nickname}, #{realName}, #{email}, #{phone}, #{gender}, #{avatar},
-            #{userType}, #{status}, #{deptId}, #{parentUserId}, #{createBy}, #{createTime}, #{remark}
+            #{userType}, #{status}, #{deptId}, #{parentUserId}, #{invitationCode}, #{createBy}, #{createTime}, #{remark}
         )
     </insert>
 
@@ -466,6 +465,7 @@
             <if test="status != null and status != ''">status = #{status},</if>
             <if test="deptId != null">dept_id = #{deptId},</if>
             <if test="parentUserId != null">parent_user_id = #{parentUserId},</if>
+            <if test="invitationCode != null">invitation_code = #{invitationCode},</if>
             <if test="updateBy != null and updateBy != ''">update_by = #{updateBy},</if>
             <if test="remark != null">remark = #{remark},</if>
             update_time = sysdate()
@@ -598,14 +598,6 @@
         ==================== 基于部门类型的查询方法 ====================
     -->
 
-    <!-- 根据部门类型查询用户列表 -->
-    <select id="selectUsersByDeptType" parameterType="String" resultMap="SysUserResult">
-        <include refid="selectUserVo"/>
-        LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0'
-        WHERE u.status = '0' AND d.dept_type = #{deptType}
-        ORDER BY u.create_time DESC
-    </select>
-
     <!-- 根据父用户ID查询子账号列表 -->
     <select id="selectSubAccountsByParentUserId" parameterType="Long" resultMap="SysUserResult">
         <include refid="selectUserVo"/>
@@ -623,18 +615,16 @@
     <!-- 查询买家账户树（总账户及其子账户） -->
     <select id="selectBuyerAccountTree" parameterType="Long" resultMap="SysUserResult">
         <include refid="selectUserVo"/>
-        LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0'
-        WHERE (u.user_id = #{userId} OR u.parent_user_id = #{userId})
-        AND u.status = '0'
-        AND d.dept_type IN ('3', '4')
-        ORDER BY d.dept_type, u.create_time DESC
-    </select>
-
-    <!-- 统计指定部门类型的用户数量 -->
-    <select id="countUsersByDeptType" parameterType="String" resultType="int">
-        SELECT COUNT(1) FROM sys_user u
-        LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0'
-        WHERE u.status = '0' AND d.dept_type = #{deptType}
+        WHERE u.status = '0'
+          AND (u.user_id = #{userId} OR u.parent_user_id = #{userId})
+          AND EXISTS (
+            SELECT 1
+            FROM sys_user_role sur
+            JOIN sys_role sr ON sur.role_id = sr.role_id AND sr.del_flag = '0'
+            WHERE sur.user_id = u.user_id
+              AND sr.role_key IN ('buyer_main', 'buyer_sub')
+        )
+        ORDER BY u.parent_user_id IS NULL DESC, u.create_time DESC
     </select>
 
     <!-- 统计指定用户的子账号数量 -->
@@ -643,72 +633,33 @@
         WHERE parent_user_id = #{parentUserId} AND status = '0'
     </select>
 
-    <!-- 查询代理层级用户 -->
-    <select id="selectUsersByAgentLevel" parameterType="Integer" resultMap="SysUserResult">
-        <include refid="selectUserVo"/>
-        LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0'
-        WHERE u.status = '0' AND d.dept_type = '2' AND d.level = #{level}
-        ORDER BY u.create_time DESC
-    </select>
-
-    <!-- 统计指定代理层级的用户数量 -->
-    <select id="countUsersByAgentLevel" parameterType="Integer" resultType="int">
-        SELECT COUNT(1) FROM sys_user u
-        LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0'
-        WHERE u.status = '0' AND d.dept_type = '2' AND d.level = #{level}
-    </select>
-
-    <!-- 查询指定部门及其子部门的用户 -->
-    <select id="selectUsersByDeptAndChildren" parameterType="Long" resultMap="SysUserResult">
-        <include refid="selectUserVo"/>
-        WHERE u.status = '0'
-        AND (u.dept_id = #{deptId} OR u.dept_id IN (
-            SELECT dept_id FROM sys_dept WHERE FIND_IN_SET(#{deptId}, ancestors)
-        ))
-        ORDER BY u.create_time DESC
-    </select>
-
-    <!-- 根据部门祖先路径查询用户 -->
-    <select id="selectUsersByDeptAncestors" parameterType="String" resultMap="SysUserResult">
-        <include refid="selectUserVo"/>
-        LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0'
-        WHERE u.status = '0'
-        AND (FIND_IN_SET(#{ancestors}, d.ancestors) OR d.ancestors LIKE CONCAT('%', #{ancestors}, '%') OR d.ancestors = #{ancestors})
-        ORDER BY u.create_time DESC
-    </select>
-
     <!-- 查询同级部门用户 -->
     <select id="selectSameDeptLevelUsers" parameterType="Long" resultMap="SysUserResult">
         <include refid="selectUserVo"/>
-        LEFT JOIN sys_dept d1 ON u.dept_id = d1.dept_id AND d1.del_flag = '0'
-        LEFT JOIN sys_dept d2 ON d1.parent_id = d2.parent_id AND d2.del_flag = '0'
-        LEFT JOIN sys_user u2 ON u2.dept_id = d2.dept_id AND u2.status = '0'
-        WHERE u2.user_id = #{userId}
+        WHERE u.status = '0'
+          AND u.user_id != #{userId}
+          AND EXISTS (
+              SELECT 1
+              FROM sys_user_role sur
+              JOIN sys_role sr ON sur.role_id = sr.role_id AND sr.del_flag = '0'
+              WHERE sur.user_id = u.user_id
+                AND sr.role_key IN (
+                    SELECT sr2.role_key
+                    FROM sys_user_role sur2
+                    JOIN sys_role sr2 ON sur2.role_id = sr2.role_id AND sr2.del_flag = '0'
+                    WHERE sur2.user_id = #{userId}
+                )
+          )
         ORDER BY u.create_time DESC
-    </select>
-
-    <!-- 检查用户是否属于指定部门类型 -->
-    <select id="checkUserDeptType" resultType="boolean">
-        SELECT CASE
-            WHEN COUNT(1) > 0 THEN true
-            ELSE false
-        END
-        FROM sys_user u
-        LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0'
-        WHERE u.user_id = #{userId} AND u.status = '0' AND d.dept_type = #{deptType}
     </select>
 
     <!-- 检查用户是否可以创建子账号 -->
     <select id="checkCanCreateSubAccount" parameterType="Long" resultType="boolean">
-        SELECT CASE
-            WHEN d.dept_type = '3' THEN true
-            ELSE false
-        END
-        FROM sys_user u
-        LEFT JOIN sys_dept d ON u.dept_id = d.dept_id AND d.del_flag = '0'
-        WHERE u.user_id = #{userId}
-        AND u.status = '0'
-        AND d.dept_type = '3'
+        SELECT CASE WHEN COUNT(1) > 0 THEN true ELSE false END
+        FROM sys_user_role sur
+        JOIN sys_role sr ON sur.role_id = sr.role_id AND sr.del_flag = '0'
+        WHERE sur.user_id = #{userId}
+          AND sr.role_key = 'buyer_main'
     </select>
 
     <!-- 为用户分配角色 -->
@@ -721,33 +672,53 @@
         ==================== 统计相关查询方法 ====================
     -->
 
-    <!-- 根据部门ID列表统计各部门用户数量 -->
-    <select id="countUsersByDeptIds" parameterType="map" resultType="map">
+    <!-- 查询用户角色映射 -->
+    <select id="selectUserRoleMappings" parameterType="map" resultType="map">
         SELECT
-            CASE
-                WHEN d.dept_type = '1' THEN 'system_users'
-                WHEN d.dept_type = '2' THEN 'agent_users'
-                WHEN d.dept_type = '3' THEN 'buyer_main_users'
-                WHEN d.dept_type = '4' THEN 'buyer_sub_users'
-                ELSE 'other_users'
-            END as user_type,
-            COUNT(*) as count
-        FROM sys_user u
-        INNER JOIN sys_dept d ON u.dept_id = d.dept_id
-        WHERE u.status = '0'
-        AND d.del_flag = '0'
-        AND d.dept_id IN
-        <foreach collection="deptIds" item="deptId" open="(" separator="," close=")">
-            #{deptId}
+            ur.user_id AS userId,
+            r.role_key AS roleKey
+        FROM sys_user_role ur
+        JOIN sys_role r ON ur.role_id = r.role_id AND r.del_flag = '0'
+        JOIN sys_user u ON ur.user_id = u.user_id AND u.status = '0'
+        WHERE ur.user_id IN
+        <foreach collection="userIds" item="userId" open="(" separator="," close=")">
+            #{userId}
         </foreach>
-        GROUP BY
-            CASE
-                WHEN d.dept_type = '1' THEN 'system_users'
-                WHEN d.dept_type = '2' THEN 'agent_users'
-                WHEN d.dept_type = '3' THEN 'buyer_main_users'
-                WHEN d.dept_type = '4' THEN 'buyer_sub_users'
-                ELSE 'other_users'
-            END
+    </select>
+
+    <!-- 根据用户ID集合查询用户 -->
+    <select id="selectUsersByIds" parameterType="map" resultMap="SysUserResult">
+        <include refid="selectUserVo"/>
+        WHERE u.user_id IN
+        <foreach collection="userIds" item="userId" open="(" separator="," close=")">
+            #{userId}
+        </foreach>
+    </select>
+
+    <!-- 统计指定用户集合的角色分布 -->
+    <select id="countUsersByRoleKeys" parameterType="map" resultType="map">
+        SELECT
+            r.role_key AS roleKey,
+            COUNT(DISTINCT ur.user_id) AS userCount
+        FROM sys_user_role ur
+        JOIN sys_role r ON ur.role_id = r.role_id AND r.del_flag = '0'
+        JOIN sys_user u ON ur.user_id = u.user_id AND u.status = '0'
+        WHERE ur.user_id IN
+        <foreach collection="userIds" item="userId" open="(" separator="," close=")">
+            #{userId}
+        </foreach>
+        GROUP BY r.role_key
+    </select>
+
+    <!-- 统计启用状态的用户数量 -->
+    <select id="countActiveUsersByIds" parameterType="map" resultType="long">
+        SELECT COUNT(1)
+        FROM sys_user
+        WHERE status = '0'
+        AND user_id IN
+        <foreach collection="userIds" item="userId" open="(" separator="," close=")">
+            #{userId}
+        </foreach>
     </select>
 
     <!-- 按实例类型统计数量 -->
@@ -801,6 +772,16 @@
         FROM platform
         WHERE status = '0'
         ORDER BY platform_id
+    </select>
+
+    <!-- 查询所有用户的父子关系 -->
+    <select id="selectAllUserHierarchyRelations"
+            resultType="com.deepreach.common.core.domain.dto.UserHierarchyNodeDTO">
+        SELECT
+            u.user_id AS userId,
+            u.parent_user_id AS parentUserId
+        FROM sys_user u
+        WHERE u.status = '0'
     </select>
 
 </mapper>

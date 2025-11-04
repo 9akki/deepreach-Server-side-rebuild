@@ -52,14 +52,12 @@ public interface SysRoleService {
     List<SysRole> selectRolesByUserId(Long userId);
 
     /**
-     * 根据部门类型查询角色列表
+     * 根据身份标识查询角色列表（兼容旧部门类型编码）。
      *
-     * 查询指定部门类型的所有角色
-     *
-     * @param deptType 部门类型（1系统 2代理 3买家总账户 4买家子账户）
+     * @param identityAlias 身份别名（支持 1/2/3/4 或 admin/agent_level_1/buyer_main 等）
      * @return 角色列表
      */
-    List<SysRole> selectRolesByDeptType(String deptType);
+    List<SysRole> selectRolesByIdentity(String identityAlias);
 
     /**
      * 创建新角色
@@ -275,33 +273,19 @@ public interface SysRoleService {
     java.util.Map<String, Object> getAllRoleStatistics();
 
     /**
-     * 验证角色创建权限
-     *
-     * 根据当前用户的权限和部门类型规则，验证是否可以创建指定类型的角色
-     *
-     * @param role 要创建的角色对象
-     * @throws Exception 当无权限创建该类型角色时抛出异常
+     * 验证角色创建权限（基于身份规则）。
      */
     void validateRoleCreatePermission(SysRole role) throws Exception;
 
     /**
-     * 检查角色是否适用于指定部门类型
-     *
-     * @param roleId 角色ID
-     * @param deptType 部门类型
-     * @return 是否适用
+     * 检查角色是否适用于指定身份别名。
      */
-    boolean isRoleApplicableToDeptType(Long roleId, String deptType);
+    boolean isRoleApplicableToIdentity(Long roleId, String identityAlias);
 
     /**
-     * 获取部门类型的默认角色
-     *
-     * 获取指定部门类型的默认角色
-     *
-     * @param deptType 部门类型
-     * @return 默认角色对象，如果没有则返回null
+     * 根据身份别名获取默认角色。
      */
-    SysRole getDefaultRoleByDeptType(String deptType);
+    SysRole getDefaultRoleByIdentity(String identityAlias);
 
     /**
      * 初始化默认角色数据

@@ -1,5 +1,6 @@
 package com.deepreach.common.core.mapper;
 
+import com.deepreach.common.core.domain.dto.UserHierarchyNodeDTO;
 import com.deepreach.common.core.domain.entity.SysUser;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -180,16 +181,21 @@ public interface SysUserMapper {
     /**
      * 根据部门条件查询用户列表
      *
-     * 支持通过部门ID、部门类型（用户身份）及用户信息联合筛选
+     * 支持通过部门ID及用户信息联合筛选。部门类型字段已下线。
      *
      * @param deptId 部门ID
-     * @param deptType 部门类型（用户身份）
      * @param user 用户查询条件
      * @return 用户列表
      */
     List<SysUser> searchUsersByDept(@Param("deptId") Long deptId,
-                                    @Param("deptType") String deptType,
                                     @Param("user") SysUser user);
+
+    /**
+     * 查询所有用户的父子关联关系
+     *
+     * @return 用户与父用户的关系列表
+     */
+    List<UserHierarchyNodeDTO> selectAllUserHierarchyRelations();
 
     /**
      * 查询指定部门ID列表中的用户
@@ -434,16 +440,6 @@ public interface SysUserMapper {
      */
     int countUsersInDept(@Param("deptId") Long deptId);
 
-    // ==================== 基于部门类型的查询方法 ====================
-
-    /**
-     * 根据部门类型查询用户列表
-     *
-     * @param deptType 部门类型（1系统 2代理 3买家总账户 4买家子账户）
-     * @return 用户列表
-     */
-    List<SysUser> selectUsersByDeptType(@Param("deptType") String deptType);
-
     /**
      * 根据父用户ID查询子账号列表
      *
@@ -475,60 +471,12 @@ public interface SysUserMapper {
     List<SysUser> selectBuyerAccountTree(@Param("userId") Long userId);
 
     /**
-     * 统计指定部门类型的用户数量
-     *
-     * @param deptType 部门类型
-     * @return 用户数量
-     */
-    int countUsersByDeptType(@Param("deptType") String deptType);
-
-    /**
      * 统计指定用户的子账号数量
      *
      * @param parentUserId 父用户ID（买家总账户用户ID）
      * @return 子账号数量
      */
     int countSubAccountsByParentUserId(@Param("parentUserId") Long parentUserId);
-
-    /**
-     * 查询代理层级用户
-     *
-     * 根据代理层级查询用户，支持指定起始层级
-     *
-     * @param level 代理层级（1一级代理 2二级代理 3三级代理）
-     * @return 该层级的代理用户列表
-     */
-    List<SysUser> selectUsersByAgentLevel(@Param("level") Integer level);
-
-    /**
-     * 统计指定代理层级的用户数量
-     *
-     * @param level 代理层级
-     * @return 用户数量
-     */
-    int countUsersByAgentLevel(@Param("level") Integer level);
-
-    /**
-     * 查询指定部门及其子部门的用户
-     *
-     * 递归查询指定部门及其所有子部门的用户
-     * 用于数据权限控制和组织架构管理
-     *
-     * @param deptId 部门ID
-     * @return 用户列表
-     */
-    List<SysUser> selectUsersByDeptAndChildren(@Param("deptId") Long deptId);
-
-    /**
-     * 根据部门祖先路径查询用户
-     *
-     * 查询指定祖先路径下的所有用户
-     * 用于数据权限控制
-     *
-     * @param ancestors 部门祖先路径（如 "0,100,200"）
-     * @return 用户列表
-     */
-    List<SysUser> selectUsersByDeptAncestors(@Param("ancestors") String ancestors);
 
     /**
      * 查询同级部门用户
@@ -542,19 +490,10 @@ public interface SysUserMapper {
     List<SysUser> selectSameDeptLevelUsers(@Param("userId") Long userId);
 
     /**
-     * 检查用户是否属于指定部门类型
-     *
-     * @param userId 用户ID
-     * @param deptType 部门类型
-     * @return true如果属于指定类型，false否则
-     */
-    boolean checkUserDeptType(@Param("userId") Long userId, @Param("deptType") String deptType);
-
-    /**
      * 检查用户是否可以创建子账号
      *
-     * 基于部门类型检查用户是否有权限创建子账号
-     * 只有买家总账户用户可以创建买家子账户
+     * 基于角色身份检查是否具备创建买家子账号的权限。
+     * 当前仅允许拥有 buyer_main 身份的用户创建子账号。
      *
      * @param userId 用户ID
      * @return true如果可以创建，false否则
@@ -572,15 +511,35 @@ public interface SysUserMapper {
      */
     int insertUserRole(@Param("userId") Long userId, @Param("roleId") Long roleId);
 
-    // ==================== 统计相关查询方法 ====================
+    /**
+     * 查询指定用户集合的角色映射。
+     *
+     * @param userIds 用户ID集合
+     * @return 每条记录包含用户ID与角色标识
+     */
+    java.util.List<java.util.Map<String, Object>> selectUserRoleMappings(@Param("userIds") Set<Long> userIds);
 
     /**
-     * 根据部门ID列表统计各部门用户数量
+     * 根据用户ID集合批量查询用户。
      *
-     * 统计指定部门ID列表中各部门类型的用户数量
-     *
-     * @param deptIds 部门ID列表
-     * @return 用户类型统计结果List (List of Map containing user_type and count)
+     * @param userIds 用户ID集合
+     * @return 用户列表
      */
-    java.util.List<java.util.Map<String, Object>> countUsersByDeptIds(@Param("deptIds") Set<Long> deptIds);
+    List<SysUser> selectUsersByIds(@Param("userIds") Set<Long> userIds);
+
+    /**
+     * 统计指定用户集合的角色分布。
+     *
+     * @param userIds 用户ID集合
+     * @return 每个角色对应的用户数量
+     */
+    java.util.List<java.util.Map<String, Object>> countUsersByRoleKeys(@Param("userIds") Set<Long> userIds);
+
+    /**
+     * 统计指定用户集合中处于启用状态的用户数量。
+     *
+     * @param userIds 用户ID集合
+     * @return 启用状态用户数量
+     */
+    Long countActiveUsersByIds(@Param("userIds") Set<Long> userIds);
 }

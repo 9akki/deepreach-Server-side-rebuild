@@ -167,13 +167,6 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         permissions.add("system:menu:delete");
         permissions.add("system:menu:query");
 
-        // 部门管理权限
-        permissions.add("system:dept:list");
-        permissions.add("system:dept:add");
-        permissions.add("system:dept:edit");
-        permissions.add("system:dept:delete");
-        permissions.add("system:dept:query");
-
         // 字典管理权限
         permissions.add("system:dict:list");
         permissions.add("system:dict:add");

@@ -343,21 +343,13 @@ public interface SysRoleMapper {
      */
     java.util.Map<String, Object> getRoleStatistics(@Param("roleId") Long roleId);
 
-    // ==================== 基于部门类型的角色查询方法 ====================
-
     /**
-     * 根据部门类型查询角色列表
+     * 按角色标识集合查询角色列表。
      *
-     * 根据简化的部门类型查询适用的角色列表：
-     * 1 - 系统部门：admin, system_admin, tech_admin, ops_admin
-     * 2 - 代理部门：agent
-     * 3 - 买家总账户部门：buyer_main
-     * 4 - 买家子账户部门：buyer_sub
-     *
-     * @param deptType 部门类型（1系统 2代理 3买家总账户 4买家子账户）
-     * @return 适用于指定部门类型的角色列表
+     * @param roleKeys 角色标识集合
+     * @return 角色列表
      */
-    List<SysRole> selectRolesByDeptType(@Param("deptType") String deptType);
+    List<SysRole> selectRolesByRoleKeys(@Param("roleKeys") Set<String> roleKeys);
 
     /**
      * 根据数据权限范围查询角色列表
@@ -422,17 +414,6 @@ public interface SysRoleMapper {
     List<SysRole> selectRolesByAgentLevel(@Param("agentLevel") Integer agentLevel);
 
     /**
-     * 获取部门类型角色统计信息
-     *
-     * 统计各部门类型适用的角色数量和分布
-     * 用于角色管理统计报表
-     *
-     * @return 部门类型角色统计信息Map列表
-     */
-    @MapKey("dept_type")
-    List<java.util.Map<String, Object>> selectDeptTypeRoleStatistics();
-
-    /**
      * 获取数据权限角色统计信息
      *
      * 统计各数据权限范围的角色数量和分布
@@ -454,18 +435,6 @@ public interface SysRoleMapper {
      */
     @MapKey("role_id")
     java.util.Map<String, Object> selectRolePermissionConfig(@Param("roleId") Long roleId);
-
-    /**
-     * 检查角色是否适用于指定部门类型
-     *
-     * 验证角色是否可以分配给指定部门类型的用户
-     * 用于角色分配权限验证
-     *
-     * @param roleId 角色ID
-     * @param deptType 部门类型
-     * @return 是否适用，true表示适用，false表示不适用
-     */
-    boolean checkRoleApplicableToDeptType(@Param("roleId") Long roleId, @Param("deptType") String deptType);
 
     /**
      * 检查角色是否可以分配给指定层级的代理

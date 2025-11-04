@@ -83,7 +83,7 @@ public class InstanceBillingTask {
                     }
 
                     // 只对买家子账户的实例进行计费
-                    if (user.getDept() == null || !"4".equals(user.getDept().getDeptType())) {
+                    if (!user.isBuyerSubIdentity()) {
                         log.debug("跳过非买家子账户的实例，实例ID：{}, 用户ID：{}", instance.getInstanceId(), instance.getUserId());
                         continue;
                     }

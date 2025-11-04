@@ -134,7 +134,7 @@ public class DrBalanceController extends BaseController {
             }
 
             // 检查是否为买家子账户（部门类型为4）
-            if (user.getDept() == null || !"4".equals(user.getDept().getDeptType())) {
+            if (!user.isBuyerSubIdentity()) {
                 return Result.error(DeductResponse.error("只能从买家子账户用户进行扣费").getMessage());
             }
 
@@ -150,7 +150,7 @@ public class DrBalanceController extends BaseController {
                 return Result.error(DeductResponse.error("关联的买家总账户用户不存在").getMessage());
             }
 
-            if (parentUser.getDept() == null || !"3".equals(parentUser.getDept().getDeptType())) {
+            if (!parentUser.isBuyerMainIdentity()) {
                 return Result.error(DeductResponse.error("关联的父用户不是买家总账户类型").getMessage());
             }
 
@@ -308,14 +308,12 @@ public class DrBalanceController extends BaseController {
         }
 
         try {
-            // 获取用户的完整信息（包含部门信息）
             SysUser user = userService.selectUserWithDept(userId);
             if (user == null) {
                 return false;
             }
 
-            // 检查用户部门类型是否为3（买家总账户）
-            return user.getDept() != null && "3".equals(user.getDept().getDeptType());
+            return user.isBuyerMainIdentity();
         } catch (Exception e) {
             log.error("检查用户类型失败：用户ID={}", userId, e);
             return false;

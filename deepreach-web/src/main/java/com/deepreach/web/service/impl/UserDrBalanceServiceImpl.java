@@ -75,7 +75,10 @@ public class UserDrBalanceServiceImpl implements UserDrBalanceService {
 
         UserDrBalance balance = getByUserId(userId);
         if (balance == null) {
-            throw new RuntimeException("用户余额账户不存在");
+            balance = createBalanceAccount(userId);
+            if (balance == null) {
+                throw new RuntimeException("创建用户余额账户失败");
+            }
         }
 
         if (!balance.isNormal()) {

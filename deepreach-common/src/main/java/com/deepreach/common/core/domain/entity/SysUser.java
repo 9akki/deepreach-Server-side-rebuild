@@ -1,6 +1,8 @@
 package com.deepreach.common.core.domain.entity;
 
 import com.deepreach.common.core.domain.BaseEntity;
+import com.deepreach.common.security.UserRoleUtils;
+import com.deepreach.common.security.enums.UserIdentity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonView;
 import lombok.Data;
@@ -163,6 +165,20 @@ public class SysUser extends BaseEntity {
     private Long parentUserId;
 
     /**
+     * 父用户账号（基于 parent_user_id 回查）
+     *
+     * 重构后用于列表/详情展示，不再依赖部门。
+     */
+    private String parentUsername;
+
+    /**
+     * 邀请码
+     *
+     * 用户邀请下级账号时使用的唯一邀请码
+     */
+    private String invitationCode;
+
+    /**
      * 最后登录IP地址
      *
      * 用户最后一次成功登录的IP地址
@@ -198,6 +214,65 @@ public class SysUser extends BaseEntity {
      */
     private Set<String> permissions = new HashSet<>();
 
+    /**
+     * 获取用户身份集合（根据角色解析，结果不可修改）。
+     *
+     * @return 用户身份集合
+     */
+    @JsonIgnore
+    public Set<UserIdentity> getIdentities() {
+        return UserRoleUtils.resolveIdentities(this.roles);
+    }
+
+    /**
+     * 判断是否包含指定身份。
+     */
+    public boolean hasIdentity(UserIdentity identity) {
+        return UserRoleUtils.hasIdentity(this.roles, identity);
+    }
+
+    /**
+     * 判断是否包含任一身份。
+     */
+    public boolean hasAnyIdentity(UserIdentity... identities) {
+        return UserRoleUtils.hasAnyIdentity(this.roles, identities);
+    }
+
+    /**
+     * 判断是否为管理员身份。
+     */
+    public boolean isAdminIdentity() {
+        return hasIdentity(UserIdentity.ADMIN);
+    }
+
+    /**
+     * 判断是否为代理身份（任意代理层级）。
+     */
+    public boolean isAgentIdentity() {
+        return hasAnyIdentity(UserIdentity.AGENT_LEVEL_1, UserIdentity.AGENT_LEVEL_2, UserIdentity.AGENT_LEVEL_3);
+    }
+
+    /**
+     * 判断是否为买家总账户身份。
+     */
+    public boolean isBuyerMainIdentity() {
+        return hasIdentity(UserIdentity.BUYER_MAIN);
+    }
+
+    /**
+     * 判断是否为买家子账户身份。
+     */
+    public boolean isBuyerSubIdentity() {
+        return hasIdentity(UserIdentity.BUYER_SUB);
+    }
+
+    /**
+     * 判断是否为买家身份（总账户或子账户）。
+     */
+    public boolean isBuyerIdentity() {
+        return isBuyerMainIdentity() || isBuyerSubIdentity();
+    }
+
   
     /**
      * 部门显示名称（用于前端显示）
@@ -205,7 +280,7 @@ public class SysUser extends BaseEntity {
      * 部门的完整显示名称
      * 用于前端展示用户所属部门
      */
-    private String deptDisplayName;
+    private transient String deptDisplayName;
 
     /**
      * 部门信息
@@ -214,7 +289,7 @@ public class SysUser extends BaseEntity {
      * 包含部门名称、层级等组织架构信息
      * 通过deptId关联查询获得
      */
-    private SysDept dept;
+    private transient SysDept dept;
 
     /**
      * 直属部门负责人ID
@@ -222,14 +297,14 @@ public class SysUser extends BaseEntity {
      * 通过用户所属部门的leader_user_id获取
      * 用于前端展示和业务计算
      */
-    private Long leaderId;
+    private transient Long leaderId;
 
     /**
      * 直属部门负责人昵称
      *
      * 通过负责人ID查询用户昵称
      */
-    private String leaderNickname;
+    private transient String leaderNickname;
 
     // ==================== 业务判断方法 ====================
 
@@ -315,8 +390,12 @@ public class SysUser extends BaseEntity {
      *
      * @return true如果是系统部门用户，false否则
      */
+    /**
+     * @deprecated 使用 {@link #isAdminIdentity()}。
+     */
+    @Deprecated
     public boolean isSystemDeptUser() {
-        return this.dept != null && this.dept.getDeptType() != null && "1".equals(this.dept.getDeptType());
+        return isAdminIdentity();
     }
 
     /**
@@ -327,8 +406,12 @@ public class SysUser extends BaseEntity {
      *
      * @return true如果是代理部门用户，false否则
      */
+    /**
+     * @deprecated 使用 {@link #isAgentIdentity()}。
+     */
+    @Deprecated
     public boolean isAgentDeptUser() {
-        return this.dept != null && this.dept.getDeptType() != null && "2".equals(this.dept.getDeptType());
+        return isAgentIdentity();
     }
 
     /**
@@ -339,8 +422,12 @@ public class SysUser extends BaseEntity {
      *
      * @return true如果是买家总账户用户，false否则
      */
+    /**
+     * @deprecated 使用 {@link #isBuyerMainIdentity()}。
+     */
+    @Deprecated
     public boolean isBuyerMainAccountUser() {
-        return this.dept != null && this.dept.getDeptType() != null && "3".equals(this.dept.getDeptType());
+        return isBuyerMainIdentity();
     }
 
     /**
@@ -351,8 +438,12 @@ public class SysUser extends BaseEntity {
      *
      * @return true如果是买家子账户用户，false否则
      */
+    /**
+     * @deprecated 使用 {@link #isBuyerSubIdentity()}。
+     */
+    @Deprecated
     public boolean isBuyerSubAccountUser() {
-        return this.dept != null && this.dept.getDeptType() != null && "4".equals(this.dept.getDeptType());
+        return isBuyerSubIdentity();
     }
 
     /**
@@ -360,8 +451,12 @@ public class SysUser extends BaseEntity {
      *
      * @return true如果是买家用户，false否则
      */
+    /**
+     * @deprecated 使用 {@link #isBuyerIdentity()}。
+     */
+    @Deprecated
     public boolean isBuyerUser() {
-        return isBuyerMainAccountUser() || isBuyerSubAccountUser();
+        return isBuyerIdentity();
     }
 
     /**
@@ -371,47 +466,6 @@ public class SysUser extends BaseEntity {
      */
     public boolean hasParentUser() {
         return this.parentUserId != null && this.parentUserId > 0;
-    }
-
-    /**
-     * 获取用户部门类型显示文本
-     *
-     * @return 部门类型显示文本
-     */
-    public String getDeptTypeDisplay() {
-        if (this.dept == null || this.dept.getDeptType() == null) {
-            return "未知";
-        }
-        switch (this.dept.getDeptType()) {
-            case "1":
-                return "系统部门";
-            case "2":
-                return "代理部门";
-            case "3":
-                return "买家总账户";
-            case "4":
-                return "买家子账户";
-            default:
-                return "未知类型";
-        }
-    }
-
-    /**
-     * 获取代理层级显示文本
-     *
-     * 仅对代理部门用户有效
-     *
-     * @return 代理层级显示文本，如"一级代理"
-     */
-    public String getAgentLevelDisplay() {
-        if (!isAgentDeptUser() || this.dept == null) {
-            return "";
-        }
-        int level = this.dept.getLevel();
-        if (level == 0) {
-            return "";
-        }
-        return level + "级代理";
     }
 
     /**
@@ -546,104 +600,6 @@ public class SysUser extends BaseEntity {
             this.permissions = new HashSet<>();
         }
         this.permissions.add(permission);
-    }
-
-    // ==================== 基于部门类型的业务判断方法 ====================
-
-    /**
-     * 检查用户是否可以创建下级部门
-     *
-     * 根据用户所在部门类型和层级判断：
-     * - 系统部门：可以创建系统部门和代理部门
-     * - 一级代理：可以创建二级、三级代理部门和买家总账户
-     * - 二级代理：可以创建三级代理部门和买家总账户
-     * - 三级代理：可以创建买家总账户
-     * - 买家总账户：可以创建买家子账户
-     * - 买家子账户：不能创建任何部门
-     *
-     * @return true如果可以创建下级部门，false否则
-     */
-    public boolean canCreateChildDept() {
-        if (this.dept == null) {
-            return false;
-        }
-
-        String deptType = this.dept.getDeptType();
-        Integer level = this.dept.getLevel();
-
-        // 系统部门和买家总账户可以创建下级部门
-        if ("1".equals(deptType) || "3".equals(deptType)) {
-            return true;
-        }
-
-        // 代理部门根据层级判断
-        if ("2".equals(deptType)) {
-            // 三级代理不能创建下级代理部门
-            return level != null && level < 3;
-        }
-
-        // 买家子账户不能创建下级部门
-        return false;
-    }
-
-    /**
-     * 检查用户是否可以创建用户
-     *
-     * 根据用户所在部门类型判断：
-     * - 系统部门：可以创建所有类型的用户（在对应部门内）
-     * - 代理部门：可以创建代理用户和买家用户
-     * - 买家总账户：可以创建买家子账户用户
-     * - 买家子账户：不能创建其他用户
-     *
-     * @return true如果可以创建用户，false否则
-     */
-    public boolean canCreateUsers() {
-        if (this.dept == null) {
-            return false;
-        }
-
-        String deptType = this.dept.getDeptType();
-
-        // 系统部门、代理部门、买家总账户可以创建用户
-        return !"4".equals(deptType); // 买家子账户不能创建用户
-    }
-
-    /**
-     * 检查用户是否可以查看部门数据
-     *
-     * 根据用户所在部门类型判断数据权限范围：
-     * - 系统部门：可以查看所有部门数据
-     * - 代理部门：可以查看自己及下级代理部门数据
-     * - 买家总账户：可以查看自己及子账户数据
-     * - 买家子账户：只能查看自己的数据
-     *
-     * @return true如果可以查看部门数据，false否则
-     */
-    public boolean canViewDeptData() {
-        if (this.dept == null) {
-            return false;
-        }
-
-        String deptType = this.dept.getDeptType();
-
-        // 系统部门和代理部门可以查看部门数据
-        return "1".equals(deptType) || "2".equals(deptType);
-    }
-
-    /**
-     * 检查用户是否可以管理用户
-     *
-     * @return true如果可以管理用户，false否则
-     */
-    public boolean canManageUsers() {
-        if (this.dept == null) {
-            return false;
-        }
-
-        String deptType = this.dept.getDeptType();
-
-        // 系统部门、代理部门、买家总账户可以管理用户
-        return !"4".equals(deptType); // 买家子账户不能管理用户
     }
 
     // ==================== 数据转换方法 ====================

@@ -2,9 +2,7 @@ package com.deepreach.common.aspect;
 
 import com.deepreach.common.annotation.DataScope;
 import com.deepreach.common.core.domain.model.LoginUser;
-import com.deepreach.common.core.service.SysDeptService;
 import com.deepreach.common.security.DataScopeCalculator;
-import com.deepreach.common.security.DeptUtils;
 import com.deepreach.common.security.SecurityUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.JoinPoint;
@@ -12,35 +10,25 @@ import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.Set;
+import java.util.StringJoiner;
 
 /**
  * 数据权限切面
  *
- * 处理带有 @DataScope 注解的方法，自动根据当前用户的数据权限范围过滤数据：
- * 1. 获取当前用户的数据权限范围
- * 2. 计算可访问的部门ID列表
- * 3. 构建数据权限SQL条件
- * 4. 将SQL条件设置到方法参数中
+ * 基于用户层级的数据权限切面。
  *
  * @author DeepReach Team
  * @version 1.0
  * @since 2025-10-26
  */
+@Slf4j
 @Aspect
 @Component
 public class DataScopeAspect {
-
-    private static final Logger log = LoggerFactory.getLogger(DataScopeAspect.class);
-
-    @Autowired
-    private SysDeptService deptService;
 
     @Autowired
     private DataScopeCalculator dataScopeCalculator;
@@ -82,27 +70,15 @@ public class DataScopeAspect {
                 return;
             }
 
-            // 计算用户的数据权限范围（使用DataScopeCalculator）
-            String dataScopeValue = dataScopeCalculator.calculateDataScope(loginUser);
-            Long userDeptId = loginUser.getDeptId();
-
-            // 如果不是全部数据权限，需要获取可访问的部门ID列表
-            List<Long> userChildDeptIds = new ArrayList<>();
-            if (!"1".equals(dataScopeValue)) {
-                userChildDeptIds = deptService.getAccessibleDeptIds(loginUser.getUserId());
+            if (dataScopeCalculator.hasFullAccess(loginUser)) {
+                log.debug("用户 {} 拥有全部数据权限，跳过过滤", loginUser.getUsername());
+                return;
             }
 
-            log.debug("用户数据权限处理: 用户={}, 部门ID={}, 权限范围={}",
-                loginUser.getUsername(), userDeptId, dataScopeValue);
+            Set<Long> accessibleUserIds = dataScopeCalculator.calculateAccessibleUserIds(loginUser);
+            String sqlCondition = buildUserScopeSql(dataScope, accessibleUserIds);
 
-            // 构建数据权限SQL条件（使用DataScopeCalculator）
-            String sqlCondition = dataScopeCalculator.buildDataScopeSql(
-                loginUser, dataScopeValue, dataScope.tableAlias(), dataScope.userFieldName());
-
-            // 将SQL条件存入上下文
             context.put(DATA_SCOPE_SQL, sqlCondition);
-
-            // 尝试将SQL条件设置到方法参数中
             setDataScopeToParams(joinPoint, sqlCondition);
 
             log.debug("数据权限SQL条件构建完成: {}", sqlCondition);
@@ -114,98 +90,21 @@ public class DataScopeAspect {
         }
     }
 
-    /**
-     * 构建数据权限SQL条件
-     *
-     * @param dataScope 数据权限注解
-     * @param loginUser 登录用户信息
-     * @param userDeptId 用户部门ID
-     * @param dataScopeValue 数据权限范围值
-     * @param userChildDeptIds 用户部门及子部门ID列表
-     * @return SQL条件字符串
-     */
-    private String buildDataScopeSql(DataScope dataScope, LoginUser loginUser,
-                                    Long userDeptId, String dataScopeValue, List<Long> userChildDeptIds) {
-        // 如果数据权限范围为空或无效，返回空条件
-        if (dataScopeValue == null || !DeptUtils.isValidDataScope(dataScopeValue)) {
-            log.warn("用户数据权限范围无效: {}", dataScopeValue);
-            return "";
-        }
-
-        // 全部数据权限
-        if (DeptUtils.DataScope.ALL.equals(dataScopeValue)) {
-            return "";
-        }
-
-        // 准备部门ID列表
-        List<Long> accessibleDeptIds = new ArrayList<>();
-        
-        // 本部门数据权限
-        if (DeptUtils.DataScope.DEPT.equals(dataScopeValue)) {
-            if (userDeptId != null) {
-                accessibleDeptIds.add(userDeptId);
-            }
-        }
-        // 本部门及以下数据权限
-        else if (DeptUtils.DataScope.DEPT_AND_CHILD.equals(dataScopeValue)) {
-            if (userChildDeptIds != null && !userChildDeptIds.isEmpty()) {
-                accessibleDeptIds.addAll(userChildDeptIds);
-            }
-        }
-        // 自定义数据权限
-        else if (DeptUtils.DataScope.CUSTOM.equals(dataScopeValue)) {
-            if (userChildDeptIds != null && !userChildDeptIds.isEmpty()) {
-                accessibleDeptIds.addAll(userChildDeptIds);
-            }
-        }
-
-        // 如果没有可访问的部门，返回无权限条件
-        if (accessibleDeptIds.isEmpty()) {
+    private String buildUserScopeSql(DataScope dataScope, Set<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
             return "1=0";
         }
-
-        // 构建部门权限SQL条件
-        String deptSql = DeptUtils.buildDeptPermissionSql(
-            dataScope.tableAlias(), 
-            dataScope.deptFieldName(), 
-            accessibleDeptIds
-        );
-
-        // 如果启用个人数据权限，添加用户ID条件
-        if (dataScope.enableUserPermission()) {
-            String userSql = buildUserPermissionSql(dataScope, loginUser.getUserId());
-            if (!userSql.isEmpty()) {
-                if (!deptSql.isEmpty()) {
-                    return "(" + deptSql + " OR " + userSql + ")";
-                } else {
-                    return userSql;
-                }
-            }
-        }
-
-        return deptSql;
-    }
-
-    /**
-     * 构建个人数据权限SQL条件
-     *
-     * @param dataScope 数据权限注解
-     * @param userId 用户ID
-     * @return 用户权限SQL条件
-     */
-    private String buildUserPermissionSql(DataScope dataScope, Long userId) {
-        if (userId == null) {
-            return "";
-        }
-
         String alias = dataScope.tableAlias();
-        if (alias == null || alias.trim().isEmpty()) {
-            alias = "";
-        } else {
-            alias = alias + ".";
+        String fieldName = (alias == null || alias.isBlank())
+            ? dataScope.userFieldName()
+            : alias + "." + dataScope.userFieldName();
+
+        StringJoiner joiner = new StringJoiner(",", "(", ")");
+        for (Long id : userIds) {
+            joiner.add(String.valueOf(id));
         }
 
-        return alias + dataScope.userFieldName() + " = " + userId;
+        return fieldName + " IN " + joiner;
     }
 
     /**

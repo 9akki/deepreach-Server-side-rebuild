@@ -1,6 +1,6 @@
 package com.deepreach.common.core.controller;
 
-import com.deepreach.common.core.service.SysDeptService;
+import com.deepreach.common.core.service.HierarchyStatisticsService;
 import com.deepreach.common.core.service.SysUserService;
 import com.deepreach.common.web.domain.Result;
 import com.deepreach.common.annotation.Log;
@@ -31,7 +31,7 @@ import java.util.Map;
 public class StatisticsController {
 
     @Autowired
-    private SysDeptService deptService;
+    private HierarchyStatisticsService statisticsService;
 
     @Autowired
     private SysUserService userService;
@@ -53,7 +53,7 @@ public class StatisticsController {
                 return Result.error("用户未登录");
             }
 
-            Map<String, Object> statistics = deptService.getManagedDeptsStatistics(currentUserId);
+            Map<String, Object> statistics = statisticsService.getManagedDeptsStatistics(currentUserId);
             return Result.success(statistics);
         } catch (Exception e) {
             log.error("获取管理部门统计信息失败", e);
@@ -103,7 +103,7 @@ public class StatisticsController {
                 return Result.error("用户未登录");
             }
 
-            Map<String, Object> statistics = deptService.getManagedAgentLevelsStatistics(currentUserId);
+            Map<String, Object> statistics = statisticsService.getManagedAgentLevelsStatistics(currentUserId);
             return Result.success(statistics);
         } catch (Exception e) {
             log.error("获取代理层级统计信息失败", e);
@@ -128,7 +128,7 @@ public class StatisticsController {
                 return Result.error("用户未登录");
             }
 
-            Map<String, Object> statistics = deptService.getManagedBuyerAccountsStatistics(currentUserId);
+            Map<String, Object> statistics = statisticsService.getManagedBuyerAccountsStatistics(currentUserId);
             return Result.success(statistics);
         } catch (Exception e) {
             log.error("获取买家账户统计信息失败", e);
@@ -153,7 +153,7 @@ public class StatisticsController {
                 return Result.error("用户未登录");
             }
 
-            Map<String, Object> dashboard = deptService.getDashboardStatistics(currentUserId);
+            Map<String, Object> dashboard = statisticsService.getDashboardStatistics(currentUserId);
             return Result.success(dashboard);
         } catch (Exception e) {
             log.error("获取仪表板统计信息失败", e);

@@ -1,19 +1,25 @@
 package com.deepreach.common.core.service.impl;
 
-import com.deepreach.common.core.domain.entity.SysDept;
+import com.deepreach.common.core.domain.dto.UserHierarchyNodeDTO;
+import com.deepreach.common.core.domain.dto.UserHierarchyGroupDTO;
+import com.deepreach.common.core.domain.dto.UserHierarchyTreeDTO;
+import com.deepreach.common.core.domain.dto.UserListRequest;
 import com.deepreach.common.core.domain.entity.SysOperLog;
 import com.deepreach.common.core.domain.entity.SysRole;
 import com.deepreach.common.core.domain.entity.SysUser;
 import com.deepreach.common.core.domain.model.LoginUser;
-import com.deepreach.common.core.domain.dto.DeptUserGroupDTO;
 import com.deepreach.common.core.mapper.SysUserMapper;
 import com.deepreach.common.core.mapper.SysRoleMapper;
-import com.deepreach.common.core.service.SysDeptService;
+import com.deepreach.common.core.service.UserHierarchyService;
 import com.deepreach.common.core.service.SysUserService;
+import com.deepreach.common.utils.UserHierarchyTreeBuilder;
+import com.deepreach.common.security.UserRoleUtils;
+import com.deepreach.common.security.enums.UserIdentity;
 import com.deepreach.common.security.SecurityUtils;
 import com.deepreach.common.utils.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,6 +52,29 @@ import java.util.stream.Collectors;
 @Service
 public class SysUserServiceImpl implements SysUserService {
 
+    private static final Set<UserIdentity> AGENT_IDENTITIES =
+        EnumSet.of(UserIdentity.AGENT_LEVEL_1, UserIdentity.AGENT_LEVEL_2, UserIdentity.AGENT_LEVEL_3);
+
+    private static final class UserCreationContext {
+        private final LoginUser creator;
+        private final SysUser parentUser;
+        private final UserIdentity targetIdentity;
+        private final Set<UserIdentity> creatorIdentities;
+        private final Set<UserIdentity> parentIdentities;
+
+        private UserCreationContext(LoginUser creator,
+                                    SysUser parentUser,
+                                    UserIdentity targetIdentity,
+                                    Set<UserIdentity> creatorIdentities,
+                                    Set<UserIdentity> parentIdentities) {
+            this.creator = creator;
+            this.parentUser = parentUser;
+            this.targetIdentity = targetIdentity;
+            this.creatorIdentities = creatorIdentities;
+            this.parentIdentities = parentIdentities;
+        }
+    }
+
     @Autowired
     private SysUserMapper userMapper;
 
@@ -53,10 +82,13 @@ public class SysUserServiceImpl implements SysUserService {
     private PasswordEncoder passwordEncoder;
 
     @Autowired
-    private SysDeptService deptService;
+    private SysRoleMapper roleMapper;
 
     @Autowired
-    private SysRoleMapper roleMapper;
+    private UserHierarchyService hierarchyService;
+
+    @Autowired
+    private RedisTemplate<String, Object> redisTemplate;
 
     // ==================== 基础查询方法 ====================
 
@@ -113,151 +145,300 @@ public class SysUserServiceImpl implements SysUserService {
      */
     @Override
     public List<SysUser> selectUserList(SysUser user) {
-        if (user == null) {
-            user = new SysUser();
+        return searchUsers(new UserListRequest());
+    }
+
+    @Override
+    public List<SysUser> searchUsers(UserListRequest request) {
+        UserListRequest effective = request != null ? request : new UserListRequest();
+        SysUser filter = buildFilterFromRequest(effective);
+
+        List<SysUser> candidates = selectUsersWithinHierarchy(
+            effective.getRootUserId(), effective.getIdentity(), filter);
+
+        Set<String> requiredRoles = normalizeRoleKeys(effective.getRoleKeys());
+        if (requiredRoles.isEmpty()) {
+            candidates.forEach(this::ensureRoleKeysLoaded);
+            return candidates;
         }
 
-        try {
-            // 应用数据权限过滤
-            applyDataPermissionFilter(user);
-
-            List<SysUser> userList = userMapper.selectUserList(user);
-            log.debug("查询用户列表成功：查询条件={}, 结果数量={}",
-                    getQueryCondition(user), userList.size());
-            return userList;
-        } catch (Exception e) {
-            log.error("查询用户列表异常：查询条件={}", getQueryCondition(user), e);
-            throw new RuntimeException("查询用户列表失败", e);
+        List<SysUser> result = new ArrayList<>();
+        for (SysUser user : candidates) {
+            Set<String> userRoles = ensureRoleKeysLoaded(user);
+            if (userRoles == null || userRoles.isEmpty()) {
+                continue;
+            }
+            boolean matched = userRoles.stream()
+                .filter(Objects::nonNull)
+                .map(role -> role.toLowerCase(Locale.ROOT))
+                .anyMatch(requiredRoles::contains);
+            if (matched) {
+                result.add(user);
+            }
         }
+        return result;
     }
 
     /**
-     * 根据部门ID查询用户列表
+     * 在层级范围内查询用户列表
      */
     @Override
-    public List<SysUser> selectUsersByDeptId(Long deptId) {
-        return selectUsersByDeptId(deptId, null);
+    public List<SysUser> selectUsersWithinHierarchy(Long rootUserId, SysUser filter) {
+        return selectUsersWithinHierarchy(rootUserId, null, filter);
     }
 
     @Override
-    public List<SysUser> selectUsersByDeptId(Long deptId, SysUser query) {
-        if (deptId == null || deptId <= 0) {
-            log.warn("查询部门用户失败：部门ID无效 - {}", deptId);
-            return new ArrayList<>();
+    public List<SysUser> selectUsersWithinHierarchy(Long rootUserId, String identity, SysUser filter) {
+        SysUser criteria = filter != null ? filter : new SysUser();
+        applyDataPermissionFilter(criteria);
+
+        Set<Long> scope = new LinkedHashSet<>();
+        LoginUser currentUser = SecurityUtils.getCurrentLoginUser();
+        boolean isAdmin = currentUser != null && currentUser.isAdminIdentity();
+
+        if (rootUserId != null && rootUserId > 0) {
+            scope.add(rootUserId);
+            scope.addAll(hierarchyService.findDescendantIds(rootUserId));
+        } else if (currentUser != null && !isAdmin) {
+            scope.add(currentUser.getUserId());
+            scope.addAll(hierarchyService.findDescendantIds(currentUser.getUserId()));
         }
 
-        try {
-            SysUser filter = query;
-            List<SysUser> userList = userMapper.selectUsersByDeptId(deptId, filter);
-            log.debug("查询部门用户成功：部门ID={}, 查询条件={}, 结果数量={}",
-                    deptId, getQueryCondition(filter), userList.size());
-            return userList;
-        } catch (Exception e) {
-            log.error("查询部门用户异常：部门ID={}, 查询条件={}", deptId, getQueryCondition(query), e);
-            throw new RuntimeException("查询部门用户失败", e);
-        }
-    }
-
-    @Override
-    public List<SysUser> selectUsersByDeptOnly(Long deptId, SysUser user) {
-        if (deptId == null || deptId <= 0) {
-            log.warn("查询部门用户失败：部门ID无效 - {}", deptId);
-            return new ArrayList<>();
+        if (!scope.isEmpty()) {
+            criteria.addParam("userIds", scope);
         }
 
-        try {
-            SysUser filter = user;
-            List<SysUser> userList = userMapper.selectUsersByDeptOnly(deptId, filter);
-            log.debug("查询部门用户（仅当前部门）成功：部门ID={}, 查询条件={}, 结果数量={}",
-                    deptId, getQueryCondition(filter), userList.size());
-            return userList;
-        } catch (Exception e) {
-            log.error("查询部门用户（仅当前部门）异常：部门ID={}, 查询条件={}", deptId, getQueryCondition(user), e);
-            throw new RuntimeException("查询部门用户失败", e);
-        }
-    }
-
-    @Override
-    public List<SysUser> searchUsersByDept(Long deptId, String deptType, SysUser query) {
-        String normalizedDeptType = StringUtils.trimToNull(deptType);
-        if ((deptId == null || deptId <= 0) && normalizedDeptType == null) {
-            log.warn("条件查询用户失败：部门ID和部门类型不能同时为空");
-            return new ArrayList<>();
-        }
-
-        try {
-            List<SysUser> userList = userMapper.searchUsersByDept(deptId, normalizedDeptType, query);
-            log.debug("条件查询部门用户成功：部门ID={}, 部门类型={}, 查询条件={}, 结果数量={}",
-                    deptId, normalizedDeptType, getQueryCondition(query), userList.size());
-            return userList;
-        } catch (Exception e) {
-            log.error("条件查询部门用户异常：部门ID={}, 部门类型={}, 查询条件={}",
-                    deptId, normalizedDeptType, getQueryCondition(query), e);
-            throw new RuntimeException("条件查询部门用户失败", e);
-        }
-    }
-
-    @Override
-    public List<DeptUserGroupDTO> listUsersByLeaderDirectDepts(Long leaderUserId) {
-        if (leaderUserId == null || leaderUserId <= 0) {
-            log.warn("根据负责人查询部门用户失败：负责人ID无效 - {}", leaderUserId);
-            return Collections.emptyList();
-        }
-
-        List<SysDept> directDepts = deptService.selectDeptsByLeaderUserId(leaderUserId);
-        if (directDepts == null || directDepts.isEmpty()) {
-            return Collections.emptyList();
-        }
-
-        List<Long> deptIds = directDepts.stream()
-            .map(SysDept::getDeptId)
-            .filter(Objects::nonNull)
-            .collect(Collectors.toList());
-        if (deptIds.isEmpty()) {
-            return Collections.emptyList();
-        }
-
-        List<SysUser> users = userMapper.selectUsersByDeptIds(deptIds);
-        Map<Long, List<SysUser>> grouped = new LinkedHashMap<>();
+        List<SysUser> users = userMapper.selectUserList(criteria);
+        List<SysUser> result = new ArrayList<>();
         for (SysUser user : users) {
-            Long deptId = user.getDeptId();
-            if (deptId == null) {
+            if (!scope.isEmpty() && !scope.contains(user.getUserId())) {
                 continue;
             }
-            grouped.computeIfAbsent(deptId, k -> new ArrayList<>()).add(user);
-        }
-
-        List<DeptUserGroupDTO> result = new ArrayList<>();
-        for (SysDept dept : directDepts) {
-            Long deptId = dept.getDeptId();
-            if (deptId == null) {
+            if (!userMatchesIdentity(user, identity)) {
                 continue;
             }
-            DeptUserGroupDTO dto = new DeptUserGroupDTO();
-            dto.setDeptId(deptId);
-            dto.setDeptName(dept.getDeptName());
-            dto.setDeptType(dept.getDeptType());
-            dto.setLevel(dept.getLevel());
-
-            List<SysUser> deptUsers = grouped.getOrDefault(deptId, Collections.emptyList());
-            List<DeptUserGroupDTO.UserSummary> summaries = deptUsers.stream()
-                .map(this::buildUserSummary)
-                .collect(Collectors.toList());
-            dto.setUsers(summaries);
-            result.add(dto);
+            result.add(user);
         }
         return result;
     }
 
     @Override
-    public boolean hasDeptDataPermission(Long deptId) {
-        if (deptId == null || deptId <= 0) {
+    public List<UserHierarchyNodeDTO> listAllUserHierarchyRelations() {
+        try {
+            List<UserHierarchyNodeDTO> relations = fetchAllUserHierarchyRelations();
+            log.debug("查询所有用户父子关系成功，记录数={}", relations.size());
+            return relations;
+        } catch (Exception e) {
+            log.error("查询所有用户父子关系失败", e);
+            throw new RuntimeException("查询用户层级关系失败", e);
+        }
+    }
+
+    @Override
+    public void rebuildUserHierarchyCache() {
+        try {
+            List<UserHierarchyNodeDTO> relations = fetchAllUserHierarchyRelations();
+            UserHierarchyTreeDTO tree = UserHierarchyTreeBuilder.build(relations);
+            redisTemplate.opsForValue().set(UserHierarchyTreeBuilder.USER_TREE_CACHE_KEY, tree);
+            log.info("用户层级树缓存刷新成功：记录总数={}, 根节点数量={}",
+                    relations.size(), tree.getRootUserIds().size());
+        } catch (Exception e) {
+            log.error("刷新用户层级树缓存失败", e);
+            throw new RuntimeException("刷新用户层级树缓存失败", e);
+        }
+    }
+
+    private List<UserHierarchyNodeDTO> fetchAllUserHierarchyRelations() {
+        return userMapper.selectAllUserHierarchyRelations();
+    }
+
+    private void refreshUserHierarchyCacheSilently() {
+        try {
+            rebuildUserHierarchyCache();
+        } catch (Exception e) {
+            log.error("刷新用户层级树缓存失败，将在下次用户操作时重试", e);
+        }
+    }
+
+    @Override
+    public List<UserHierarchyGroupDTO> listUsersByLeaderDirectDepts(Long leaderUserId) {
+        if (leaderUserId == null || leaderUserId <= 0) {
+            log.warn("查询直属用户失败：负责人ID无效 - {}", leaderUserId);
+            return Collections.emptyList();
+        }
+
+        if (hierarchyService == null) {
+            log.warn("用户层级服务未初始化，无法查询直属用户");
+            return Collections.emptyList();
+        }
+
+        List<Long> directChildren = hierarchyService.findDirectChildren(leaderUserId);
+        if (directChildren == null || directChildren.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        LinkedHashSet<Long> userIds = directChildren.stream()
+            .filter(Objects::nonNull)
+            .filter(id -> id > 0)
+            .collect(Collectors.toCollection(LinkedHashSet::new));
+        if (userIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<SysUser> directUsers = userMapper.selectUsersByIds(userIds);
+        if (directUsers == null || directUsers.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Map<Long, SysUser> userIndex = directUsers.stream()
+            .filter(Objects::nonNull)
+            .filter(user -> user.getUserId() != null)
+            .collect(Collectors.toMap(SysUser::getUserId, user -> user, (left, right) -> left, LinkedHashMap::new));
+
+        Map<Long, Set<String>> roleKeysByUser = resolveRoleKeysForUsers(userIds);
+
+        Map<String, UserHierarchyGroupDTO> groups = new LinkedHashMap<>();
+        for (Long userId : userIds) {
+            SysUser user = userIndex.get(userId);
+            if (user == null) {
+                continue;
+            }
+            Set<String> roleKeys = roleKeysByUser.getOrDefault(userId, Collections.emptySet());
+            UserIdentity identity = resolvePrimaryIdentity(roleKeys);
+            String groupKey = identity != null ? identity.getRoleKey() : "unassigned";
+
+            UserHierarchyGroupDTO group = groups.computeIfAbsent(groupKey, key -> {
+                UserHierarchyGroupDTO dto = new UserHierarchyGroupDTO();
+                dto.setIdentityKey(key);
+                dto.setIdentityLabel(resolveIdentityLabel(identity, key));
+                return dto;
+            });
+            group.getUsers().add(buildHierarchyUserSummary(user, roleKeys, identity));
+        }
+
+        return new ArrayList<>(groups.values());
+    }
+
+    private Map<Long, Set<String>> resolveRoleKeysForUsers(Collection<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Set<Long> idSet = userIds instanceof Set ? (Set<Long>) userIds : new LinkedHashSet<>(userIds);
+        List<Map<String, Object>> rows = userMapper.selectUserRoleMappings(idSet);
+        Map<Long, Set<String>> roleKeysByUser = new LinkedHashMap<>();
+        if (rows == null || rows.isEmpty()) {
+            return roleKeysByUser;
+        }
+        for (Map<String, Object> row : rows) {
+            if (row == null || row.isEmpty()) {
+                continue;
+            }
+            Long userId = parseLong(row.get("userId"));
+            Object roleKeyObj = row.get("roleKey");
+            if (userId == null || !(roleKeyObj instanceof String)) {
+                continue;
+            }
+            String roleKey = ((String) roleKeyObj).trim();
+            if (roleKey.isEmpty()) {
+                continue;
+            }
+            roleKeysByUser
+                .computeIfAbsent(userId, key -> new LinkedHashSet<>())
+                .add(roleKey);
+        }
+        return roleKeysByUser;
+    }
+
+    private UserHierarchyGroupDTO.UserSummary buildHierarchyUserSummary(SysUser user,
+                                                                       Collection<String> roleKeys,
+                                                                       UserIdentity identity) {
+        UserHierarchyGroupDTO.UserSummary summary = new UserHierarchyGroupDTO.UserSummary();
+        summary.setUserId(user.getUserId());
+        summary.setUsername(user.getUsername());
+        summary.setNickname(user.getNickname());
+        summary.setRealName(user.getRealName());
+        summary.setPhone(user.getPhone());
+        summary.setEmail(user.getEmail());
+        summary.setStatus(user.getStatus());
+        summary.setParentUserId(user.getParentUserId());
+        Set<String> roles = roleKeys == null ? Collections.emptySet() : new LinkedHashSet<>(roleKeys);
+        summary.setRoleKeys(roles);
+        summary.setPrimaryIdentity(identity != null ? identity.getRoleKey() : "unassigned");
+        return summary;
+    }
+
+    private UserIdentity resolvePrimaryIdentity(Collection<String> roleKeys) {
+        if (roleKeys == null || roleKeys.isEmpty()) {
+            return null;
+        }
+        List<UserIdentity> priority = Arrays.asList(
+            UserIdentity.ADMIN,
+            UserIdentity.AGENT_LEVEL_1,
+            UserIdentity.AGENT_LEVEL_2,
+            UserIdentity.AGENT_LEVEL_3,
+            UserIdentity.BUYER_MAIN,
+            UserIdentity.BUYER_SUB
+        );
+        for (UserIdentity identity : priority) {
+            if (UserRoleUtils.hasIdentity(roleKeys, identity)) {
+                return identity;
+            }
+        }
+        return null;
+    }
+
+    private String resolveIdentityLabel(UserIdentity identity, String fallbackKey) {
+        if (identity == null) {
+            return "未分配身份";
+        }
+        switch (identity) {
+            case ADMIN:
+                return "超级管理员";
+            case AGENT_LEVEL_1:
+                return "总代";
+            case AGENT_LEVEL_2:
+                return "一级代理";
+            case AGENT_LEVEL_3:
+                return "二级代理";
+            case BUYER_MAIN:
+                return "买家总账号";
+            case BUYER_SUB:
+                return "买家子账号";
+            default:
+                return fallbackKey != null ? fallbackKey : "未知身份";
+        }
+    }
+
+    private Long parseLong(Object value) {
+        if (value instanceof Number) {
+            return ((Number) value).longValue();
+        }
+        if (value instanceof String) {
+            try {
+                return Long.parseLong(((String) value).trim());
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public boolean hasUserHierarchyPermission(Long targetUserId) {
+        if (targetUserId == null || targetUserId <= 0) {
             return false;
         }
-        if (SecurityUtils.hasPermission("system:user:list")) {
+        LoginUser currentUser = SecurityUtils.getCurrentLoginUser();
+        if (currentUser == null) {
+            return false;
+        }
+        if (currentUser.isAdminIdentity()) {
             return true;
         }
-        return deptService.hasDeptDataPermission(deptId);
+        if (Objects.equals(currentUser.getUserId(), targetUserId)) {
+            return true;
+        }
+        return hierarchyService.isAncestor(currentUser.getUserId(), targetUserId);
     }
 
     // ==================== CUD操作方法 ====================
@@ -297,14 +478,14 @@ public class SysUserServiceImpl implements SysUserService {
                 }
             }
 
-            // 根据部门类型自动分配角色
-            assignRoleByDeptType(user);
+            persistRequestedRoles(user);
 
             // 设置简化的角色和部门信息
             setSimplifiedUserInfo(user);
 
-            log.info("创建用户成功：用户ID={}, 用户名={}, 部门ID={}, 创建者={}",
-                    user.getUserId(), user.getUsername(), user.getDeptId(), user.getCreateBy());
+            log.info("创建用户成功：用户ID={}, 用户名={}, 创建者={}",
+                    user.getUserId(), user.getUsername(), user.getCreateBy());
+            refreshUserHierarchyCacheSilently();
 
             return user;
         } catch (Exception e) {
@@ -335,6 +516,7 @@ public class SysUserServiceImpl implements SysUserService {
             int result = userMapper.updateUser(user);
             if (result > 0) {
                 log.info("更新用户成功：用户ID={}, 更新者={}", user.getUserId(), user.getUpdateBy());
+                refreshUserHierarchyCacheSilently();
                 return true;
             } else {
                 log.warn("更新用户失败：用户不存在或无变更 - {}", user.getUserId());
@@ -380,6 +562,7 @@ public class SysUserServiceImpl implements SysUserService {
             int result = userMapper.deleteUserById(userId);
             if (result > 0) {
                 log.info("删除用户成功：用户ID={}, 用户名={}", userId, user.getUsername());
+                refreshUserHierarchyCacheSilently();
                 return true;
             } else {
                 log.warn("删除用户失败：用户ID={}", userId);
@@ -421,6 +604,7 @@ public class SysUserServiceImpl implements SysUserService {
             int result = userMapper.deleteUserByIds(validIds);
             if (result > 0) {
                 log.info("批量删除用户成功：删除数量={}, 用户IDs={}", result, validIds);
+                refreshUserHierarchyCacheSilently();
                 return true;
             } else {
                 log.warn("批量删除用户失败：用户IDs={}", validIds);
@@ -675,7 +859,7 @@ public class SysUserServiceImpl implements SysUserService {
         }
 
         try {
-            // 查询用户基本信息（包含部门信息）
+            // 查询用户基础信息
             com.deepreach.common.core.domain.vo.UserVO userVO = userMapper.selectCompleteUserInfo(userId);
             if (userVO == null) {
                 return null;
@@ -689,25 +873,7 @@ public class SysUserServiceImpl implements SysUserService {
             userVO.setRoles(roles);
             userVO.setPermissions(permissions);
 
-            // 设置基于部门类型的字段
-            SysUser user = selectUserById(userId);
-            if (user != null) {
-                // 获取部门信息
-                com.deepreach.common.core.domain.entity.SysDept dept = user.getDept();
-                if (dept != null) {
-                    userVO.setDeptType(dept.getDeptType());
-                    userVO.setDeptName(dept.getDeptName());
-                    userVO.setAgentLevel(dept.getLevel());
-                }
-
-                userVO.setParentUserId(user.getParentUserId());
-                userVO.setLeaderId(user.getLeaderId());
-                userVO.setLeaderNickname(user.getLeaderNickname());
-                // TODO: 可以设置父用户名称
-            }
-
-            // 构建包含显示字段的完整用户信息
-            return userVO.buildWithDisplayFields();
+            return userVO;
         } catch (Exception e) {
             log.error("获取用户完整信息失败，用户ID：{}", userId, e);
             return null;
@@ -801,7 +967,10 @@ public class SysUserServiceImpl implements SysUserService {
                 throw new RuntimeException("注册失败：数据库操作失败");
             }
 
+            persistRequestedRoles(user);
+
             log.info("用户注册成功：用户ID={}, 用户名={}", user.getUserId(), user.getUsername());
+            refreshUserHierarchyCacheSilently();
             return user;
         } catch (Exception e) {
             log.error("用户注册异常：用户名={}", user.getUsername(), e);
@@ -966,6 +1135,7 @@ public class SysUserServiceImpl implements SysUserService {
             if (result > 0) {
                 log.info("更新用户状态成功：用户ID={}, 状态={}, 操作者={}",
                         userId, status, SecurityUtils.getCurrentUsername());
+                refreshUserHierarchyCacheSilently();
                 return true;
             } else {
                 log.warn("更新用户状态失败：用户不存在 - {}", userId);
@@ -993,21 +1163,6 @@ public class SysUserServiceImpl implements SysUserService {
         }
         if (user.getPassword() == null || user.getPassword().trim().isEmpty()) {
             throw new RuntimeException("密码不能为空");
-        }
-
-        // 验证部门ID（在新设计中为必填项）
-        if (user.getDeptId() == null || user.getDeptId() <= 0) {
-            throw new RuntimeException("用户必须归属于某个部门");
-        }
-
-        // 验证部门是否存在
-        if (deptService.selectDeptById(user.getDeptId()) == null) {
-            throw new RuntimeException("指定的部门不存在");
-        }
-
-        // 验证买家子账户的父用户ID
-        if (user.getParentUserId() != null && user.getParentUserId() > 0) {
-            validateParentUserForSubAccount(user);
         }
 
         // 用户名格式验证
@@ -1108,19 +1263,6 @@ public class SysUserServiceImpl implements SysUserService {
         // 例如：必须包含大小写字母、数字、特殊字符等
     }
 
-    private DeptUserGroupDTO.UserSummary buildUserSummary(SysUser user) {
-        DeptUserGroupDTO.UserSummary summary = new DeptUserGroupDTO.UserSummary();
-        summary.setUserId(user.getUserId());
-        summary.setUsername(user.getUsername());
-        summary.setNickname(user.getNickname());
-        summary.setRealName(user.getRealName());
-        summary.setPhone(user.getPhone());
-        summary.setEmail(user.getEmail());
-        summary.setStatus(user.getStatus());
-        summary.setUserType(user.getUserType());
-        return summary;
-    }
-
     /**
      * 设置用户默认值
      */
@@ -1129,17 +1271,8 @@ public class SysUserServiceImpl implements SysUserService {
             user.setStatus("0"); // 默认正常状态
         }
 
-        SysDept targetDept = null;
-        if (user.getDeptId() != null) {
-            targetDept = deptService.selectDeptById(user.getDeptId());
-        }
-
         if (user.getUserType() == null) {
-            if (targetDept != null && "4".equals(targetDept.getDeptType())) {
-                user.setUserType(2); // 买家子账户用户类型
-            } else {
-                user.setUserType(1); // 默认后台用户
-            }
+            user.setUserType(user.getParentUserId() != null ? 2 : 1);
         }
 
         if (user.getGender() == null) {
@@ -1149,30 +1282,7 @@ public class SysUserServiceImpl implements SysUserService {
             user.setCreateTime(LocalDateTime.now());
         }
 
-        // 根据子账号部门负责人自动设置父用户ID
-        if (targetDept != null && "4".equals(targetDept.getDeptType())) {
-            Long leaderUserId = targetDept.getLeaderUserId();
-            if (leaderUserId != null && leaderUserId > 0) {
-                if (user.getParentUserId() == null || user.getParentUserId() <= 0) {
-                    user.setParentUserId(leaderUserId);
-                    log.debug("自动为子账户用户 {} 设置父用户ID为部门负责人 {}", user.getUsername(), leaderUserId);
-                }
-            } else {
-                log.warn("子账户部门 {} 缺少负责人，无法自动设置父用户ID", targetDept.getDeptName());
-            }
-        }
-
-        // 🔑 只有买家总账户创建买家子账户时才设置parent_user_id为自己（若与部门负责人一致）
-        com.deepreach.common.core.domain.model.LoginUser currentUser = SecurityUtils.getCurrentLoginUser();
-        if (currentUser != null && currentUser.getDept() != null) {
-            String currentUserDeptType = currentUser.getDept().getDeptType();
-            if ("3".equals(currentUserDeptType) && targetDept != null && "4".equals(targetDept.getDeptType())) {
-                if (user.getParentUserId() == null || user.getParentUserId() <= 0) {
-                    user.setParentUserId(currentUser.getUserId());
-                    log.debug("设置买家子账户用户 {} 的父用户ID为 {}", user.getUsername(), currentUser.getUserId());
-                }
-            }
-        }
+        // 当未指定父用户时，默认视为顶级账号；无自动父子关联逻辑
     }
 
     private void normalizeOptionalFields(SysUser user) {
@@ -1195,60 +1305,15 @@ public class SysUserServiceImpl implements SysUserService {
             String realName = user.getRealName().trim();
             user.setRealName(realName.isEmpty() ? null : realName);
         }
+        if (user.getInvitationCode() != null) {
+            String code = user.getInvitationCode().trim();
+            user.setInvitationCode(code.isEmpty() ? null : code);
+        }
     }
 
     /**
      * 验证买家子账户的父用户
      */
-    private void validateParentUserForSubAccount(SysUser user) throws Exception {
-        // 获取当前登录用户
-        com.deepreach.common.core.domain.model.LoginUser currentUser = SecurityUtils.getCurrentLoginUser();
-        if (currentUser == null) {
-            throw new RuntimeException("用户未登录");
-        }
-
-        // 获取目标部门的部门类型
-        com.deepreach.common.core.domain.entity.SysDept targetDept = deptService.selectDeptById(user.getDeptId());
-        if (targetDept == null) {
-            throw new RuntimeException("目标部门不存在");
-        }
-
-        // 如果目标部门是买家子账户部门（dept_type = 4），则需要验证父用户
-        if ("4".equals(targetDept.getDeptType())) {
-            boolean isSuperAdmin = currentUser.isSuperAdmin();
-            boolean isSystemAdmin = currentUser.getDept() != null
-                && "1".equals(currentUser.getDept().getDeptType());
-            if (!isSuperAdmin && !isSystemAdmin) {
-                throw new RuntimeException("只有管理员可以创建买家子账户用户");
-            }
-
-            Long expectedLeaderUserId = targetDept.getLeaderUserId();
-            if (expectedLeaderUserId == null || expectedLeaderUserId <= 0) {
-                throw new RuntimeException("子账户部门未设置负责人，无法创建子账户用户");
-            }
-
-            if (user.getParentUserId() == null || user.getParentUserId() <= 0) {
-                throw new RuntimeException("买家子账户必须指定父用户");
-            }
-
-            if (!expectedLeaderUserId.equals(user.getParentUserId())) {
-                throw new RuntimeException("买家子账户的父用户必须是该子账户部门的负责人");
-            }
-
-            // 验证父用户是否存在且为买家总账户
-            SysUser parentUser = selectUserById(user.getParentUserId());
-            if (parentUser == null) {
-                throw new RuntimeException("指定的父用户不存在");
-            }
-
-            // 验证父用户是否为买家总账户类型
-            com.deepreach.common.core.domain.entity.SysDept parentDept = deptService.selectDeptById(parentUser.getDeptId());
-            if (parentDept == null || !"3".equals(parentDept.getDeptType())) {
-                throw new RuntimeException("父用户必须归属于买家总账户部门");
-            }
-        }
-    }
-
     /**
      * 验证用户创建权限（基于部门类型的权限控制）
      *
@@ -1256,68 +1321,133 @@ public class SysUserServiceImpl implements SysUserService {
      * @throws Exception 如果没有权限则抛出异常
      */
     public void validateUserCreatePermission(SysUser user) throws Exception {
-        // 获取当前登录用户
-        com.deepreach.common.core.domain.model.LoginUser currentUser = SecurityUtils.getCurrentLoginUser();
-        if (currentUser == null) {
+        UserCreationContext context = buildCreationContext(user);
+        validateCreationPermissions(user, context);
+    }
+
+    private UserCreationContext buildCreationContext(SysUser user) {
+        LoginUser creator = SecurityUtils.getCurrentLoginUser();
+        if (creator == null) {
             throw new RuntimeException("用户未登录");
         }
 
-        // 获取目标部门的部门类型
-        com.deepreach.common.core.domain.entity.SysDept targetDept = deptService.selectDeptById(user.getDeptId());
-        if (targetDept == null) {
-            throw new RuntimeException("目标部门不存在");
+        Set<String> requestedRoleKeys = normalizeRoleKeySet(user.getRoles());
+        if (requestedRoleKeys.isEmpty()) {
+            throw new RuntimeException("创建用户必须指定角色身份");
+        }
+        user.setRoles(requestedRoleKeys);
+
+        Set<UserIdentity> targetIdentities = new HashSet<>(UserRoleUtils.resolveIdentities(requestedRoleKeys));
+        if (targetIdentities.isEmpty()) {
+            throw new RuntimeException("无法解析用户身份，请检查角色配置");
+        }
+        if (targetIdentities.size() > 1) {
+            throw new RuntimeException("暂不支持同时创建多个身份的用户");
+        }
+        UserIdentity targetIdentity = targetIdentities.iterator().next();
+        if (UserIdentity.ADMIN.equals(targetIdentity)) {
+            throw new RuntimeException("禁止创建管理员账号");
         }
 
-        String targetDeptType = targetDept.getDeptType();
-        String currentUserDeptType = currentUser.getDept() != null ? currentUser.getDept().getDeptType() : null;
-        Long currentDeptId = currentUser.getDeptId();
-        boolean isSuperAdmin = currentUser.isSuperAdmin();
-        boolean isSystemAdmin = "1".equals(currentUserDeptType);
+        Long parentId = user.getParentUserId();
+        if (parentId == null || parentId <= 0) {
+            parentId = creator.getUserId();
+            user.setParentUserId(parentId);
+        }
 
-        if (isSuperAdmin || isSystemAdmin) {
-            if (user.getUserId() != null && user.getUserId() == 1L) {
-                throw new RuntimeException("不能创建超级管理员账号");
+        SysUser parentUser = selectUserById(parentId);
+        if (parentUser == null) {
+            throw new RuntimeException("父用户不存在");
+        }
+
+        Set<String> parentRoleKeys = userMapper.selectRoleKeysByUserId(parentUser.getUserId());
+        if (parentRoleKeys == null || parentRoleKeys.isEmpty()) {
+            throw new RuntimeException("父用户未配置身份，无法创建下级用户");
+        }
+        parentUser.setRoles(parentRoleKeys);
+
+        Set<UserIdentity> creatorIdentities = new HashSet<>(UserRoleUtils.resolveIdentities(
+            Optional.ofNullable(creator.getRoles()).orElse(Collections.emptySet())));
+        Set<UserIdentity> parentIdentities = new HashSet<>(UserRoleUtils.resolveIdentities(parentRoleKeys));
+
+        return new UserCreationContext(creator, parentUser, targetIdentity, creatorIdentities, parentIdentities);
+    }
+
+    private void validateCreationPermissions(SysUser newUser, UserCreationContext context) {
+        Set<UserIdentity> allowedByParent = allowedChildIdentities(context.parentIdentities);
+        if (!allowedByParent.contains(context.targetIdentity)) {
+            throw new RuntimeException("父用户身份不允许创建该类型的子用户");
+        }
+
+        boolean creatorIsAdmin = context.creatorIdentities.contains(UserIdentity.ADMIN);
+        if (UserIdentity.BUYER_SUB.equals(context.targetIdentity) && isAgentIdentity(context.creatorIdentities)) {
+            throw new RuntimeException("代理用户无权创建买家子账户");
+        }
+
+        if (!creatorIsAdmin) {
+            Long creatorId = context.creator.getUserId();
+            Long parentId = context.parentUser.getUserId();
+
+            if (!Objects.equals(creatorId, parentId)
+                && !hierarchyService.isAncestor(creatorId, parentId)) {
+                throw new RuntimeException("只能在自己管理的用户树下创建用户");
             }
-            log.info("管理员 {} 在部门 {} (类型: {}) 下创建用户",
-                currentUser.getUsername(), targetDept.getDeptName(), targetDeptType);
-            return;
-        }
 
-        if ("4".equals(targetDeptType)) {
-            throw new RuntimeException("只有管理员可以在买家子账户部门创建用户");
-        }
-
-        if ("2".equals(currentUserDeptType)) {
-            if (currentDeptId == null || currentDeptId <= 0) {
-                throw new RuntimeException("当前用户部门信息异常");
+            if (context.creator.isBuyerSubIdentity()) {
+                throw new RuntimeException("买家子账户用户无权创建用户");
             }
-            java.util.List<Long> managedDeptIds = deptService.selectChildDeptIds(currentDeptId);
-            if (managedDeptIds == null || !managedDeptIds.contains(targetDept.getDeptId())) {
-                throw new RuntimeException("您没有权限在该部门创建用户");
+
+            if (context.creatorIdentities.contains(UserIdentity.BUYER_MAIN)
+                && !Objects.equals(creatorId, parentId)) {
+                throw new RuntimeException("买家总账户仅能为自己创建下级用户");
             }
-            log.info("代理用户 {} 在部门 {} (类型: {}) 下创建用户",
-                currentUser.getUsername(), targetDept.getDeptName(), targetDeptType);
-            return;
         }
 
-        if ("3".equals(currentUserDeptType)) {
-            if (targetDept.getLeaderUserId() == null || !targetDept.getLeaderUserId().equals(currentUser.getUserId())) {
-                throw new RuntimeException("您没有权限在该部门创建用户");
+        // 防止创建超级管理员账号
+        if (newUser.getUserId() != null && Objects.equals(newUser.getUserId(), 1L)) {
+            throw new RuntimeException("不能创建超级管理员账号");
+        }
+    }
+
+    private Set<UserIdentity> allowedChildIdentities(Set<UserIdentity> parentIdentities) {
+        if (parentIdentities == null || parentIdentities.isEmpty()) {
+            return Collections.emptySet();
+        }
+        EnumSet<UserIdentity> result = EnumSet.noneOf(UserIdentity.class);
+        for (UserIdentity identity : parentIdentities) {
+            result.addAll(childrenForIdentity(identity));
+        }
+        return result;
+    }
+
+    private EnumSet<UserIdentity> childrenForIdentity(UserIdentity identity) {
+        switch (identity) {
+            case ADMIN:
+                return EnumSet.of(UserIdentity.AGENT_LEVEL_1, UserIdentity.AGENT_LEVEL_2,
+                    UserIdentity.AGENT_LEVEL_3, UserIdentity.BUYER_MAIN);
+            case AGENT_LEVEL_1:
+                return EnumSet.of(UserIdentity.AGENT_LEVEL_2, UserIdentity.BUYER_MAIN);
+            case AGENT_LEVEL_2:
+                return EnumSet.of(UserIdentity.AGENT_LEVEL_3, UserIdentity.BUYER_MAIN);
+            case AGENT_LEVEL_3:
+                return EnumSet.of(UserIdentity.BUYER_MAIN);
+            case BUYER_MAIN:
+                return EnumSet.of(UserIdentity.BUYER_SUB);
+            default:
+                return EnumSet.noneOf(UserIdentity.class);
+        }
+    }
+
+    private boolean isAgentIdentity(Set<UserIdentity> identities) {
+        if (identities == null || identities.isEmpty()) {
+            return false;
+        }
+        for (UserIdentity identity : identities) {
+            if (AGENT_IDENTITIES.contains(identity)) {
+                return true;
             }
-            log.info("买家总账号用户 {} 在所属部门 {} 下创建用户",
-                currentUser.getUsername(), targetDept.getDeptName());
-            return;
         }
-
-        if ("4".equals(currentUserDeptType)) {
-            throw new RuntimeException("买家子账户用户没有创建用户的权限");
-        }
-
-        if (targetDept.getLeaderUserId() == null || !targetDept.getLeaderUserId().equals(currentUser.getUserId())) {
-            throw new RuntimeException("您没有权限在该部门创建用户");
-        }
-        log.info("用户 {} 在部门 {} (类型: {}) 下创建用户",
-            currentUser.getUsername(), targetDept.getDeptName(), targetDeptType);
+        return false;
     }
 
     /**
@@ -1387,12 +1517,133 @@ public class SysUserServiceImpl implements SysUserService {
      * 应用数据权限过滤
      */
     private void applyDataPermissionFilter(SysUser user) {
-        // 获取当前用户可访问的部门ID列表
-        List<Long> accessibleDeptIds = deptService.getAccessibleDeptIds();
-        if (!accessibleDeptIds.isEmpty()) {
-            // 这里可以设置查询条件中的部门过滤
-            // 具体实现取决于查询方式
+        // TODO: 后续基于用户树的数据权限过滤
+    }
+
+    private SysUser buildFilterFromRequest(UserListRequest request) {
+        SysUser filter = new SysUser();
+        if (request == null) {
+            return filter;
         }
+
+        String username = StringUtils.trimToNull(request.getUsername());
+        if (username != null) {
+            filter.setUsername(username);
+        }
+        String nickname = StringUtils.trimToNull(request.getNickname());
+        if (nickname != null) {
+            filter.setNickname(nickname);
+        }
+        String phone = StringUtils.trimToNull(request.getPhone());
+        if (phone != null) {
+            filter.setPhone(phone);
+        }
+        String email = StringUtils.trimToNull(request.getEmail());
+        if (email != null) {
+            filter.setEmail(email);
+        }
+        String status = StringUtils.trimToNull(request.getStatus());
+        if (status != null) {
+            filter.setStatus(status);
+        }
+        if (request.getUserType() != null) {
+            filter.setUserType(request.getUserType());
+        }
+
+        String beginTime = StringUtils.trimToNull(request.getBeginTime());
+        if (beginTime != null) {
+            filter.addParam("beginTime", beginTime);
+        }
+        String endTime = StringUtils.trimToNull(request.getEndTime());
+        if (endTime != null) {
+            filter.addParam("endTime", endTime);
+        }
+        String keyword = StringUtils.trimToNull(request.getKeyword());
+        if (keyword != null) {
+            filter.addParam("keyword", keyword);
+        }
+
+        if (request.getRoleKeys() != null && !request.getRoleKeys().isEmpty()) {
+            filter.addParam("roleKeys", new LinkedHashSet<>(request.getRoleKeys()));
+        }
+
+        return filter;
+    }
+
+    private Set<String> normalizeRoleKeys(List<String> roleKeys) {
+        if (roleKeys == null || roleKeys.isEmpty()) {
+            return Collections.emptySet();
+        }
+        return roleKeys.stream()
+            .filter(Objects::nonNull)
+            .map(key -> StringUtils.trimToNull(key))
+            .filter(Objects::nonNull)
+            .map(key -> key.toLowerCase(Locale.ROOT))
+            .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    private Set<String> normalizeRoleKeySet(Collection<String> roleKeys) {
+        if (roleKeys == null || roleKeys.isEmpty()) {
+            return new LinkedHashSet<>();
+        }
+        return roleKeys.stream()
+            .map(StringUtils::trimToNull)
+            .filter(Objects::nonNull)
+            .map(key -> key.toLowerCase(Locale.ROOT))
+            .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    private boolean userMatchesIdentity(SysUser user, String identity) {
+        String normalized = StringUtils.trimToNull(identity);
+        if (normalized == null) {
+            return true;
+        }
+
+        normalized = normalized.toLowerCase(Locale.ROOT);
+        Set<String> roles = ensureRoleKeysLoaded(user);
+
+        switch (normalized) {
+            case "1":
+            case "admin":
+            case "system":
+            case "system_admin":
+                return UserRoleUtils.hasIdentity(roles, UserIdentity.ADMIN);
+            case "2":
+            case "agent":
+            case "agent_level":
+                return UserRoleUtils.hasAnyIdentity(roles,
+                    UserIdentity.AGENT_LEVEL_1,
+                    UserIdentity.AGENT_LEVEL_2,
+                    UserIdentity.AGENT_LEVEL_3);
+            case "agent_level_1":
+                return UserRoleUtils.hasIdentity(roles, UserIdentity.AGENT_LEVEL_1);
+            case "agent_level_2":
+                return UserRoleUtils.hasIdentity(roles, UserIdentity.AGENT_LEVEL_2);
+            case "agent_level_3":
+                return UserRoleUtils.hasIdentity(roles, UserIdentity.AGENT_LEVEL_3);
+            case "3":
+            case "buyer":
+            case "buyer_main":
+                return UserRoleUtils.hasIdentity(roles, UserIdentity.BUYER_MAIN);
+            case "4":
+            case "buyer_sub":
+            case "sub_buyer":
+                return UserRoleUtils.hasIdentity(roles, UserIdentity.BUYER_SUB);
+            default:
+                return true;
+        }
+    }
+
+    private Set<String> ensureRoleKeysLoaded(SysUser user) {
+        Set<String> roles = user.getRoles();
+        if (roles == null || roles.isEmpty()) {
+            roles = userMapper.selectRoleKeysByUserId(user.getUserId());
+            if (roles == null) {
+                roles = Collections.emptySet();
+            }
+            user.setRoles(roles);
+        }
+        return roles;
     }
 
     /**
@@ -1413,10 +1664,6 @@ public class SysUserServiceImpl implements SysUserService {
         if (user.getStatus() != null) {
             sb.append("状态:").append(user.getStatus()).append(",");
         }
-        if (user.getDeptId() != null) {
-            sb.append("部门ID:").append(user.getDeptId()).append(",");
-        }
-
         return sb.length() > 0 ? sb.substring(0, sb.length() - 1) : "无条件";
     }
 
@@ -1425,19 +1672,17 @@ public class SysUserServiceImpl implements SysUserService {
      */
     @Override
     public boolean hasUserDataPermission(Long targetUserId) {
-        // 超级管理员拥有所有权限
         LoginUser currentUser = SecurityUtils.getCurrentLoginUser();
-        if (currentUser != null && currentUser.isAdmin()) {
+        if (currentUser == null) {
+            return false;
+        }
+        if (currentUser.isAdminIdentity()) {
             return true;
         }
-
-        // 只能管理自己（如果普通用户）
-        if (currentUser != null && targetUserId.equals(currentUser.getUserId())) {
+        if (Objects.equals(targetUserId, currentUser.getUserId())) {
             return true;
         }
-
-        // 检查用户管理权限
-        return SecurityUtils.hasPermission("system:user:edit");
+        return hierarchyService.isAncestor(currentUser.getUserId(), targetUserId);
     }
 
     // ==================== 其他业务方法实现 ====================
@@ -1574,335 +1819,15 @@ public class SysUserServiceImpl implements SysUserService {
         }
 
         try {
-            return userMapper.checkCanCreateSubAccount(userId);
+            SysUser user = selectUserWithDept(userId);
+            if (user == null) {
+                return false;
+            }
+            return user.isBuyerMainIdentity();
         } catch (Exception e) {
             log.error("检查用户是否可以创建子账号异常：用户ID={}", userId, e);
             return false;
         }
-    }
-
-    
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public SysUser createBuyerSubAccount(SysUser user, Long parentUserId) throws Exception {
-        if (user == null) {
-            throw new IllegalArgumentException("用户信息不能为空");
-        }
-
-        if (parentUserId == null || parentUserId <= 0) {
-            throw new IllegalArgumentException("父用户ID不能为空");
-        }
-
-        // 验证父用户是否存在且为买家总账户用户
-        SysUser parentUser = selectUserById(parentUserId);
-        if (parentUser == null) {
-            throw new Exception("父用户不存在");
-        }
-
-        // 验证父用户是否为买家总账户用户
-        if (!parentUser.isBuyerMainAccountUser()) {
-            throw new Exception("父用户必须为买家总账户用户");
-        }
-
-        // 验证父用户部门是否为买家总账户部门
-        if (parentUser.getDept() == null || !"3".equals(parentUser.getDept().getDeptType())) {
-            throw new Exception("父用户必须属于买家总账户部门");
-        }
-
-        // 设置父用户ID
-        user.setParentUserId(parentUserId);
-
-        // 验证用户部门是否为买家子账户部门
-        if (user.getDeptId() != null) {
-            SysDept dept = deptService.selectDeptById(user.getDeptId());
-            if (dept == null) {
-                throw new Exception("指定的部门不存在");
-            }
-
-            if (!"4".equals(dept.getDeptType())) {
-                throw new Exception("用户必须属于买家子账户部门");
-            }
-        }
-
-        // 设置用户类型为客户端用户
-        user.setUserType(2);
-
-        // 设置默认状态
-        user.setStatus("0");
-
-        // 插入用户
-        SysUser result = insertUser(user);
-        if (result == null) {
-            throw new Exception("创建买家子账户失败");
-        }
-
-        log.info("创建买家子账户成功：用户ID={}, 父用户ID={}, 用户名={}",
-                user.getUserId(), parentUserId, user.getUsername());
-
-        return user;
-    }
-
-    @Override
-    public java.util.Map<String, Object> getUserOrgInfo(Long userId) {
-        java.util.Map<String, Object> orgInfo = new java.util.HashMap<>();
-
-        if (userId == null || userId <= 0) {
-            return orgInfo;
-        }
-
-        try {
-            // ===== 权限验证 =====
-            LoginUser currentUser = SecurityUtils.getCurrentLoginUser();
-            if (currentUser == null) {
-                throw new SecurityException("用户未登录");
-            }
-
-            // 检查用户数据权限
-            if (!hasUserDataPermission(userId)) {
-                throw new SecurityException("无权访问该用户的组织信息");
-            }
-            SysUser user = selectUserById(userId);
-            if (user == null) {
-                return orgInfo;
-            }
-
-            // 基本用户信息
-            orgInfo.put("userId", user.getUserId());
-            orgInfo.put("username", user.getUsername());
-            orgInfo.put("nickname", user.getNickname());
-            orgInfo.put("realName", user.getRealName());
-            orgInfo.put("email", user.getEmail());
-            orgInfo.put("phone", user.getPhone());
-            orgInfo.put("status", user.getStatus());
-            orgInfo.put("createTime", user.getCreateTime());
-
-            // 组织架构信息
-            if (user.getDeptId() != null) {
-                orgInfo.put("deptId", user.getDeptId());
-
-                SysDept dept = deptService.selectDeptById(user.getDeptId());
-                if (dept != null) {
-                    orgInfo.put("deptName", dept.getDeptName());
-                    orgInfo.put("deptType", dept.getDeptType());
-                    orgInfo.put("deptTypeDisplay", dept.getDeptTypeDisplay());
-                    orgInfo.put("level", dept.getLevel());
-                    orgInfo.put("levelDisplay", dept.getLevelDisplay());
-
-                    // 获取部门层级路径
-                    orgInfo.put("ancestors", dept.getAncestors());
-                    orgInfo.put("fullPath", dept.getFullPath());
-                }
-            }
-
-            // 父用户信息（买家子账户）
-            if (user.getParentUserId() != null && user.getParentUserId() > 0) {
-                orgInfo.put("parentUserId", user.getParentUserId());
-
-                SysUser parentUser = selectUserById(user.getParentUserId());
-                if (parentUser != null) {
-                    orgInfo.put("parentUserName", parentUser.getNickname() != null ?
-                        parentUser.getNickname() : parentUser.getUsername());
-                }
-            }
-
-            // 用户类型判断
-            orgInfo.put("isSystemDeptUser", user.isSystemDeptUser());
-            orgInfo.put("isAgentDeptUser", user.isAgentDeptUser());
-            orgInfo.put("isBuyerMainAccountUser", user.isBuyerMainAccountUser());
-            orgInfo.put("isBuyerSubAccountUser", user.isBuyerSubAccountUser());
-            orgInfo.put("isBuyerUser", user.isBuyerUser());
-            orgInfo.put("isBackendUser", user.isBackendUser());
-            orgInfo.put("isFrontendUser", user.isClientUser());
-            orgInfo.put("hasParentUser", user.hasParentUser());
-
-        } catch (Exception e) {
-            log.error("获取用户组织架构信息异常：用户ID={}", userId, e);
-        }
-
-        return orgInfo;
-    }
-
-    @Override
-    public java.util.Map<String, Object> getUserDeptTypeStatistics(Long deptId) throws Exception {
-        java.util.Map<String, Object> statistics = new java.util.HashMap<>();
-
-        try {
-            // ===== 权限验证 =====
-            LoginUser currentUser = SecurityUtils.getCurrentLoginUser();
-            if (currentUser == null) {
-                throw new SecurityException("用户未登录");
-            }
-
-            // 排除买家子账户用户（客户端用户无权查看统计信息）
-            SysUser currentUserObj = getCurrentUser();
-            if (currentUserObj != null && currentUserObj.isBuyerSubAccountUser()) {
-                throw new SecurityException("客户端用户无权查看统计信息");
-            }
-
-            // 检查部门数据权限
-            if (!deptService.hasDeptDataPermission(deptId)) {
-                throw new SecurityException("无权访问该部门的统计信息");
-            }
-
-            // 获取指定部门信息
-            SysDept dept = deptService.selectDeptById(deptId);
-            if (dept == null) {
-                return statistics;
-            }
-
-            // 当前部门基本信息
-            statistics.put("deptId", dept.getDeptId());
-            statistics.put("deptName", dept.getDeptName());
-            statistics.put("deptType", dept.getDeptType());
-            statistics.put("deptTypeDisplay", dept.getDeptTypeDisplay());
-            statistics.put("level", dept.getLevel());
-            statistics.put("levelDisplay", dept.getLevelDisplay());
-            statistics.put("ancestors", dept.getAncestors());
-
-            // 统计当前部门的用户（排除买家子账户）
-            List<SysUser> deptUsers = selectUsersByDeptId(deptId);
-            java.util.List<SysUser> managementUsers = new java.util.ArrayList<>();
-
-            for (SysUser user : deptUsers) {
-                // 排除买家子账户用户（deptType = "4"）
-                if (!user.isBuyerSubAccountUser()) {
-                    managementUsers.add(user);
-                }
-            }
-
-            statistics.put("currentDeptUserCount", managementUsers.size());
-
-            // 按用户类型统计当前部门
-            java.util.Map<String, Integer> currentUserTypeCount = new java.util.HashMap<>();
-            for (SysUser user : managementUsers) {
-                String userType = user.getUserTypeDisplay();
-                currentUserTypeCount.put(userType, currentUserTypeCount.getOrDefault(userType, 0) + 1);
-            }
-            statistics.put("currentUserTypeStatistics", currentUserTypeCount);
-
-            // 递归统计子部门
-            List<SysDept> childDepts = deptService.selectChildrenByParentId(deptId);
-            statistics.put("childDeptCount", childDepts.size());
-
-            java.util.List<java.util.Map<String, Object>> childStatistics = new java.util.ArrayList<>();
-            java.util.Map<String, Integer> overallDeptTypeCount = new java.util.HashMap<>();
-            java.util.Map<String, Integer> overallUserTypeCount = new java.util.HashMap<>();
-            int totalUsers = managementUsers.size();
-            int totalDepts = 1; // 包括当前部门
-
-            // 当前部门类型计数
-            String currentDeptTypeDisplay = dept.getDeptTypeDisplay();
-            overallDeptTypeCount.put(currentDeptTypeDisplay, overallDeptTypeCount.getOrDefault(currentDeptTypeDisplay, 0) + 1);
-
-            // 合并当前部门的用户类型统计
-            for (java.util.Map.Entry<String, Integer> entry : currentUserTypeCount.entrySet()) {
-                overallUserTypeCount.put(entry.getKey(), overallUserTypeCount.getOrDefault(entry.getKey(), 0) + entry.getValue());
-            }
-
-            // 递归处理子部门
-            for (SysDept childDept : childDepts) {
-                java.util.Map<String, Object> childStats = getUserDeptTypeStatistics(childDept.getDeptId());
-                childStatistics.add(childStats);
-
-                // 累加统计信息
-                totalUsers += (Integer) childStats.getOrDefault("totalUsers", 0);
-                totalDepts += (Integer) childStats.getOrDefault("totalDepts", 0);
-
-                // 合并部门类型统计
-                @SuppressWarnings("unchecked")
-                java.util.Map<String, Integer> childDeptTypeStats = (java.util.Map<String, Integer>) childStats.get("deptTypeStatistics");
-                if (childDeptTypeStats != null) {
-                    for (java.util.Map.Entry<String, Integer> entry : childDeptTypeStats.entrySet()) {
-                        overallDeptTypeCount.put(entry.getKey(), overallDeptTypeCount.getOrDefault(entry.getKey(), 0) + entry.getValue());
-                    }
-                }
-
-                // 合并用户类型统计
-                @SuppressWarnings("unchecked")
-                java.util.Map<String, Integer> childUserTypeStats = (java.util.Map<String, Integer>) childStats.get("userTypeStatistics");
-                if (childUserTypeStats != null) {
-                    for (java.util.Map.Entry<String, Integer> entry : childUserTypeStats.entrySet()) {
-                        overallUserTypeCount.put(entry.getKey(), overallUserTypeCount.getOrDefault(entry.getKey(), 0) + entry.getValue());
-                    }
-                }
-            }
-
-            statistics.put("totalUsers", totalUsers);
-            statistics.put("totalDepts", totalDepts);
-            statistics.put("deptTypeStatistics", overallDeptTypeCount);
-            statistics.put("userTypeStatistics", overallUserTypeCount);
-            statistics.put("childDepartments", childStatistics);
-
-            // 业务能力信息
-            statistics.put("canCreateChildDept", dept.canCreateChildDept());
-            statistics.put("canCreateBuyerAccount", dept.canCreateBuyerAccount());
-            statistics.put("canCreateSubAccount", dept.canCreateSubAccount());
-
-        } catch (Exception e) {
-            log.error("获取部门类型统计信息异常：部门ID={}", deptId, e);
-            throw new Exception("获取部门类型统计信息失败：" + e.getMessage(), e);
-        }
-
-        return statistics;
-    }
-
-    @Override
-    public boolean checkCanCreateChildDept(Long userId) throws Exception {
-        if (userId == null || userId <= 0) {
-            return false;
-        }
-
-        try {
-            SysUser user = selectUserById(userId);
-            if (user == null || user.getDept() == null) {
-                return false;
-            }
-
-            return user.getDept().canCreateChildDept();
-
-        } catch (Exception e) {
-            log.error("检查用户是否可以创建下级部门异常：用户ID={}", userId, e);
-            return false;
-        }
-    }
-
-    @Override
-    public List<SysUser> selectUsersByDeptAndChildren(Long deptId) throws Exception {
-        List<SysUser> result = new ArrayList<>();
-
-        if (deptId == null || deptId <= 0) {
-            return result;
-        }
-
-        try {
-            // ===== 权限验证 =====
-            LoginUser currentUser = SecurityUtils.getCurrentLoginUser();
-            if (currentUser == null) {
-                throw new SecurityException("用户未登录");
-            }
-
-            // 检查部门数据权限
-            if (!deptService.hasDeptDataPermission(deptId)) {
-                throw new SecurityException("无权访问该部门的用户信息");
-            }
-
-            // 获取当前部门的用户
-            List<SysUser> currentDeptUsers = selectUsersByDeptId(deptId);
-            result.addAll(currentDeptUsers);
-
-            // 递归获取子部门的用户
-            List<SysDept> childDepts = deptService.selectChildrenByParentId(deptId);
-            for (SysDept childDept : childDepts) {
-                List<SysUser> childUsers = selectUsersByDeptAndChildren(childDept.getDeptId());
-                result.addAll(childUsers);
-            }
-
-        } catch (Exception e) {
-            log.error("查询部门及子部门用户异常：部门ID={}", deptId, e);
-            throw new Exception("查询部门及子部门用户失败：" + e.getMessage(), e);
-        }
-
-        return result;
     }
 
     /**
@@ -1935,126 +1860,6 @@ public class SysUserServiceImpl implements SysUserService {
         }
     }
 
-    @Override
-    public List<SysUser> selectUsersByAgentLevel(Integer level) throws Exception {
-        List<SysUser> result = new ArrayList<>();
-
-        if (level == null || level <= 0) {
-            return result;
-        }
-
-        try {
-            // ===== 权限验证 =====
-            LoginUser currentUser = SecurityUtils.getCurrentLoginUser();
-            if (currentUser == null) {
-                throw new SecurityException("用户未登录");
-            }
-
-            // 排除买家子账户用户
-            SysUser currentUserObj = getCurrentUser();
-            if (currentUserObj != null && currentUserObj.isBuyerSubAccountUser()) {
-                throw new SecurityException("客户端用户无权查看代理用户信息");
-            }
-
-            // 获取所有指定层级的代理部门
-            SysDept queryDept = new SysDept();
-            queryDept.setDeptType("2"); // 代理部门
-            queryDept.setLevel(level);
-            List<SysDept> agentDepts = deptService.selectDeptList(queryDept);
-
-            // 获取这些部门下的所有用户
-            for (SysDept agentDept : agentDepts) {
-                List<SysUser> deptUsers = selectUsersByDeptId(agentDept.getDeptId());
-                result.addAll(deptUsers);
-            }
-
-        } catch (Exception e) {
-            log.error("查询指定层级代理用户异常：层级={}", level, e);
-            throw new Exception("查询指定层级代理用户失败：" + e.getMessage(), e);
-        }
-
-        return result;
-    }
-
-    @Override
-    public List<SysUser> selectUsersByDeptType(String deptType) throws Exception {
-        List<SysUser> result = new ArrayList<>();
-
-        if (deptType == null || deptType.trim().isEmpty()) {
-            return result;
-        }
-
-        try {
-            // ===== 权限验证 =====
-            LoginUser currentUser = SecurityUtils.getCurrentLoginUser();
-            if (currentUser == null) {
-                throw new SecurityException("用户未登录");
-            }
-
-            // 排除买家子账户用户
-            SysUser currentUserObj = getCurrentUser();
-            if (currentUserObj != null && currentUserObj.isBuyerSubAccountUser()) {
-                throw new SecurityException("客户端用户无权查看部门类型统计信息");
-            }
-
-            return userMapper.selectUsersByDeptType(deptType);
-
-        } catch (Exception e) {
-            log.error("查询指定部门类型用户异常：部门类型={}", deptType, e);
-            throw new Exception("查询指定部门类型用户失败：" + e.getMessage(), e);
-        }
-    }
-
-    /**
-     * 根据部门类型自动分配角色
-     *
-     * @param user 已创建的用户对象
-     */
-    private void assignRoleByDeptType(SysUser user) throws Exception {
-        if (user == null || user.getUserId() == null || user.getDeptId() == null) {
-            log.warn("用户信息不完整，无法自动分配角色：用户ID={}, 部门ID={}",
-                user != null ? user.getUserId() : null,
-                user != null ? user.getDeptId() : null);
-            return;
-        }
-
-        try {
-            // 获取部门信息
-            SysDept dept = deptService.selectDeptById(user.getDeptId());
-            if (dept == null) {
-                log.warn("部门不存在，无法自动分配角色：部门ID={}", user.getDeptId());
-                return;
-            }
-
-            String roleKey = getRoleKeyByDept(dept);
-
-            if (roleKey != null) {
-                // 查找角色ID
-                Long roleId = roleMapper.selectRoleIdByKey(roleKey);
-                if (roleId != null) {
-                    // 分配角色
-                    userMapper.insertUserRole(user.getUserId(), roleId);
-                    log.info("自动分配角色成功：用户ID={}, 部门类型={}, 部门层级={}, 角色Key={}",
-                        user.getUserId(), dept.getDeptType(), dept.getLevel(), roleKey);
-                } else {
-                    log.warn("角色不存在，无法自动分配：角色Key={}", roleKey);
-                }
-            } else {
-                log.warn("未知部门类型，无法自动分配角色：部门类型={}", dept.getDeptType());
-            }
-
-        } catch (Exception e) {
-            log.error("根据部门类型自动分配角色异常：用户ID={}, 部门ID={}",
-                user.getUserId(), user.getDeptId(), e);
-            // 不抛出异常，避免影响用户创建流程
-        }
-    }
-
-    /**
-     * 设置简化的用户信息（用于前端显示）
-     *
-     * @param user 用户对象
-     */
     private void setSimplifiedUserInfo(SysUser user) {
         try {
             // 查询用户的角色信息
@@ -2066,56 +1871,71 @@ public class SysUserServiceImpl implements SysUserService {
                     .collect(Collectors.toSet());
                 user.setRoles(roleIdentifiers);
             }
-
-            // 设置部门显示名称
-            if (user.getDept() != null) {
-                user.setDeptDisplayName(user.getDept().getDeptName());
-            } else {
-                // 如果部门信息为空，根据部门ID查询
-                if (user.getDeptId() != null) {
-                    SysDept dept = deptService.selectDeptById(user.getDeptId());
-                    if (dept != null) {
-                        user.setDeptDisplayName(dept.getDeptName());
-                    }
-                }
-            }
-
         } catch (Exception e) {
             log.warn("设置简化用户信息失败：用户ID={}", user.getUserId(), e);
         }
     }
 
-    /**
-     * 根据部门信息获取对应的角色Key
-     *
-     * @param dept 部门信息
-     * @return 角色Key
-     */
-    private String getRoleKeyByDept(SysDept dept) {
-        if (dept == null) {
+    private void persistRequestedRoles(SysUser user) {
+        if (user == null || user.getUserId() == null) {
+            return;
+        }
+
+        Set<String> requestedRoleKeys = normalizeRoleKeySet(user.getRoles());
+        user.setRoles(requestedRoleKeys);
+
+        // 清理旧角色，避免重复绑定
+        userMapper.deleteUserRoles(user.getUserId());
+
+        if (requestedRoleKeys.isEmpty()) {
+            return;
+        }
+
+        List<Long> roleIds = resolveRoleIdsFromKeys(requestedRoleKeys);
+        if (roleIds.isEmpty()) {
+            throw new RuntimeException("未找到可用的角色配置，请检查角色标识是否正确");
+        }
+
+        int inserted = userMapper.assignUserRoles(user.getUserId(), roleIds);
+        if (inserted <= 0) {
+            throw new RuntimeException("分配角色失败：数据库未生效");
+        }
+    }
+
+    private List<Long> resolveRoleIdsFromKeys(Collection<String> roleKeys) {
+        List<Long> roleIds = new ArrayList<>();
+        for (String roleKey : roleKeys) {
+            SysRole role = findRoleByKey(roleKey);
+            if (role == null) {
+                throw new RuntimeException("角色不存在：" + roleKey);
+            }
+            if (!"0".equals(role.getStatus()) || !"0".equals(role.getDelFlag())) {
+                throw new RuntimeException("角色不可用：" + roleKey);
+            }
+            roleIds.add(role.getRoleId());
+        }
+        return roleIds;
+    }
+
+    private SysRole findRoleByKey(String roleKey) {
+        String normalized = StringUtils.trimToNull(roleKey);
+        if (normalized == null) {
             return null;
         }
-
-        String deptType = dept.getDeptType();
-
-        // 部门类型与角色对应关系
-        // 1-系统部门 -> admin
-        // 2-代理部门 -> agent
-        // 3-买家总账户 -> buyer_main
-        // 4-买家子账户 -> buyer_sub
-
-        switch (deptType) {
-            case "1":
-                return "admin";
-            case "2":
-                return "agent";
-            case "3":
-                return "buyer_main";
-            case "4":
-                return "buyer_sub";
-            default:
-                return null;
+        SysRole role = roleMapper.selectRoleByKey(normalized);
+        if (role == null) {
+            String lower = normalized.toLowerCase(Locale.ROOT);
+            if (!lower.equals(normalized)) {
+                role = roleMapper.selectRoleByKey(lower);
+            }
         }
+        if (role == null) {
+            String upper = normalized.toUpperCase(Locale.ROOT);
+            if (!upper.equals(normalized)) {
+                role = roleMapper.selectRoleByKey(upper);
+            }
+        }
+        return role;
     }
 
     // ==================== 统计方法实现 ====================
@@ -2125,83 +1945,74 @@ public class SysUserServiceImpl implements SysUserService {
         Map<String, Object> statistics = new HashMap<>();
 
         try {
-            if (userId == null) {
+            if (userId == null || userId <= 0) {
                 return statistics;
             }
 
-            // 获取用户管理的所有部门ID
-            Set<Long> managedDeptIds = getManagedDeptIdsByUserId(userId);
-            if (managedDeptIds.isEmpty()) {
+            LoginUser currentUser = SecurityUtils.getCurrentLoginUser();
+            if (currentUser == null) {
+                throw new SecurityException("用户未登录");
+            }
+
+            if (!Objects.equals(currentUser.getUserId(), userId)
+                && !currentUser.isAdminIdentity()
+                && !hierarchyService.isAncestor(currentUser.getUserId(), userId)) {
+                throw new SecurityException("无权访问该统计信息");
+            }
+
+            Set<Long> managedUserIds = collectManagedUserIds(userId);
+            if (managedUserIds.isEmpty()) {
                 initializeUserStatistics(statistics, 0L, 0L, 0L, 0L);
+                statistics.put("totalUsers", 0L);
+                statistics.put("managedUserIds", Collections.emptySet());
+                statistics.put("identityBreakdown", Collections.emptyMap());
+                statistics.put("agentLevelBreakdown", Collections.emptyMap());
+                statistics.put("unknownUserCount", 0L);
                 return statistics;
             }
 
-            // 统计各部门用户数量
-            List<Map<String, Object>> userStatsList = userMapper.countUsersByDeptIds(managedDeptIds);
-
-            // 初始化计数器
-            Long systemUserCount = 0L;
-            Long agentUserCount = 0L;
-            Long buyerMainUserCount = 0L;
-            Long buyerSubUserCount = 0L;
-
-            // 处理查询结果
-            for (Map<String, Object> stat : userStatsList) {
-                Object userTypeObj = stat.get("user_type");
-                String userType = null;
-
-                // 处理user_type字段可能的类型
-                if (userTypeObj instanceof String) {
-                    userType = (String) userTypeObj;
-                } else if (userTypeObj instanceof Number) {
-                    userType = String.valueOf(userTypeObj);
-                }
-
-                Object countObj = stat.get("count");
-                Long count = 0L;
-
-                if (countObj instanceof Number) {
-                    count = ((Number) countObj).longValue();
-                } else if (countObj instanceof String) {
-                    try {
-                        count = Long.parseLong((String) countObj);
-                    } catch (NumberFormatException e) {
-                        log.warn("无法解析用户数量: {}", countObj);
-                    }
-                }
-
-                if (userType != null) {
-                    switch (userType) {
-                        case "system_users":
-                            systemUserCount = count;
-                            break;
-                        case "agent_users":
-                            agentUserCount = count;
-                            break;
-                        case "buyer_main_users":
-                            buyerMainUserCount = count;
-                            break;
-                        case "buyer_sub_users":
-                            buyerSubUserCount = count;
-                            break;
-                        default:
-                            log.warn("未知的用户类型: {}", userType);
-                    }
-                }
+            long activeUserTotal = Optional.ofNullable(userMapper.countActiveUsersByIds(managedUserIds)).orElse(0L);
+            if (activeUserTotal == 0L) {
+                initializeUserStatistics(statistics, 0L, 0L, 0L, 0L);
+                statistics.put("totalUsers", 0L);
+                statistics.put("managedUserIds", Collections.unmodifiableSet(new LinkedHashSet<>(managedUserIds)));
+                statistics.put("identityBreakdown", Collections.emptyMap());
+                statistics.put("agentLevelBreakdown", Collections.emptyMap());
+                statistics.put("unknownUserCount", 0L);
+                return statistics;
             }
 
-            // 构建统计结果
-            initializeUserStatistics(statistics, systemUserCount, agentUserCount, buyerMainUserCount, buyerSubUserCount);
+            Map<UserIdentity, Long> identityCounts = aggregateIdentityCounts(managedUserIds);
 
-            statistics.put("totalUsers", systemUserCount + agentUserCount + buyerMainUserCount + buyerSubUserCount);
-            statistics.put("managedDeptIds", managedDeptIds);
+            long adminCount = identityCounts.getOrDefault(UserIdentity.ADMIN, 0L);
+            long agentLevel1Count = identityCounts.getOrDefault(UserIdentity.AGENT_LEVEL_1, 0L);
+            long agentLevel2Count = identityCounts.getOrDefault(UserIdentity.AGENT_LEVEL_2, 0L);
+            long agentLevel3Count = identityCounts.getOrDefault(UserIdentity.AGENT_LEVEL_3, 0L);
+            long buyerMainCount = identityCounts.getOrDefault(UserIdentity.BUYER_MAIN, 0L);
+            long buyerSubCount = identityCounts.getOrDefault(UserIdentity.BUYER_SUB, 0L);
 
-            log.info("用户 {} 管理的用户统计完成: 系统={}, 代理={}, 买家总={}, 买家子={}",
-                    userId, systemUserCount, agentUserCount, buyerMainUserCount, buyerSubUserCount);
+            long agentTotal = agentLevel1Count + agentLevel2Count + agentLevel3Count;
+            long knownCount = adminCount + agentTotal + buyerMainCount + buyerSubCount;
+            long unknownCount = Math.max(0L, activeUserTotal - knownCount);
+
+            initializeUserStatistics(statistics, adminCount, agentTotal, buyerMainCount, buyerSubCount);
+            statistics.put("totalUsers", activeUserTotal);
+            statistics.put("managedUserIds", Collections.unmodifiableSet(new LinkedHashSet<>(managedUserIds)));
+            statistics.put("identityBreakdown", buildIdentityBreakdown(identityCounts, unknownCount));
+            statistics.put("agentLevelBreakdown", buildAgentLevelBreakdown(identityCounts));
+            statistics.put("unknownUserCount", unknownCount);
+
+            log.info("用户 {} 管理的用户统计完成: total={}, admin={}, agentTotal={}, buyerMain={}, buyerSub={}, unknown={}",
+                    userId, activeUserTotal, adminCount, agentTotal, buyerMainCount, buyerSubCount, unknownCount);
 
         } catch (Exception e) {
             log.error("获取管理用户统计信息失败：userId={}", userId, e);
             initializeUserStatistics(statistics, 0L, 0L, 0L, 0L);
+            statistics.put("totalUsers", 0L);
+            statistics.put("managedUserIds", Collections.emptySet());
+            statistics.put("identityBreakdown", Collections.emptyMap());
+            statistics.put("agentLevelBreakdown", Collections.emptyMap());
+            statistics.put("unknownUserCount", 0L);
         }
 
         return statistics;
@@ -2209,22 +2020,62 @@ public class SysUserServiceImpl implements SysUserService {
 
     // ==================== 私有辅助方法 ====================
 
-    /**
-     * 获取用户管理的所有部门ID
-     */
-    private Set<Long> getManagedDeptIdsByUserId(Long userId) {
-        Set<Long> managedDeptIds = new HashSet<>();
+    private Set<Long> collectManagedUserIds(Long rootUserId) {
+        if (rootUserId == null || rootUserId <= 0) {
+            return Collections.emptySet();
+        }
+        LinkedHashSet<Long> managedUserIds = new LinkedHashSet<>();
+        managedUserIds.add(rootUserId);
+        managedUserIds.addAll(hierarchyService.findDescendantIds(rootUserId));
+        return managedUserIds;
+    }
 
-        // 查询用户作为负责人的部门
-        List<SysDept> managedDepts = deptService.selectDeptsByLeaderUserId(userId);
-        for (SysDept dept : managedDepts) {
-            managedDeptIds.add(dept.getDeptId());
-            // 递归获取子部门ID
-            List<Long> childIds = deptService.selectChildDeptIds(dept.getDeptId());
-            managedDeptIds.addAll(childIds);
+    private Map<UserIdentity, Long> aggregateIdentityCounts(Set<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return Collections.emptyMap();
         }
 
-        return managedDeptIds;
+        List<Map<String, Object>> rawCounts = userMapper.countUsersByRoleKeys(userIds);
+        Map<UserIdentity, Long> identityCounts = new EnumMap<>(UserIdentity.class);
+
+        for (Map<String, Object> row : rawCounts) {
+            Object roleKeyObj = row.get("roleKey");
+            Object countObj = row.get("userCount");
+            if (!(roleKeyObj instanceof String) || !(countObj instanceof Number)) {
+                continue;
+            }
+
+            String roleKey = (String) roleKeyObj;
+            Number countNumber = (Number) countObj;
+            UserIdentity.fromRoleKey(roleKey)
+                .ifPresent(identity ->
+                    identityCounts.merge(identity, countNumber.longValue(), Long::sum)
+                );
+        }
+
+        return identityCounts;
+    }
+
+    private Map<String, Long> buildIdentityBreakdown(Map<UserIdentity, Long> counts, long unknownCount) {
+        Map<String, Long> breakdown = new LinkedHashMap<>();
+        breakdown.put(UserIdentity.ADMIN.getRoleKey(), counts.getOrDefault(UserIdentity.ADMIN, 0L));
+        breakdown.put(UserIdentity.AGENT_LEVEL_1.getRoleKey(), counts.getOrDefault(UserIdentity.AGENT_LEVEL_1, 0L));
+        breakdown.put(UserIdentity.AGENT_LEVEL_2.getRoleKey(), counts.getOrDefault(UserIdentity.AGENT_LEVEL_2, 0L));
+        breakdown.put(UserIdentity.AGENT_LEVEL_3.getRoleKey(), counts.getOrDefault(UserIdentity.AGENT_LEVEL_3, 0L));
+        breakdown.put(UserIdentity.BUYER_MAIN.getRoleKey(), counts.getOrDefault(UserIdentity.BUYER_MAIN, 0L));
+        breakdown.put(UserIdentity.BUYER_SUB.getRoleKey(), counts.getOrDefault(UserIdentity.BUYER_SUB, 0L));
+        if (unknownCount > 0) {
+            breakdown.put("unassigned", unknownCount);
+        }
+        return breakdown;
+    }
+
+    private Map<String, Long> buildAgentLevelBreakdown(Map<UserIdentity, Long> counts) {
+        Map<String, Long> breakdown = new LinkedHashMap<>();
+        breakdown.put(UserIdentity.AGENT_LEVEL_1.getRoleKey(), counts.getOrDefault(UserIdentity.AGENT_LEVEL_1, 0L));
+        breakdown.put(UserIdentity.AGENT_LEVEL_2.getRoleKey(), counts.getOrDefault(UserIdentity.AGENT_LEVEL_2, 0L));
+        breakdown.put(UserIdentity.AGENT_LEVEL_3.getRoleKey(), counts.getOrDefault(UserIdentity.AGENT_LEVEL_3, 0L));
+        return breakdown;
     }
 
     /**
@@ -2237,4 +2088,5 @@ public class SysUserServiceImpl implements SysUserService {
         statistics.put("buyerMainUserCount", buyerMainUsers);
         statistics.put("buyerSubUserCount", buyerSubUsers);
     }
+
 }

@@ -3,9 +3,10 @@ package com.deepreach.common.aspect;
 import com.deepreach.common.annotation.Log;
 import com.deepreach.common.core.domain.entity.SysOperLog;
 import com.deepreach.common.core.domain.model.LoginUser;
-import com.deepreach.common.core.service.SysDeptService;
 import com.deepreach.common.core.service.SysOperLogService;
 import com.deepreach.common.security.SecurityUtils;
+import com.deepreach.common.security.UserRoleUtils;
+import com.deepreach.common.security.enums.UserIdentity;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.JoinPoint;
@@ -45,9 +46,6 @@ public class LogAspect {
 
     @Autowired
     private ObjectMapper objectMapper;
-
-    @Autowired
-    private SysDeptService deptService;
 
     @Autowired
     private SysOperLogService operLogService;
@@ -105,12 +103,7 @@ public class LogAspect {
                 LoginUser loginUser = SecurityUtils.getCurrentLoginUser();
                 if (loginUser != null) {
                     operLog.setOperName(loginUser.getUsername());
-                    // 通过部门服务获取部门名称
-                    String deptName = "";
-                    if (loginUser.getDeptId() != null) {
-                        deptName = deptService.getDeptDisplayName(loginUser.getDeptId());
-                    }
-                    operLog.setDeptName(deptName);
+                    operLog.setDeptName(resolveIdentityLabel(loginUser));
                 }
             } catch (Exception e) {
                 log.debug("获取当前用户信息失败", e);
@@ -352,5 +345,16 @@ public class LogAspect {
             // 如果数据库保存失败，至少打印完整信息
             log.error("操作日志保存失败，详细信息: {}", operLog.toString());
         }
+    }
+
+    private String resolveIdentityLabel(LoginUser loginUser) {
+        if (loginUser == null || loginUser.getRoles() == null || loginUser.getRoles().isEmpty()) {
+            return "";
+        }
+        return UserRoleUtils.resolveIdentities(loginUser.getRoles()).stream()
+            .map(UserIdentity::name)
+            .sorted()
+            .reduce((left, right) -> left + "," + right)
+            .orElse("");
     }
 }

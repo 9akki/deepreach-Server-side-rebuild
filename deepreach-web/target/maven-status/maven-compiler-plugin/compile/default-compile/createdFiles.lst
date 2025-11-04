@@ -26,6 +26,7 @@ com/deepreach/web/service/AiCharacterService.class
 com/deepreach/web/entity/dto/PlatformUsageStatistics.class
 com/deepreach/web/service/CloudComputerService.class
 com/deepreach/web/entity/DrBillingRecord.class
+com/deepreach/web/dto/DrBalanceAdjustResult.class
 com/deepreach/web/service/impl/BuyerInstanceStatisticsServiceImpl$BuyerHierarchyData.class
 com/deepreach/web/controller/DrPriceConfigController.class
 com/deepreach/web/service/impl/AgentCommissionServiceImpl.class
@@ -44,6 +45,7 @@ com/deepreach/web/mapper/AgentCommissionRecordMapper.class
 com/deepreach/web/controller/AiInstanceController.class
 com/deepreach/web/service/DrBillingRecordService.class
 com/deepreach/web/entity/UserDrBalance.class
+com/deepreach/web/dto/DrBalanceAdjustRequest.class
 com/deepreach/web/entity/AiCharacter.class
 com/deepreach/web/mapper/UserDrBalanceMapper.class
 com/deepreach/web/service/impl/AiCharacterServiceImpl.class
@@ -90,4 +92,5 @@ com/deepreach/web/entity/dto/CharacterUsageStatistics.class
 com/deepreach/web/entity/DrPriceConfig.class
 com/deepreach/web/entity/Proxy.class
 com/deepreach/web/service/impl/DrBillingRecordServiceImpl.class
+com/deepreach/web/initializer/UserHierarchyCacheInitializer.class
 com/deepreach/web/config/AliyunEcdConfig.class

@@ -1,11 +1,13 @@
 package com.deepreach.web.service.impl;
 
-import com.deepreach.common.core.domain.entity.SysDept;
-import com.deepreach.common.core.mapper.SysDeptMapper;
-import com.deepreach.common.core.mapper.SysUserMapper;
 import com.deepreach.common.core.domain.entity.SysUser;
-import com.deepreach.common.core.domain.entity.SysDept;
-import com.deepreach.common.core.service.SysDeptService;
+import com.deepreach.common.core.domain.model.LoginUser;
+import com.deepreach.common.core.mapper.SysUserMapper;
+import com.deepreach.common.core.service.UserHierarchyService;
+import com.deepreach.common.core.service.SysUserService;
+import com.deepreach.common.security.SecurityUtils;
+import com.deepreach.common.security.UserRoleUtils;
+import com.deepreach.common.security.enums.UserIdentity;
 import com.deepreach.web.entity.AgentCommissionAccount;
 import com.deepreach.web.entity.AgentCommissionRecord;
 import com.deepreach.web.entity.AgentCommissionSettlement;
@@ -33,7 +35,6 @@ import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -56,10 +57,10 @@ public class AgentCommissionServiceImpl implements AgentCommissionService {
     private final AgentCommissionRecordMapper recordMapper;
     private final AgentCommissionSettlementMapper settlementMapper;
     private final AgentCommissionSettlementRecordMapper settlementRecordMapper;
-    private final SysDeptMapper deptMapper;
     private final SysUserMapper userMapper;
     private final DrPriceConfigService drPriceConfigService;
-    private final SysDeptService deptService;
+    private final SysUserService userService;
+    private final UserHierarchyService hierarchyService;
 
     private static final BigDecimal DEFAULT_LEVEL1_RATE = new BigDecimal("0.30");
     private static final BigDecimal DEFAULT_LEVEL2_RATE = new BigDecimal("0.20");
@@ -77,8 +78,8 @@ public class AgentCommissionServiceImpl implements AgentCommissionService {
                                              BigDecimal rechargeAmount,
                                              Long operatorId,
                                              Long billingId) {
-        if (buyerUserId == null || buyerDeptId == null) {
-            log.warn("无法进行佣金分发：缺少买家用户或部门信息");
+        if (buyerUserId == null) {
+            log.warn("无法进行佣金分发：缺少买家用户信息");
             return;
         }
         if (rechargeAmount == null || rechargeAmount.compareTo(BigDecimal.ZERO) <= 0) {
@@ -86,13 +87,7 @@ public class AgentCommissionServiceImpl implements AgentCommissionService {
             return;
         }
 
-        SysDept buyerDept = deptMapper.selectDeptById(buyerDeptId);
-        if (buyerDept == null) {
-            log.warn("买家部门不存在，跳过佣金分发：deptId={}", buyerDeptId);
-            return;
-        }
-
-        List<AgentHierarchyNode> agentNodes = resolveAgentHierarchy(buyerDept);
+        List<AgentHierarchyNode> agentNodes = resolveAgentHierarchy(buyerUserId);
         if (agentNodes.isEmpty()) {
             log.info("买家用户无代理上线，跳过佣金分发：userId={}", buyerUserId);
             return;
@@ -131,9 +126,7 @@ public class AgentCommissionServiceImpl implements AgentCommissionService {
 
             AgentCommissionRecord record = new AgentCommissionRecord();
             record.setAgentUserId(node.agentUserId);
-            record.setAgentDeptId(node.deptId);
             record.setBuyerUserId(buyerUserId);
-            record.setBuyerDeptId(buyerDeptId);
             record.setTriggerBillingId(billingId);
             record.setTriggerAmount(rechargeAmount);
             record.setCommissionAmount(commission);
@@ -393,9 +386,10 @@ public class AgentCommissionServiceImpl implements AgentCommissionService {
         if (agentUser == null) {
             throw new IllegalArgumentException("代理用户不存在");
         }
-        SysDept agentDept = (agentUser.getDeptId() != null) ? deptMapper.selectDeptById(agentUser.getDeptId()) : null;
+        Map<Long, Set<String>> roleKeys = loadRoleKeys(Collections.singleton(agentUserId));
+        Integer agentLevel = resolveAgentLevel(roleKeys.getOrDefault(agentUserId, Collections.emptySet()));
         AgentCommissionAccount account = accountMapper.selectByAgentUserId(agentUserId);
-        AgentCommissionAccountDTO dto = buildAccountDTO(agentUser, agentDept, account);
+        AgentCommissionAccountDTO dto = buildAccountDTO(agentUser, agentLevel, account);
         dto.setEarnedCommissionInRange(BigDecimal.ZERO);
         return dto;
     }
@@ -423,58 +417,47 @@ public class AgentCommissionServiceImpl implements AgentCommissionService {
 
     @Override
     public AgentCommissionOverviewResponse getAgentCommissionOverview(Long currentUserId, AgentCommissionOverviewRequest request) {
+        AgentCommissionOverviewResponse response = new AgentCommissionOverviewResponse();
         AgentCommissionOverviewRequest safeRequest = request != null ? request : new AgentCommissionOverviewRequest();
 
-        List<Long> accessibleDeptIds = deptService.getAccessibleDeptIds();
-        if (accessibleDeptIds == null || accessibleDeptIds.isEmpty()) {
-            return new AgentCommissionOverviewResponse();
+        LoginUser currentUser = SecurityUtils.getCurrentLoginUser();
+        if (currentUser == null) {
+            return response;
         }
 
-        Set<Long> accessibleAgentDeptIds = new HashSet<>();
-        List<SysDept> accessibleDepts = deptMapper.selectDeptsByIds(new HashSet<>(accessibleDeptIds));
-        if (accessibleDepts != null) {
-            for (SysDept dept : accessibleDepts) {
-                if (dept != null && "2".equals(dept.getDeptType())) {
-                    accessibleAgentDeptIds.add(dept.getDeptId());
-                }
-            }
+        Long scopeRoot = null;
+        if (!currentUser.isAdminIdentity() && !SecurityUtils.hasPermission("system:user:list")) {
+            scopeRoot = currentUser.getUserId();
         }
 
-        if (accessibleAgentDeptIds.isEmpty()) {
-            return new AgentCommissionOverviewResponse();
+        List<SysUser> agents = userService.selectUsersWithinHierarchy(scopeRoot, "agent", null);
+        if (agents == null || agents.isEmpty()) {
+            return response;
         }
 
-        List<Long> agentDeptIdList = new ArrayList<>(accessibleAgentDeptIds);
-        List<SysUser> agentUsers = userMapper.selectUsersByDeptIds(agentDeptIdList);
-        if (agentUsers == null) {
-            agentUsers = Collections.emptyList();
-        }
-
-        Map<Long, SysDept> deptMap = deptMapper.selectDeptsByIds(accessibleAgentDeptIds)
-            .stream()
-            .filter(Objects::nonNull)
-            .collect(Collectors.toMap(SysDept::getDeptId, dept -> dept));
-
-        List<SysUser> filteredAgents = agentUsers.stream()
+        String keyword = safeRequest.getUsername() != null ? safeRequest.getUsername().trim().toLowerCase() : null;
+        List<SysUser> filteredAgents = agents.stream()
             .filter(Objects::nonNull)
             .filter(user -> user.getUserId() != null)
             .filter(user -> {
-                if (safeRequest.getUsername() == null || safeRequest.getUsername().trim().isEmpty()) {
+                if (keyword == null || keyword.isEmpty()) {
                     return true;
                 }
-                String keyword = safeRequest.getUsername().trim().toLowerCase();
-                return (user.getUsername() != null && user.getUsername().toLowerCase().contains(keyword)) ||
-                       (user.getNickname() != null && user.getNickname().toLowerCase().contains(keyword));
+                String username = user.getUsername() != null ? user.getUsername().toLowerCase() : "";
+                String nickname = user.getNickname() != null ? user.getNickname().toLowerCase() : "";
+                return username.contains(keyword) || nickname.contains(keyword);
             })
             .collect(Collectors.toList());
 
         if (filteredAgents.isEmpty()) {
-            return new AgentCommissionOverviewResponse();
+            return response;
         }
 
-        List<Long> agentUserIds = filteredAgents.stream()
+        Set<Long> agentUserIds = filteredAgents.stream()
             .map(SysUser::getUserId)
-            .collect(Collectors.toList());
+            .collect(Collectors.toCollection(HashSet::new));
+
+        Map<Long, Set<String>> roleKeyMap = loadRoleKeys(agentUserIds);
 
         List<Map<String, Object>> accountRows = accountMapper.selectAccountsByAgentUserIds(new HashSet<>(agentUserIds));
         Map<Long, Map<String, Object>> accountRowMap = accountRows == null ? Collections.emptyMap()
@@ -483,7 +466,7 @@ public class AgentCommissionServiceImpl implements AgentCommissionService {
                 .collect(Collectors.toMap(row -> parseLong(row.get("agentUserId")), row -> row));
 
         List<Map<String, Object>> sumRows = recordMapper.sumCommissionByAgents(
-            agentUserIds,
+            new ArrayList<>(agentUserIds),
             safeRequest.getStartTime(),
             safeRequest.getEndTime(),
             safeRequest.getMinAmount(),
@@ -494,13 +477,15 @@ public class AgentCommissionServiceImpl implements AgentCommissionService {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toMap(row -> parseLong(row.get("agentUserId")), row -> toBigDecimal(row.get("commissionSum"))));
 
-        AgentCommissionOverviewResponse response = new AgentCommissionOverviewResponse();
         List<AgentCommissionAccountDTO> resultList = new ArrayList<>();
 
         for (SysUser agent : filteredAgents) {
-            SysDept dept = deptMap.get(agent.getDeptId());
-            AgentCommissionAccountDTO dto = buildAccountDTO(agent,
-                dept,
+            Set<String> roleKeys = roleKeyMap.getOrDefault(agent.getUserId(), Collections.emptySet());
+            Integer agentLevel = resolveAgentLevel(roleKeys);
+
+            AgentCommissionAccountDTO dto = buildAccountDTO(
+                agent,
+                agentLevel,
                 accountRowMap.containsKey(agent.getUserId())
                     ? toAccount(accountRowMap.get(agent.getUserId()))
                     : null);
@@ -552,13 +537,13 @@ public class AgentCommissionServiceImpl implements AgentCommissionService {
             throw new IllegalArgumentException("调整金额不能为空且不能为0");
         }
 
-        SysUser agentUser = userMapper.selectUserWithDept(agentUserId);
+        SysUser agentUser = userMapper.selectUserById(agentUserId);
         if (agentUser == null) {
             throw new IllegalArgumentException("代理用户不存在");
         }
-        SysDept agentDept = agentUser.getDept() != null ? agentUser.getDept() :
-            (agentUser.getDeptId() != null ? deptMapper.selectDeptById(agentUser.getDeptId()) : null);
-        if (agentDept == null || !"2".equals(agentDept.getDeptType())) {
+        Map<Long, Set<String>> roleKeys = loadRoleKeys(Collections.singleton(agentUserId));
+        Integer agentLevel = resolveAgentLevel(roleKeys.getOrDefault(agentUserId, Collections.emptySet()));
+        if (agentLevel == null) {
             throw new IllegalArgumentException("指定用户不是代理账号");
         }
 
@@ -609,15 +594,14 @@ public class AgentCommissionServiceImpl implements AgentCommissionService {
         if (appliedChange.compareTo(ZERO) > 0) {
             AgentCommissionRecord record = new AgentCommissionRecord();
             record.setAgentUserId(agentUserId);
-            record.setAgentDeptId(agentDept != null ? agentDept.getDeptId() : null);
+            record.setAgentDeptId(null);
             record.setBuyerUserId(agentUserId);
-            record.setBuyerDeptId(agentDept != null ? agentDept.getDeptId() : null);
+            record.setBuyerDeptId(null);
             record.setTriggerBillingId(null);
             record.setTriggerAmount(appliedChange);
             record.setCommissionAmount(appliedChange);
             record.setCommissionRate(BigDecimal.ZERO);
-            Integer hierarchyLevel = agentDept != null ? agentDept.getLevel() : null;
-            record.setHierarchyLevel(hierarchyLevel != null ? hierarchyLevel : 0);
+            record.setHierarchyLevel(agentLevel != null ? agentLevel : 0);
             record.setDirection(isIncrease ? AgentCommissionRecord.DIRECTION_CREDIT : AgentCommissionRecord.DIRECTION_DEBIT);
             record.setBusinessType(AgentCommissionRecord.BUSINESS_TYPE_MANUAL_ADJUST);
             record.setStatus(AgentCommissionRecord.STATUS_SUCCESS);
@@ -631,22 +615,20 @@ public class AgentCommissionServiceImpl implements AgentCommissionService {
             recordMapper.insert(record);
         }
 
-        AgentCommissionAccountDTO dto = buildAccountDTO(agentUser, agentDept, updatedAccount);
+        AgentCommissionAccountDTO dto = buildAccountDTO(agentUser, agentLevel, updatedAccount);
         dto.setEarnedCommissionInRange(BigDecimal.ZERO);
         return dto;
     }
 
 
-    private AgentCommissionAccountDTO buildAccountDTO(SysUser agent, SysDept dept, AgentCommissionAccount account) {
+    private AgentCommissionAccountDTO buildAccountDTO(SysUser agent, Integer agentLevel, AgentCommissionAccount account) {
         AgentCommissionAccountDTO dto = new AgentCommissionAccountDTO();
         dto.setAgentUserId(agent.getUserId());
         dto.setUsername(agent.getUsername());
         dto.setNickname(agent.getNickname());
-        if (dept != null) {
-            dto.setDeptId(dept.getDeptId());
-            dto.setDeptName(dept.getDeptName());
-            dto.setDeptLevel(dept.getLevel());
-        }
+        dto.setDeptId(null);
+        dto.setDeptName(null);
+        dto.setDeptLevel(agentLevel);
 
         AgentCommissionAccount source = account != null ? account : AgentCommissionAccount.createForAgent(agent.getUserId());
         dto.setTotalCommission(defaultZero(source.getTotalCommission()));
@@ -687,6 +669,49 @@ public class AgentCommissionServiceImpl implements AgentCommissionService {
         account.setStatus(row.get("accountStatus") != null ? String.valueOf(row.get("accountStatus")) : "0");
         account.setUpdateTime(toLocalDateTime(row.get("accountUpdateTime")));
         return account;
+    }
+
+    private Map<Long, Set<String>> loadRoleKeys(Set<Long> userIds) {
+        Map<Long, Set<String>> result = new HashMap<>();
+        if (userIds == null || userIds.isEmpty()) {
+            return result;
+        }
+        List<Map<String, Object>> rows = userMapper.selectUserRoleMappings(userIds);
+        if (rows == null) {
+            return result;
+        }
+        for (Map<String, Object> row : rows) {
+            if (row == null || row.isEmpty()) {
+                continue;
+            }
+            Long userId = parseLong(row.get("userId"));
+            Object roleKeyObj = row.get("roleKey");
+            if (userId == null || !(roleKeyObj instanceof String)) {
+                continue;
+            }
+            String roleKey = ((String) roleKeyObj).trim();
+            if (roleKey.isEmpty()) {
+                continue;
+            }
+            result.computeIfAbsent(userId, id -> new HashSet<>()).add(roleKey);
+        }
+        return result;
+    }
+
+    private Integer resolveAgentLevel(Set<String> roleKeys) {
+        if (roleKeys == null || roleKeys.isEmpty()) {
+            return null;
+        }
+        if (UserRoleUtils.hasIdentity(roleKeys, UserIdentity.AGENT_LEVEL_1)) {
+            return 1;
+        }
+        if (UserRoleUtils.hasIdentity(roleKeys, UserIdentity.AGENT_LEVEL_2)) {
+            return 2;
+        }
+        if (UserRoleUtils.hasIdentity(roleKeys, UserIdentity.AGENT_LEVEL_3)) {
+            return 3;
+        }
+        return null;
     }
 
     private BigDecimal defaultZero(BigDecimal value) {
@@ -736,91 +761,42 @@ public class AgentCommissionServiceImpl implements AgentCommissionService {
         }
         return null;
     }
-    private List<AgentHierarchyNode> resolveAgentHierarchy(SysDept startDept) {
+    private List<AgentHierarchyNode> resolveAgentHierarchy(Long buyerUserId) {
         List<AgentHierarchyNode> nodes = new ArrayList<>();
-        if (startDept == null) {
+        if (buyerUserId == null) {
             return nodes;
         }
 
-        Set<Long> visitedDeptIds = new HashSet<>();
-        SysDept current = startDept;
-        int order = 1;
+        List<Long> ancestorIds = new ArrayList<>();
+        Long current = hierarchyService.findParentId(buyerUserId);
         int safetyCounter = 0;
+        while (current != null && safetyCounter++ < 20 && ancestorIds.size() < 6) {
+            ancestorIds.add(current);
+            current = hierarchyService.findParentId(current);
+        }
+        if (ancestorIds.isEmpty()) {
+            return nodes;
+        }
 
-        while (current != null && order <= 3 && safetyCounter++ < 30) {
-            SysDept agentDept = findNearestAgentDept(current);
-            if (agentDept == null) {
+        Map<Long, Set<String>> roleKeys = loadRoleKeys(new HashSet<>(ancestorIds));
+        Set<Long> visited = new HashSet<>();
+        int order = 1;
+        for (Long ancestorId : ancestorIds) {
+            if (order > 3) {
                 break;
             }
-            if (!visitedDeptIds.add(agentDept.getDeptId())) {
-                break;
+            if (!visited.add(ancestorId)) {
+                continue;
             }
-
-            Long agentUserId = resolveAgentUserId(agentDept);
-            if (agentUserId != null) {
-                nodes.add(new AgentHierarchyNode(
-                    agentUserId,
-                    agentDept.getDeptId(),
-                    order,
-                    agentDept.getLevel()
-                ));
-                order++;
-            } else {
-                log.warn("未找到代理用户，跳过佣金节点：deptId={}", agentDept.getDeptId());
+            Integer agentLevel = resolveAgentLevel(roleKeys.getOrDefault(ancestorId, Collections.emptySet()));
+            if (agentLevel == null) {
+                continue;
             }
-
-            current = fetchParentDept(agentDept);
+            nodes.add(new AgentHierarchyNode(ancestorId, order, agentLevel));
+            order++;
         }
 
         return nodes;
-    }
-
-    private SysDept findNearestAgentDept(SysDept dept) {
-        SysDept current = dept;
-        if (current == null) {
-            return null;
-        }
-        if (!"2".equals(current.getDeptType())) {
-            current = fetchParentDept(current);
-        }
-        while (current != null && !"2".equals(current.getDeptType())) {
-            current = fetchParentDept(current);
-        }
-        return current;
-    }
-
-    private SysDept fetchParentDept(SysDept dept) {
-        if (dept == null || dept.getParentId() == null || dept.getParentId() <= 0) {
-            return null;
-        }
-        return deptMapper.selectDeptById(dept.getParentId());
-    }
-
-    private Long resolveAgentUserId(SysDept agentDept) {
-        if (agentDept == null) {
-            return null;
-        }
-
-        Long leaderId = agentDept.getLeaderUserId();
-        if (leaderId != null) {
-            SysUser leader = userMapper.selectUserById(leaderId);
-            if (leader != null) {
-                return leader.getUserId();
-            }
-        }
-
-        List<SysUser> users = userMapper.selectUsersByDeptIds(
-            Collections.singletonList(agentDept.getDeptId())
-        );
-        if (users != null) {
-            for (SysUser user : users) {
-                if (user != null && user.getUserId() != null) {
-                    return user.getUserId();
-                }
-            }
-        }
-
-        return null;
     }
 
     private CommissionRateConfig loadCommissionRates() {
@@ -866,7 +842,7 @@ public class AgentCommissionServiceImpl implements AgentCommissionService {
         BigDecimal maxLowerLevelRate = ZERO;
         for (AgentHierarchyNode node : sorted) {
             int level = resolveAgentLevel(node, maxOrder);
-            BigDecimal targetRate = rateConfig.getRateByDeptLevel(level);
+            BigDecimal targetRate = rateConfig.getRateByAgentLevel(level);
             if (targetRate.compareTo(ZERO) <= 0) {
                 continue;
             }
@@ -902,26 +878,21 @@ public class AgentCommissionServiceImpl implements AgentCommissionService {
 
     private static class AgentHierarchyNode {
         private final Long agentUserId;
-        private final Long deptId;
         private final int order;
-        private final Integer deptLevel;
+        private final Integer agentLevel;
 
-    private AgentHierarchyNode(Long agentUserId, Long deptId, int order, Integer deptLevel) {
-        this.agentUserId = agentUserId;
-        this.deptId = deptId;
-        this.order = order;
-        this.deptLevel = deptLevel;
-    }
-
-        private int getDeptLevelOrDefault() {
-            if (deptLevel != null && deptLevel > 0) {
-                return deptLevel;
-            }
-            return order;
+        private AgentHierarchyNode(Long agentUserId, int order, Integer agentLevel) {
+            this.agentUserId = agentUserId;
+            this.order = order;
+            this.agentLevel = agentLevel;
         }
 
         private int getOrder() {
             return order;
+        }
+
+        private Integer getAgentLevel() {
+            return agentLevel;
         }
     }
 
@@ -936,11 +907,11 @@ public class AgentCommissionServiceImpl implements AgentCommissionService {
             this.level3Rate = level3Rate;
         }
 
-        private BigDecimal getRateByDeptLevel(Integer deptLevel) {
-            if (deptLevel == null) {
+        private BigDecimal getRateByAgentLevel(Integer agentLevel) {
+            if (agentLevel == null) {
                 return level1Rate;
             }
-            switch (deptLevel) {
+            switch (agentLevel) {
                 case 1:
                     return level1Rate;
                 case 2:
@@ -958,7 +929,7 @@ public class AgentCommissionServiceImpl implements AgentCommissionService {
     }
 
     private int resolveAgentLevel(AgentHierarchyNode node, int maxOrder) {
-        int level = node.deptLevel != null ? node.deptLevel : -1;
+        int level = node.getAgentLevel() != null ? node.getAgentLevel() : -1;
         if (level >= 1 && level <= 3) {
             return level;
         }

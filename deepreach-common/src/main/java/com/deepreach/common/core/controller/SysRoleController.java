@@ -20,16 +20,16 @@ import java.util.Set;
 /**
  * 角色管理Controller
  *
- * 基于部门类型的角色管理RESTful API控制器，负责：
+ * 基于角色身份的管理 RESTful API 控制器，负责：
  * 1. 角色基本信息管理API
  * 2. 角色权限关联管理API
  * 3. 角色数据权限管理API
- * 4. 基于部门类型的角色分类管理API
+ * 4. 角色身份分类接口
  * 5. 角色分配和权限验证API
  *
  * 设计理念：
- * - 部门类型绑定角色：角色只能分配给对应部门类型的用户
- * - 简化权限管理：通过部门类型自动确定角色权限范围
+ * - 角色身份绑定逻辑：角色只能分配给合规身份的用户
+ * - 简化权限管理：通过角色身份自动确定权限范围
  * - 标准RBAC模式：角色作为权限载体，控制用户访问权限
  *
  * @author DeepReach Team
@@ -121,40 +121,37 @@ public class SysRoleController {
     }
 
     /**
-     * 根据部门类型获取角色列表
+     * 根据身份别名获取角色列表（兼容旧部门类型编码）。
      *
-     * @param deptType 部门类型（1系统 2代理 3买家总账户 4买家子账户）
+     * @param identity 身份别名或旧部门类型编码
      * @return 角色列表
      */
-    @GetMapping("/by-dept-type/{deptType}")
+    @GetMapping("/identity/{identity}")
     // @PreAuthorize("@ss.hasPermi('system:role:list')")
-    public Result getRolesByDeptType(@PathVariable String deptType) {
+    public Result getRolesByIdentity(@PathVariable String identity) {
         try {
-            List<SysRole> roles = roleService.selectRolesByDeptType(deptType);
+            List<SysRole> roles = roleService.selectRolesByIdentity(identity);
             return Result.success(roles);
         } catch (Exception e) {
-            log.error("根据部门类型查询角色失败：部门类型={}", deptType, e);
-            return Result.error("根据部门类型查询角色失败：" + e.getMessage());
+            log.error("根据身份查询角色失败：身份={}", identity, e);
+            return Result.error("根据身份查询角色失败：" + e.getMessage());
         }
     }
 
     /**
-     * 获取部门类型的默认角色
-     *
-     * @param deptType 部门类型
-     * @return 默认角色
+     * 获取指定身份的默认角色（兼容旧部门类型编码）。
      */
-    @GetMapping("/default/{deptType}")
+    @GetMapping("/default/{identity}")
     // @PreAuthorize("@ss.hasPermi('system:role:query')")
-    public Result getDefaultRole(@PathVariable String deptType) {
+    public Result getDefaultRole(@PathVariable String identity) {
         try {
-            SysRole role = roleService.getDefaultRoleByDeptType(deptType);
+            SysRole role = roleService.getDefaultRoleByIdentity(identity);
             if (role == null) {
-                return Result.error("该部门类型没有默认角色");
+                return Result.error("该身份没有默认角色");
             }
             return Result.success(role);
         } catch (Exception e) {
-            log.error("获取默认角色失败：部门类型={}", deptType, e);
+            log.error("获取默认角色失败：身份={}", identity, e);
             return Result.error("获取默认角色失败：" + e.getMessage());
         }
     }
@@ -567,21 +564,21 @@ public class SysRoleController {
     }
 
     /**
-     * 检查角色是否适用于指定部门类型
+     * 检查角色是否适用于指定身份
      *
      * @param roleId 角色ID
-     * @param deptType 部门类型
+     * @param identity 身份别名
      * @return 检查结果
      */
-    @GetMapping("/{roleId}/applicable-to-dept-type/{deptType}")
+    @GetMapping("/{roleId}/applicable-to-dept-type/{identity}")
     // @PreAuthorize("@ss.hasPermi('system:role:query')")
-    public Result isApplicableToDeptType(@PathVariable("roleId") Long roleId, @PathVariable("deptType") String deptType) {
+    public Result isApplicableToIdentity(@PathVariable("roleId") Long roleId, @PathVariable("identity") String identity) {
         try {
-            boolean applicable = roleService.isRoleApplicableToDeptType(roleId, deptType);
+            boolean applicable = roleService.isRoleApplicableToIdentity(roleId, identity);
             return Result.success(applicable);
         } catch (Exception e) {
-            log.error("检查角色部门类型适用性失败：角色ID={}, 部门类型={}", roleId, deptType, e);
-            return Result.error("检查角色部门类型适用性失败：" + e.getMessage());
+            log.error("检查角色部门类型适用性失败：角色ID={}, 部门类型={}", roleId, identity, e);
+            return Result.error("检查角色身份适用性失败：" + e.getMessage());
         }
     }
 

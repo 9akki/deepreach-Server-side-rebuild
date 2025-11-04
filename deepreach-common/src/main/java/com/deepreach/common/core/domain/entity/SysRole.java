@@ -4,6 +4,7 @@ import com.deepreach.common.core.domain.BaseEntity;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import com.deepreach.common.security.enums.UserIdentity;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -124,21 +125,6 @@ public class SysRole extends BaseEntity {
      * 删除的角色不能分配给用户，已分配的用户会失去该角色
      */
     private String delFlag;
-
-    // ==================== 基于部门类型的字段 ====================
-
-    /**
-     * 适用部门类型
-     *
-     * 角色适用的部门类型，确保角色只能分配给对应类型的部门用户：
-     * 1 - 系统部门：admin, system_admin, tech_admin, ops_admin
-     * 2 - 代理部门：agent
-     * 3 - 买家总账户部门：buyer_main
-     * 4 - 买家子账户部门：buyer_sub
-     *
-     * 这个字段用于在角色分配时进行类型匹配验证
-     */
-    private String deptType;
 
     // ==================== 关联数据 ====================
 
@@ -275,45 +261,30 @@ public class SysRole extends BaseEntity {
      *
      * @return true如果是系统角色，false否则
      */
-    public boolean isSystemRole() {
-        return "1".equals(this.deptType);
-    }
 
     /**
      * 判断是否为代理角色
      *
      * @return true如果是代理角色，false否则
      */
-    public boolean isAgentRole() {
-        return "2".equals(this.deptType);
-    }
 
     /**
      * 判断是否为买家总账户角色
      *
      * @return true如果是买家总账户角色，false否则
      */
-    public boolean isBuyerMainRole() {
-        return "3".equals(this.deptType);
-    }
 
     /**
      * 判断是否为买家子账户角色
      *
      * @return true如果是买家子账户角色，false否则
      */
-    public boolean isBuyerSubRole() {
-        return "4".equals(this.deptType);
-    }
 
     /**
      * 判断是否为买家角色（总账户或子账户）
      *
      * @return true如果是买家角色，false否则
      */
-    public boolean isBuyerRole() {
-        return isBuyerMainRole() || isBuyerSubRole();
-    }
 
     /**
      * 判断是否为管理类角色
@@ -333,6 +304,49 @@ public class SysRole extends BaseEntity {
      */
     public boolean isBusinessRole() {
         return isAgentRole() || isBuyerRole();
+    }
+
+    private UserIdentity resolveIdentity() {
+        return UserIdentity.fromRoleKey(this.roleKey).orElse(null);
+    }
+
+    /**
+     * 判断是否为系统角色
+     */
+    public boolean isSystemRole() {
+        return resolveIdentity() == UserIdentity.ADMIN;
+    }
+
+    /**
+     * 判断是否为代理角色（任意代理层级）
+     */
+    public boolean isAgentRole() {
+        UserIdentity identity = resolveIdentity();
+        return identity == UserIdentity.AGENT_LEVEL_1
+            || identity == UserIdentity.AGENT_LEVEL_2
+            || identity == UserIdentity.AGENT_LEVEL_3;
+    }
+
+    /**
+     * 判断是否为买家总账号角色
+     */
+    public boolean isBuyerMainRole() {
+        return resolveIdentity() == UserIdentity.BUYER_MAIN;
+    }
+
+    /**
+     * 判断是否为买家子账号角色
+     */
+    public boolean isBuyerSubRole() {
+        return resolveIdentity() == UserIdentity.BUYER_SUB;
+    }
+
+    /**
+     * 判断是否为买家角色（总账号或子账号）。
+     */
+    public boolean isBuyerRole() {
+        UserIdentity identity = resolveIdentity();
+        return identity == UserIdentity.BUYER_MAIN || identity == UserIdentity.BUYER_SUB;
     }
 
     // ==================== 显示方法 ====================
@@ -374,30 +388,6 @@ public class SysRole extends BaseEntity {
         }
     }
 
-    /**
-     * 获取部门类型显示文本
-     *
-     * @return 部门类型显示文本
-     */
-    public String getDeptTypeDisplay() {
-        if (this.deptType == null) {
-            return "未知类型";
-        }
-
-        switch (this.deptType) {
-            case "1":
-                return "系统部门";
-            case "2":
-                return "代理部门";
-            case "3":
-                return "买家总账户";
-            case "4":
-                return "买家子账户";
-            default:
-                return "未知类型";
-        }
-    }
-
     // ==================== 权限检查方法 ====================
 
     /**
@@ -434,9 +424,6 @@ public class SysRole extends BaseEntity {
      * @param targetDeptType 目标部门类型
      * @return true如果适用，false否则
      */
-    public boolean isApplicableToDeptType(String targetDeptType) {
-        return this.deptType != null && this.deptType.equals(targetDeptType);
-    }
 
     // ==================== 操作方法 ====================
 
@@ -477,7 +464,6 @@ public class SysRole extends BaseEntity {
         role.setRoleKey("admin");
         role.setRoleSort(1);
         role.setDataScope("1"); // 全部数据权限
-        role.setDeptType("1"); // 系统部门
         role.setStatus("0"); // 正常状态
         role.setMenuCheckStrictly(true);
         role.setDeptCheckStrictly(true);
@@ -495,7 +481,6 @@ public class SysRole extends BaseEntity {
         role.setRoleKey("system_admin");
         role.setRoleSort(2);
         role.setDataScope("1"); // 全部数据权限
-        role.setDeptType("1"); // 系统部门
         role.setStatus("0"); // 正常状态
         role.setMenuCheckStrictly(true);
         role.setDeptCheckStrictly(true);
@@ -513,7 +498,6 @@ public class SysRole extends BaseEntity {
         role.setRoleKey("tech_admin");
         role.setRoleSort(3);
         role.setDataScope("1"); // 全部数据权限
-        role.setDeptType("1"); // 系统部门
         role.setStatus("0"); // 正常状态
         role.setMenuCheckStrictly(true);
         role.setDeptCheckStrictly(true);
@@ -531,7 +515,6 @@ public class SysRole extends BaseEntity {
         role.setRoleKey("ops_admin");
         role.setRoleSort(4);
         role.setDataScope("1"); // 全部数据权限
-        role.setDeptType("1"); // 系统部门
         role.setStatus("0"); // 正常状态
         role.setMenuCheckStrictly(true);
         role.setDeptCheckStrictly(true);
@@ -549,7 +532,6 @@ public class SysRole extends BaseEntity {
         role.setRoleKey("agent");
         role.setRoleSort(10);
         role.setDataScope("4"); // 本部门及以下数据权限
-        role.setDeptType("2"); // 代理部门
         role.setStatus("0"); // 正常状态
         role.setMenuCheckStrictly(false);
         role.setDeptCheckStrictly(false);
@@ -567,7 +549,6 @@ public class SysRole extends BaseEntity {
         role.setRoleKey("buyer_main");
         role.setRoleSort(20);
         role.setDataScope("4"); // 本部门及以下数据权限
-        role.setDeptType("3"); // 买家总账户
         role.setStatus("0"); // 正常状态
         role.setMenuCheckStrictly(false);
         role.setDeptCheckStrictly(false);
@@ -585,7 +566,6 @@ public class SysRole extends BaseEntity {
         role.setRoleKey("buyer_sub");
         role.setRoleSort(21);
         role.setDataScope("5"); // 本人数据权限
-        role.setDeptType("4"); // 买家子账户
         role.setStatus("0"); // 正常状态
         role.setMenuCheckStrictly(false);
         role.setDeptCheckStrictly(false);

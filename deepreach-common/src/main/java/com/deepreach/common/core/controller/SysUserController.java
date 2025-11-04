@@ -2,14 +2,19 @@ package com.deepreach.common.core.controller;
 
 import com.deepreach.common.annotation.Log;
 import com.deepreach.common.core.domain.entity.SysUser;
-import com.deepreach.common.core.domain.dto.DeptUserGroupDTO;
+import com.deepreach.common.core.domain.dto.UserHierarchyGroupDTO;
+import com.deepreach.common.core.domain.dto.UserListRequest;
+import com.deepreach.common.core.domain.dto.UserSummaryResponse;
 import com.deepreach.common.core.domain.model.LoginUser;
 import com.deepreach.common.core.page.PageDomain;
 import com.deepreach.common.core.page.TableSupport;
 import com.deepreach.common.core.service.SysUserService;
 import com.deepreach.common.enums.BusinessType;
 import com.deepreach.common.security.SecurityUtils;
+import com.deepreach.common.security.UserRoleUtils;
+import com.deepreach.common.security.enums.UserIdentity;
 import com.deepreach.common.utils.StringUtils;
+import com.deepreach.common.web.BaseController;
 import com.deepreach.common.web.domain.Result;
 import com.deepreach.common.web.page.TableDataInfo;
 import com.deepreach.common.core.domain.vo.UserVO;
@@ -22,8 +27,11 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletResponse;
 
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 
@@ -49,7 +57,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @RestController
 @RequestMapping("/system/user")
-public class SysUserController {
+public class SysUserController extends BaseController {
 
     @Autowired
     private SysUserService userService;
@@ -65,13 +73,20 @@ public class SysUserController {
      * @param user 查询条件对象
      * @return 分页用户列表
      */
-    @GetMapping("/list")
+    @PostMapping("/list")
     // @PreAuthorize("@ss.hasPermi('system:user:list')")
-    public TableDataInfo list(SysUser user) {
+    public TableDataInfo list(@RequestBody(required = false) UserListRequest request) {
         try {
-            startPage(); // 启动分页
-            List<SysUser> list = userService.selectUserList(user);
-            return getDataTable(list);
+            UserListRequest effective = request != null ? request : new UserListRequest();
+            int pageNum = effective.getPageNum() != null ? effective.getPageNum() : 1;
+            int pageSize = effective.getPageSize() != null ? effective.getPageSize() : 10;
+            PageHelper.startPage(pageNum, pageSize);
+            List<SysUser> list = userService.searchUsers(effective);
+            PageInfo<SysUser> pageInfo = new PageInfo<>(list);
+            List<UserSummaryResponse> rows = list.stream()
+                .map(this::toUserSummary)
+                .collect(Collectors.toList());
+            return TableDataInfo.success(rows, pageInfo.getTotal(), pageInfo.getPageNum(), pageInfo.getPageSize());
         } catch (Exception e) {
             log.error("查询用户列表失败", e);
             return TableDataInfo.error("查询用户列表失败：" + e.getMessage());
@@ -84,9 +99,9 @@ public class SysUserController {
      * @param leaderId 负责人用户ID
      * @return 部门与用户分组信息
      */
-    @GetMapping("/leader/{leaderId}/direct-dept-users")
+    @GetMapping("/leader/{leaderId}/hierarchy-users")
     // @PreAuthorize("@ss.hasPermi('system:user:list')")
-    public Result<List<DeptUserGroupDTO>> listDirectDeptUsersByLeader(@PathVariable("leaderId") Long leaderId) {
+    public Result<List<UserHierarchyGroupDTO>> listHierarchyUsersByLeader(@PathVariable("leaderId") Long leaderId) {
         try {
             if (leaderId == null || leaderId <= 0) {
                 return Result.error("负责人ID无效");
@@ -97,12 +112,13 @@ public class SysUserController {
                 return Result.error("用户未登录");
             }
 
-            boolean hasGlobalPermission = SecurityUtils.hasPermission("system:user:list");
-            if (!hasGlobalPermission && !Objects.equals(currentUser.getUserId(), leaderId)) {
-                return Result.error("无权访问该负责人的部门用户信息");
+            if (!Objects.equals(currentUser.getUserId(), leaderId)
+                && !currentUser.isAdminIdentity()
+                && !userService.hasUserDataPermission(leaderId)) {
+                return Result.error("无权访问该负责人的层级用户信息");
             }
 
-            List<DeptUserGroupDTO> groups = userService.listUsersByLeaderDirectDepts(leaderId);
+            List<UserHierarchyGroupDTO> groups = userService.listUsersByLeaderDirectDepts(leaderId);
             return Result.success(groups);
         } catch (Exception e) {
             log.error("查询负责人直属部门用户失败：leaderId={}", leaderId, e);
@@ -197,22 +213,16 @@ public class SysUserController {
      */
     @GetMapping("/dept/query")
     // @PreAuthorize("@ss.hasPermi('system:user:list')")
-    public TableDataInfo searchDeptUsers(@RequestParam(value = "deptId", required = false) Long deptId,
-                                         @RequestParam(value = "identity", required = false) String identity,
-                                         @RequestParam(value = "username", required = false) String username,
-                                         @RequestParam(value = "beginTime", required = false) String beginTime,
-                                         @RequestParam(value = "endTime", required = false) String endTime) {
+    public TableDataInfo searchHierarchyUsers(@RequestParam(value = "rootUserId", required = false) Long rootUserId,
+                                              @RequestParam(value = "identity", required = false) String identity,
+                                              @RequestParam(value = "username", required = false) String username,
+                                              @RequestParam(value = "beginTime", required = false) String beginTime,
+                                              @RequestParam(value = "endTime", required = false) String endTime) {
         try {
             String resolvedDeptType = resolveDeptType(identity);
 
-            boolean hasDeptId = deptId != null && deptId > 0;
-
-            if (!hasDeptId && resolvedDeptType == null) {
-                return new TableDataInfo().error("部门ID与用户身份至少需要提供一个查询条件");
-            }
-
-            if (hasDeptId && !userService.hasDeptDataPermission(deptId)) {
-                return new TableDataInfo().error("无权访问该部门的用户信息");
+            if (rootUserId == null && resolvedDeptType == null) {
+                return new TableDataInfo().error("根用户ID与用户身份至少需要提供一个查询条件");
             }
 
             PageDomain pageDomain = TableSupport.buildPageRequest();
@@ -220,9 +230,6 @@ public class SysUserController {
             int pageSize = pageDomain.getPageSize() != null ? pageDomain.getPageSize() : 10;
 
             SysUser query = new SysUser();
-            if (hasDeptId) {
-                query.setDeptId(deptId);
-            }
             String usernameFilter = StringUtils.trimToNull(username);
             if (usernameFilter != null) {
                 query.setUsername(usernameFilter);
@@ -236,10 +243,8 @@ public class SysUserController {
                 query.addParam("endTime", endTimeFilter);
             }
 
-            final Long effectiveDeptId = hasDeptId ? deptId : null;
-
             PageInfo<SysUser> pageInfo = PageHelper.startPage(pageNum, pageSize)
-                    .doSelectPageInfo(() -> userService.searchUsersByDept(effectiveDeptId, resolvedDeptType, query));
+                    .doSelectPageInfo(() -> userService.selectUsersWithinHierarchy(rootUserId, resolvedDeptType, query));
 
             List<UserVO> voList = pageInfo.getList().stream()
                     .map(user -> userService.getCompleteUserInfo(user.getUserId()))
@@ -249,8 +254,8 @@ public class SysUserController {
             return TableDataInfo.success(voList, pageInfo.getTotal(),
                     pageInfo.getPageNum(), pageInfo.getPageSize());
         } catch (Exception e) {
-            log.error("条件查询部门用户失败：deptId={}, identity={}", deptId, identity, e);
-            return new TableDataInfo().error("查询部门用户失败：" + e.getMessage());
+            log.error("条件查询层级用户失败：rootUserId={}, identity={}", rootUserId, identity, e);
+            return new TableDataInfo().error("查询层级用户失败：" + e.getMessage());
         }
     }
 
@@ -264,39 +269,7 @@ public class SysUserController {
      * @param pageSize 每页大小
      * @return 分页后的部门用户列表
      */
-    @GetMapping("/dept/{deptId}")
-    // @PreAuthorize("@ss.hasPermi('system:user:list')")
-    public TableDataInfo getDeptUsers(@PathVariable("deptId") Long deptId,
-                                      @RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum,
-                                      @RequestParam(value = "pageSize", defaultValue = "10") Integer pageSize) {
-        try {
-            if (deptId == null || deptId <= 0) {
-                return TableDataInfo.error("部门ID无效");
-            }
-
-            // 检查数据权限
-            if (!userService.hasDeptDataPermission(deptId)) {
-                return TableDataInfo.error("无权访问该部门的用户信息");
-            }
-
-            SysUser query = new SysUser();
-            query.setDeptId(deptId);
-
-            PageInfo<SysUser> pageInfo = PageHelper.startPage(pageNum, pageSize)
-                    .doSelectPageInfo(() -> userService.selectUsersByDeptOnly(deptId, query));
-
-            List<UserVO> voList = pageInfo.getList().stream()
-                    .map(user -> userService.getCompleteUserInfo(user.getUserId()))
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toList());
-
-            return TableDataInfo.success(voList, pageInfo.getTotal(),
-                    pageInfo.getPageNum(), pageInfo.getPageSize());
-        } catch (Exception e) {
-            log.error("查询部门用户失败：部门ID={}", deptId, e);
-            return TableDataInfo.error("查询部门用户失败：" + e.getMessage());
-        }
-    }
+// 移除旧 /dept 接口，改用层级查询方案
 
     /**
      * 根据商户ID获取下级用户列表
@@ -336,57 +309,6 @@ public class SysUserController {
         } catch (Exception e) {
             log.error("查询商户下级用户失败：商户ID={}", merchantId, e);
             return TableDataInfo.error("查询商户下级用户失败：" + e.getMessage());
-        }
-    }
-
-    /**
-     * 获取指定部门的用户列表
-     *
-     * 按部门ID查询用户，默认支持分页及可选查询参数绑定到SysUser
-     *
-     * @param deptId 部门ID
-     * @param query  绑定的查询条件
-     * @return 分页后的部门用户列表
-     */
-    @PostMapping("/dept")
-    // @PreAuthorize("@ss.hasPermi('system:user:list')")
-    public TableDataInfo listByDept(@RequestParam(value = "username", required = false) String username,
-                                    @RequestBody(required = false) SysUser requestBody) {
-        SysUser criteria = requestBody != null ? requestBody : new SysUser();
-
-        Long deptId = criteria.getDeptId();
-        if (deptId == null || deptId <= 0) {
-            return TableDataInfo.error("部门ID无效");
-        }
-
-        try {
-            if (!userService.hasDeptDataPermission(deptId)) {
-                return TableDataInfo.error("无权访问该部门的用户信息");
-            }
-
-            String usernameFilter = StringUtils.trimToNull(
-                    username != null ? username : criteria.getUsername());
-            if (usernameFilter != null) {
-                criteria.setUsername(usernameFilter);
-            }
-
-            PageDomain pageDomain = TableSupport.buildPageRequest();
-            int pageNum = pageDomain.getPageNum() != null ? pageDomain.getPageNum() : 1;
-            int pageSize = pageDomain.getPageSize() != null ? pageDomain.getPageSize() : 10;
-
-            PageInfo<SysUser> pageInfo = PageHelper.startPage(pageNum, pageSize)
-                    .doSelectPageInfo(() -> userService.selectUsersByDeptId(deptId, criteria));
-
-            List<UserVO> voList = pageInfo.getList().stream()
-                    .map(user -> userService.getCompleteUserInfo(user.getUserId()))
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toList());
-
-            return TableDataInfo.success(voList, pageInfo.getTotal(),
-                    pageInfo.getPageNum(), pageInfo.getPageSize());
-        } catch (Exception e) {
-            log.error("查询部门用户失败：部门ID={}", deptId, e);
-            return TableDataInfo.error("查询部门用户失败：" + e.getMessage());
         }
     }
 
@@ -913,45 +835,37 @@ public class SysUserController {
      * @return 是否有权限
      */
     private boolean hasUserDataPermission(Long targetUserId) {
-        // 超级管理员拥有所有权限
-        LoginUser currentUser = SecurityUtils.getCurrentLoginUser();
-        if (currentUser != null && currentUser.isAdmin()) {
-            return true;
-        }
-
-        // 检查系统权限
-        if (SecurityUtils.hasPermission("system:user:list")) {
-            return true;
-        }
-
-        // 只能管理自己（如果普通用户）
-        return currentUser != null && targetUserId.equals(currentUser.getUserId());
+        return userService.hasUserHierarchyPermission(targetUserId);
     }
 
-    // ==================== 分页辅助方法 ====================
-    // 注意：这些方法需要在基类中实现
-
-    /**
-     * 启动分页
-     */
-    protected void startPage() {
-        PageDomain pageDomain = TableSupport.buildPageRequest();
-        Integer pageNum = pageDomain.getPageNum();
-        Integer pageSize = pageDomain.getPageSize();
-        if (pageNum == null || pageSize == null || pageSize <= 0) {
-            return;
+    private UserSummaryResponse toUserSummary(SysUser user) {
+        if (user == null) {
+            return null;
         }
-        String orderBy = pageDomain.getOrderBy();
-        PageHelper.startPage(pageNum, pageSize, orderBy).setReasonable(pageDomain.getReasonable());
-    }
+        UserSummaryResponse response = new UserSummaryResponse();
+        response.setUserId(user.getUserId());
+        response.setUsername(user.getUsername());
+        response.setNickname(user.getNickname());
+        response.setRealName(user.getRealName());
+        response.setEmail(user.getEmail());
+        response.setPhone(user.getPhone());
+        response.setStatus(user.getStatus());
+        response.setUserType(user.getUserType());
+        response.setDisplayName(user.getDisplayName());
+        response.setInvitationCode(user.getInvitationCode());
+        response.setParentUserId(user.getParentUserId());
+        response.setParentUsername(user.getParentUsername());
+        response.setCreateTime(user.getCreateTime());
+        response.setUpdateTime(user.getUpdateTime());
+        response.setLoginTime(user.getLoginTime());
+        response.setLoginIp(user.getLoginIp());
 
-    /**
-     * 构建分页数据表格
-     */
-    protected TableDataInfo getDataTable(List<?> list) {
-        PageInfo<?> pageInfo = new PageInfo<>(list);
-        return TableDataInfo.success(list, pageInfo.getTotal(),
-                pageInfo.getPageNum(), pageInfo.getPageSize());
+        Set<String> roles = user.getRoles() != null ? user.getRoles() : Collections.emptySet();
+        response.setRoles(new LinkedHashSet<>(roles));
+        response.setIdentities(UserRoleUtils.resolveIdentities(roles).stream()
+            .map(UserIdentity::getRoleKey)
+            .collect(Collectors.toCollection(LinkedHashSet::new)));
+        return response;
     }
 
 }

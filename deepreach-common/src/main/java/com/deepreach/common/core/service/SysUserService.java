@@ -1,8 +1,9 @@
 package com.deepreach.common.core.service;
 
+import com.deepreach.common.core.domain.dto.UserHierarchyNodeDTO;
+import com.deepreach.common.core.domain.dto.UserHierarchyGroupDTO;
 import com.deepreach.common.core.domain.entity.SysUser;
 import com.deepreach.common.core.domain.model.LoginUser;
-import com.deepreach.common.core.domain.dto.DeptUserGroupDTO;
 
 import java.util.List;
 import java.util.Set;
@@ -72,56 +73,55 @@ public interface SysUserService {
      */
     List<SysUser> selectUserList(SysUser user);
 
-    List<SysUser> selectUsersByDeptId(Long deptId);
-
     /**
-     * 根据部门ID和查询条件获取用户列表
+     * 基于用户层级和角色身份的组合条件查询。
      *
-     * @param deptId 部门ID
-     * @param query 用户查询条件
+     * @param request 查询请求
      * @return 用户列表
      */
-    List<SysUser> selectUsersByDeptId(Long deptId, SysUser query);
+    List<SysUser> searchUsers(com.deepreach.common.core.domain.dto.UserListRequest request);
 
     /**
-     * 根据部门ID查询用户列表（仅当前部门）
+     * 在用户层级范围内查询用户列表
      *
-     * 查询指定部门的用户列表，不包含子部门用户
-     * 支持多条件查询和分页
-     *
-     * @param deptId 部门ID
-     * @param user   查询条件
+     * @param rootUserId 根用户ID，可为空（表示只按身份过滤）
+     * @param filter 查询条件
      * @return 用户列表
      */
-    List<SysUser> selectUsersByDeptOnly(Long deptId, SysUser user);
+    List<SysUser> selectUsersWithinHierarchy(Long rootUserId, SysUser filter);
 
     /**
-     * 根据部门和用户身份条件查询用户列表
-     *
-     * 支持通过部门ID、部门类型（用户身份）、账号和注册时间范围联合筛选
-     *
-     * @param deptId 部门ID，可为空
-     * @param deptType 部门类型（用户身份），可为空
-     * @param query 用户查询条件
-     * @return 用户列表
+     * 在用户层级范围内按身份过滤查询
      */
-    List<SysUser> searchUsersByDept(Long deptId, String deptType, SysUser query);
+    List<SysUser> selectUsersWithinHierarchy(Long rootUserId, String identity, SysUser filter);
 
     /**
-     * 获取指定负责人直接管理的部门及用户列表
+     * 获取指定负责人直接管理的子用户分组信息（按身份分类）。
      *
      * @param leaderUserId 负责人用户ID
-     * @return 部门及其直属用户分组
+     * @return 按身份聚合的直属用户分组
      */
-    List<DeptUserGroupDTO> listUsersByLeaderDirectDepts(Long leaderUserId);
+    List<UserHierarchyGroupDTO> listUsersByLeaderDirectDepts(Long leaderUserId);
 
     /**
-     * 检查当前用户是否拥有指定部门的数据权限
+     * 获取所有用户的父子关系列表.
      *
-     * @param deptId 部门ID
-     * @return true有权限，false无权限
+     * @return 用户与父用户的关系列表
      */
-    boolean hasDeptDataPermission(Long deptId);
+    List<UserHierarchyNodeDTO> listAllUserHierarchyRelations();
+
+    /**
+     * 重新构建并缓存用户层级树.
+     */
+    void rebuildUserHierarchyCache();
+
+    /**
+     * 检查当前用户是否拥有指定用户的数据权限（基于用户树）。
+     *
+     * @param targetUserId 目标用户ID
+     * @return true 有权限，false 无权限
+     */
+    boolean hasUserHierarchyPermission(Long targetUserId);
 
     /**
      * 创建新用户
@@ -458,17 +458,8 @@ public interface SysUserService {
      */
     boolean forceUserOffline(Long userId) throws Exception;
 
-    // ==================== 基于部门类型的业务方法 ====================
-
-    /**
-     * 根据部门类型查询用户列表
-     *
-     * @param deptType 部门类型（1系统 2代理 3买家总账户 4买家子账户）
-     * @return 用户列表
-     * @throws Exception 当查询失败时抛出异常
-     */
-    List<SysUser> selectUsersByDeptType(String deptType) throws Exception;
-
+    // ==================== 基于用户树的业务方法 ====================
+    
     /**
      * 根据父用户ID查询子账号列表
      *
@@ -503,29 +494,6 @@ public interface SysUserService {
     List<SysUser> selectBuyerAccountTree(Long userId) throws Exception;
 
     /**
-     * 查询代理层级用户
-     *
-     * 根据代理层级查询用户
-     *
-     * @param level 代理层级（1一级代理 2二级代理 3三级代理）
-     * @return 该层级的代理用户列表
-     * @throws Exception 当查询失败时抛出异常
-     */
-    List<SysUser> selectUsersByAgentLevel(Integer level) throws Exception;
-
-    /**
-     * 查询指定部门及其子部门的用户
-     *
-     * 递归查询指定部门及其所有子部门的用户
-     * 用于数据权限控制和组织架构管理
-     *
-     * @param deptId 部门ID
-     * @return 用户列表
-     * @throws Exception 当查询失败时抛出异常
-     */
-    List<SysUser> selectUsersByDeptAndChildren(Long deptId) throws Exception;
-
-    /**
      * 检查用户是否可以创建子账号
      *
      * 基于部门类型检查用户是否有权限创建子账号
@@ -536,54 +504,6 @@ public interface SysUserService {
      * @throws Exception 当查询失败时抛出异常
      */
     boolean checkCanCreateSubAccount(Long userId) throws Exception;
-
-    /**
-     * 检查用户是否可以创建下级部门
-     *
-     * 根据用户所在部门类型和层级判断
-     *
-     * @param userId 用户ID
-     * @return true如果可以创建下级部门，false否则
-     * @throws Exception 当查询失败时抛出异常
-     */
-    boolean checkCanCreateChildDept(Long userId) throws Exception;
-
-    /**
-     * 获取用户部门类型统计
-     *
-     * 统计指定部门及其子部门的用户类型分布信息
-     * 管理层用户（除买家子账户外的所有用户）用于查看自己部门及下级子部门的统计信息
-     * 包括各部门类型分布、用户数量、层级结构等
-     *
-     * @param deptId 部门ID
-     * @return 部门及子部门的用户类型统计信息
-     * @throws Exception 当查询失败时抛出异常
-     */
-    java.util.Map<String, Object> getUserDeptTypeStatistics(Long deptId) throws Exception;
-
-    /**
-     * 获取用户组织架构信息
-     *
-     * 获取用户的完整组织架构信息，包括部门层级、类型等
-     *
-     * @param userId 用户ID
-     * @return 组织架构信息
-     * @throws Exception 当查询失败时抛出异常
-     */
-    java.util.Map<String, Object> getUserOrgInfo(Long userId) throws Exception;
-
-    /**
-     * 创建买家子账户
-     *
-     * 为买家总账户创建子账户
-     * 包含完整的验证和权限检查
-     *
-     * @param user 子账户用户对象
-     * @param parentUserId 父用户ID（买家总账户用户ID）
-     * @return 创建成功后的子账户用户对象
-     * @throws Exception 当参数验证失败或无权限时抛出异常
-     */
-    SysUser createBuyerSubAccount(SysUser user, Long parentUserId) throws Exception;
 
     // ==================== 基于简化角色体系的权限控制方法 ====================
 
@@ -636,8 +556,9 @@ public interface SysUserService {
     /**
      * 获取用户管理的用户统计信息
      *
-     * 统计指定用户作为负责人的部门树中所有用户的数量
-     * 按用户类型和状态分组统计
+     * 基于用户层级树统计指定用户及其所有下级用户的数量，
+     * 使用角色身份（admin/agent/buyer/sub_buyer）进行分组。
+     * 结果同时包含代理分级明细与无法解析身份的数量。
      *
      * @param userId 用户ID
      * @return 用户统计信息

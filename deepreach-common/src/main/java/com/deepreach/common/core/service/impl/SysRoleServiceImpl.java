@@ -1,11 +1,10 @@
 package com.deepreach.common.core.service.impl;
 
 import com.deepreach.common.core.domain.entity.SysRole;
-import com.deepreach.common.core.domain.entity.SysDept;
 import com.deepreach.common.core.service.SysRoleService;
-import com.deepreach.common.core.service.SysDeptService;
 import com.deepreach.common.core.mapper.SysRoleMapper;
 import com.deepreach.common.security.SecurityUtils;
+import com.deepreach.common.security.enums.UserIdentity;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -18,11 +17,11 @@ import java.util.stream.Collectors;
 /**
  * 角色Service实现类
  *
- * 基于部门类型的角色管理业务逻辑实现，负责：
+ * 基于身份的角色管理业务逻辑实现，负责：
  * 1. 角色基本信息管理（增删改查）
  * 2. 角色权限关联管理
  * 3. 角色数据权限管理
- * 4. 基于部门类型的角色分类管理
+ * 4. 基于身份的角色分类管理
  * 5. 角色分配和权限验证
  *
  * @author DeepReach Team
@@ -36,9 +35,6 @@ public class SysRoleServiceImpl implements SysRoleService {
     @Autowired
     private SysRoleMapper roleMapper;
 
-    @Autowired
-    private SysDeptService deptService;
-
     // ==================== 查询方法 ====================
 
     @Override
@@ -49,26 +45,6 @@ public class SysRoleServiceImpl implements SysRoleService {
 
         try {
             SysRole role = roleMapper.selectRoleById(roleId);
-            if (role != null) {
-                // 加载角色关联的菜单权限
-                List<Long> menuIds = getRoleMenuIds(roleId);
-                if (menuIds != null && !menuIds.isEmpty()) {
-                    // 这里需要加载SysMenu实体，但由于没有定义，暂时跳过
-                    // role.setMenus(loadMenusByIds(menuIds));
-                }
-
-                // 加载角色关联的部门权限（如果数据权限为自定义）
-                if ("2".equals(role.getDataScope())) {
-                    List<Long> deptIds = getRoleDeptIds(roleId);
-                    if (deptIds != null && !deptIds.isEmpty()) {
-                        List<SysDept> depts = deptIds.stream()
-                                .map(deptService::selectDeptById)
-                                .filter(Objects::nonNull)
-                                .collect(Collectors.toList());
-                        role.getDepts().addAll(depts);
-                    }
-                }
-            }
             return role;
         } catch (Exception e) {
             log.error("查询角色失败：角色ID={}", roleId, e);
@@ -79,7 +55,8 @@ public class SysRoleServiceImpl implements SysRoleService {
     @Override
     public List<SysRole> selectRoleList(SysRole role) {
         try {
-            return roleMapper.selectRoleList(role);
+            List<SysRole> roles = roleMapper.selectRoleList(role);
+            return roles;
         } catch (Exception e) {
             log.error("查询角色列表失败", e);
             return new ArrayList<>();
@@ -93,7 +70,8 @@ public class SysRoleServiceImpl implements SysRoleService {
         }
 
         try {
-            return roleMapper.selectRolesByUserId(userId);
+            List<SysRole> roles = roleMapper.selectRolesByUserId(userId);
+            return roles;
         } catch (Exception e) {
             log.error("查询用户角色失败：用户ID={}", userId, e);
             return new ArrayList<>();
@@ -101,15 +79,23 @@ public class SysRoleServiceImpl implements SysRoleService {
     }
 
     @Override
-    public List<SysRole> selectRolesByDeptType(String deptType) {
-        if (deptType == null) {
+    public List<SysRole> selectRolesByIdentity(String identity) {
+        if (identity == null) {
             return new ArrayList<>();
         }
 
         try {
-            return roleMapper.selectRolesByDeptType(deptType);
+            Set<UserIdentity> identities = resolveIdentitiesFromAlias(identity);
+            if (identities.isEmpty()) {
+                return new ArrayList<>();
+            }
+            Set<String> roleKeys = identities.stream()
+                .map(UserIdentity::getRoleKey)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+            List<SysRole> roles = roleMapper.selectRolesByRoleKeys(roleKeys);
+            return roles;
         } catch (Exception e) {
-            log.error("根据部门类型查询角色失败：部门类型={}", deptType, e);
+            log.error("根据身份查询角色失败：身份={}", identity, e);
             return new ArrayList<>();
         }
     }
@@ -132,10 +118,6 @@ public class SysRoleServiceImpl implements SysRoleService {
             throw new Exception("角色标识不能为空");
         }
 
-        if (role.getDeptType() == null) {
-            throw new Exception("适用部门类型不能为空");
-        }
-
         // 唯一性验证
         if (checkRoleNameUnique(role.getRoleName(), null) > 0) {
             throw new Exception("角色名称已存在");
@@ -147,6 +129,8 @@ public class SysRoleServiceImpl implements SysRoleService {
 
         // 权限验证
         validateRoleCreatePermission(role);
+        UserIdentity identity = determineIdentity(role)
+            .orElseThrow(() -> new Exception("无法解析角色对应的身份，请检查角色标识"));
 
         // 设置默认值
         role.setStatus(role.getStatus() != null ? role.getStatus() : "0");
@@ -199,6 +183,10 @@ public class SysRoleServiceImpl implements SysRoleService {
         if (role.getRoleKey() != null && checkRoleKeyUnique(role.getRoleKey(), role.getRoleId()) > 0) {
             throw new Exception("角色标识已存在");
         }
+
+        UserIdentity identity = determineIdentity(role)
+            .or(() -> determineIdentity(existingRole))
+            .orElseThrow(() -> new Exception("无法解析角色对应的身份，请检查角色标识"));
 
         // 设置更新者信息
         String currentUsername = SecurityUtils.getCurrentUsername();
@@ -574,20 +562,16 @@ public class SysRoleServiceImpl implements SysRoleService {
             // 各类型角色数量
             Map<String, Integer> roleTypeCount = new HashMap<>();
             SysRole systemRole = new SysRole();
-            systemRole.setDeptType("1");
-            roleTypeCount.put("system", roleMapper.countRoles(systemRole));
+                        roleTypeCount.put("system", roleMapper.countRoles(systemRole));
 
             SysRole agentRole = new SysRole();
-            agentRole.setDeptType("2");
-            roleTypeCount.put("agent", roleMapper.countRoles(agentRole));
+                        roleTypeCount.put("agent", roleMapper.countRoles(agentRole));
 
             SysRole buyerMainRole = new SysRole();
-            buyerMainRole.setDeptType("3");
-            roleTypeCount.put("buyerMain", roleMapper.countRoles(buyerMainRole));
+                        roleTypeCount.put("buyerMain", roleMapper.countRoles(buyerMainRole));
 
             SysRole buyerSubRole = new SysRole();
-            buyerSubRole.setDeptType("4");
-            roleTypeCount.put("buyerSub", roleMapper.countRoles(buyerSubRole));
+                        roleTypeCount.put("buyerSub", roleMapper.countRoles(buyerSubRole));
             statistics.put("roleTypeCount", roleTypeCount);
 
             // 各状态角色数量 - 使用updateRoleStatus方法更新状态来统计
@@ -612,46 +596,61 @@ public class SysRoleServiceImpl implements SysRoleService {
 
     @Override
     public void validateRoleCreatePermission(SysRole role) throws Exception {
-        if (role == null || role.getDeptType() == null) {
-            throw new Exception("角色部门类型不能为空");
-        }
+        UserIdentity identity = determineIdentity(role)
+            .orElseThrow(() -> new Exception("无法解析角色身份，请提供有效的角色标识"));
 
         // 超级管理员可以创建所有类型的角色
         if (SecurityUtils.isCurrentUserAdmin()) {
             return;
         }
 
-        // 其他权限验证逻辑
-        // 这里可以根据实际业务需求添加更细粒度的权限控制
+        // 非管理员禁止创建管理员角色
+        if (identity == UserIdentity.ADMIN) {
+            throw new Exception("只有超级管理员可以创建管理员角色");
+        }
     }
 
     @Override
-    public boolean isRoleApplicableToDeptType(Long roleId, String deptType) {
-        if (roleId == null || deptType == null) {
+    public boolean isRoleApplicableToIdentity(Long roleId, String identity) {
+        if (roleId == null || identity == null) {
             return false;
         }
 
         try {
             SysRole role = selectRoleById(roleId);
-            return role != null && deptType.equals(role.getDeptType());
+            if (role == null) {
+                return false;
+            }
+            Optional<UserIdentity> roleIdentity = determineIdentity(role);
+            Set<UserIdentity> targets = resolveIdentitiesFromAlias(identity);
+            return roleIdentity.isPresent() && targets.contains(roleIdentity.get());
         } catch (Exception e) {
-            log.error("检查角色部门类型适用性失败：角色ID={}, 部门类型={}", roleId, deptType, e);
+            log.error("检查角色身份适用性失败：角色ID={}, 身份={}", roleId, identity, e);
             return false;
         }
     }
 
     @Override
-    public SysRole getDefaultRoleByDeptType(String deptType) {
-        if (deptType == null) {
+    public SysRole getDefaultRoleByIdentity(String identity) {
+        if (identity == null) {
             return null;
         }
 
         try {
-            // 根据部门类型查询角色列表，返回第一个作为默认角色
-            List<SysRole> roles = roleMapper.selectRolesByDeptType(deptType);
-            return roles != null && !roles.isEmpty() ? roles.get(0) : null;
+            Set<UserIdentity> identities = resolveIdentitiesFromAlias(identity);
+            if (identities.isEmpty()) {
+                return null;
+            }
+            Set<String> roleKeys = identities.stream()
+                .map(UserIdentity::getRoleKey)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+            List<SysRole> roles = roleMapper.selectRolesByRoleKeys(roleKeys);
+            if (roles == null || roles.isEmpty()) {
+                return null;
+            }
+            return roles.get(0);
         } catch (Exception e) {
-            log.error("查询默认角色失败：部门类型={}", deptType, e);
+            log.error("查询默认角色失败：身份={}", identity, e);
             return null;
         }
     }
@@ -755,5 +754,47 @@ public class SysRoleServiceImpl implements SysRoleService {
         }
 
         return result;
+    }
+
+    // ==================== 私有辅助方法 ====================
+
+    private Optional<UserIdentity> determineIdentity(SysRole role) {
+        if (role == null || role.getRoleKey() == null) {
+            return Optional.empty();
+        }
+        String key = role.getRoleKey().trim();
+        if (key.isEmpty()) {
+            return Optional.empty();
+        }
+        Optional<UserIdentity> identity = UserIdentity.fromRoleKey(key.toLowerCase(Locale.ROOT));
+        if (identity.isPresent()) {
+            return identity;
+        }
+        try {
+            return Optional.of(UserIdentity.valueOf(key.toUpperCase(Locale.ROOT)));
+        } catch (IllegalArgumentException ex) {
+            return Optional.empty();
+        }
+    }
+
+    private Set<UserIdentity> resolveIdentitiesFromAlias(String alias) {
+        if (alias == null) {
+            return Collections.emptySet();
+        }
+        String normalized = alias.trim().toLowerCase(Locale.ROOT);
+        if (normalized.isEmpty()) {
+            return Collections.emptySet();
+        }
+
+        // 直接匹配 roleKey
+        Optional<UserIdentity> direct = UserIdentity.fromRoleKey(normalized);
+        if (direct.isPresent()) {
+            return EnumSet.of(direct.get());
+        }
+        try {
+            return EnumSet.of(UserIdentity.valueOf(normalized.toUpperCase(Locale.ROOT)));
+        } catch (IllegalArgumentException ex) {
+            return Collections.emptySet();
+        }
     }
 }

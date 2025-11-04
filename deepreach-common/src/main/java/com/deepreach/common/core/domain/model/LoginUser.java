@@ -1,6 +1,9 @@
 package com.deepreach.common.core.domain.model;
 
+import com.deepreach.common.core.domain.entity.SysDept;
 import com.deepreach.common.core.domain.entity.SysUser;
+import com.deepreach.common.security.UserRoleUtils;
+import com.deepreach.common.security.enums.UserIdentity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,7 +14,6 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -34,7 +36,6 @@ import java.util.stream.Collectors;
  * @since 2025-10-28
  */
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class LoginUser implements UserDetails {
@@ -47,36 +48,34 @@ public class LoginUser implements UserDetails {
     private Long userId;
 
     /**
-     * 部门ID
-     *
-     * 在新设计中为必填项，用户必须归属于某个部门
-     */
-    private Long deptId;
-
-    /**
-     * 部门类型（1系统 2代理 3买家总账户 4买家子账户）
-     */
-    private String deptType;
-
-    /**
-     * 部门名称
-     */
-    private String deptName;
-
-    /**
-     * 代理层级（仅代理部门有效）
-     */
-    private Integer agentLevel;
-
-    /**
      * 父用户ID（仅买家子账户有效）
      */
     private Long parentUserId;
 
     /**
-     * 父用户名称（仅买家子账户有效）
+     * 部门概念逐步下线，仅为兼容旧代码保留。
+     */
+    private Long deptId;
+
+    /**
+     * 部门概念逐步下线，仅为兼容旧代码保留。
+     */
+    private String deptName;
+
+    /**
+     * 部门概念逐步下线，仅为兼容旧代码保留。
+     */
+    private Integer agentLevel;
+
+    /**
+     * 部门概念逐步下线，仅为兼容旧代码保留。
      */
     private String parentUserName;
+
+    /**
+     * 邀请码
+     */
+    private String invitationCode;
 
     /**
      * 用户名
@@ -139,6 +138,12 @@ public class LoginUser implements UserDetails {
     private Set<String> roles;
 
     /**
+     * 用户身份集合
+     */
+    @JsonIgnore
+    private transient Set<UserIdentity> identities;
+
+    /**
      * 用户令牌
      */
     private String token;
@@ -168,12 +173,10 @@ public class LoginUser implements UserDetails {
      */
     private LocalDateTime updateTime;
 
-    // ==================== 基于部门类型的扩展字段 ====================
-
     /**
-     * 部门对象（包含部门详细信息）
+     * 部门概念逐步下线，仅为兼容旧代码保留。
      */
-    private com.deepreach.common.core.domain.entity.SysDept dept;
+    private transient SysDept dept;
 
     // ==================== UserDetails接口实现 ====================
 
@@ -350,53 +353,54 @@ public class LoginUser implements UserDetails {
 
     // ==================== 基于部门类型的业务判断方法 ====================
 
-    /**
-     * 判断是否为系统部门用户
-     */
-    public boolean isSystemDeptUser() {
-        return "1".equals(this.deptType);
+    public boolean hasIdentity(UserIdentity identity) {
+        return UserRoleUtils.hasIdentity(this.roles, identity);
+    }
+
+    public boolean hasAnyIdentity(UserIdentity... identityList) {
+        return UserRoleUtils.hasAnyIdentity(this.roles, identityList);
+    }
+
+    public boolean hasAllIdentities(UserIdentity... identityList) {
+        return UserRoleUtils.hasAllIdentities(this.roles, identityList);
+    }
+
+    public boolean isAdminIdentity() {
+        return hasIdentity(UserIdentity.ADMIN);
+    }
+
+    public boolean isAgentIdentity() {
+        return hasAnyIdentity(UserIdentity.AGENT_LEVEL_1, UserIdentity.AGENT_LEVEL_2, UserIdentity.AGENT_LEVEL_3);
+    }
+
+    public boolean isBuyerMainIdentity() {
+        return hasIdentity(UserIdentity.BUYER_MAIN);
+    }
+
+    public boolean isBuyerSubIdentity() {
+        return hasIdentity(UserIdentity.BUYER_SUB);
+    }
+
+    public boolean isBuyerIdentity() {
+        return isBuyerMainIdentity() || isBuyerSubIdentity();
     }
 
     /**
-     * 判断是否为代理部门用户
+     * @deprecated 使用 {@link #isAdminIdentity()}。
      */
-    public boolean isAgentDeptUser() {
-        return "2".equals(this.deptType);
-    }
-
-    /**
-     * 判断是否为买家总账户用户
-     */
-    public boolean isBuyerMainAccountUser() {
-        return "3".equals(this.deptType);
-    }
-
-    /**
-     * 判断是否为买家子账户用户
-     */
-    public boolean isBuyerSubAccountUser() {
-        return "4".equals(this.deptType);
-    }
-
-    /**
-     * 判断是否为买家用户（总账户或子账户）
-     */
-    public boolean isBuyerUser() {
-        return isBuyerMainAccountUser() || isBuyerSubAccountUser();
-    }
-
+    @Deprecated
     /**
      * 判断是否为后台用户
      */
-    public boolean isBackendDeptUser() {
-        return isSystemDeptUser() || isAgentDeptUser() || isBuyerMainAccountUser();
+    public boolean isBackendUser() {
+        return isAdminIdentity() || isAgentIdentity() || isBuyerMainIdentity();
     }
 
     /**
      * 判断是否为前端用户
      */
     public boolean isFrontendUser() {
-        return isBuyerSubAccountUser();
+        return isBuyerSubIdentity();
     }
 
     /**
@@ -496,12 +500,7 @@ public class LoginUser implements UserDetails {
                 .email(email)
                 .nickname(nickname)
                 .phone(phone)
-                .deptId(deptId)
-                .deptType(deptType)
-                .deptName(deptName)
-                .agentLevel(agentLevel)
                 .parentUserId(parentUserId)
-                .parentUserName(parentUserName)
                 .status(status)
                 .roles(roles)
                 .permissions(permissions)
@@ -519,23 +518,20 @@ public class LoginUser implements UserDetails {
         }
 
         // 获取部门信息
-        com.deepreach.common.core.domain.entity.SysDept dept = sysUser.getDept();
-        String deptType = null;
+        SysDept dept = sysUser.getDept();
         String deptName = null;
         Integer agentLevel = null;
-        Long parentUserId = null;
+        Long parentUserId = sysUser.getParentUserId();
         String parentUserName = null;
 
         if (dept != null) {
-            deptType = dept.getDeptType();
             deptName = dept.getDeptName();
             agentLevel = dept.getLevel();
+        }
 
-            // 如果是买家子账户，获取父用户信息
-            if (dept.isBuyerSubDept() && sysUser.getParentUserId() != null) {
-                parentUserId = sysUser.getParentUserId();
-                // TODO: 可以在这里查询父用户名称
-            }
+        if (sysUser.isBuyerSubIdentity() && sysUser.getParentUserId() != null) {
+            parentUserId = sysUser.getParentUserId();
+            // TODO: 可以在这里查询父用户名称
         }
 
         // 转换Date为LocalDateTime
@@ -554,39 +550,39 @@ public class LoginUser implements UserDetails {
             loginTime = sysUser.getLoginTime();
         }
 
-        return LoginUser.builder()
-                .userId(sysUser.getUserId())
-                .deptId(sysUser.getDeptId())
-                .deptType(deptType)
-                .deptName(deptName)
-                .agentLevel(agentLevel)
-                .parentUserId(parentUserId)
-                .parentUserName(parentUserName)
-                .username(sysUser.getUsername())
-                .password(sysUser.getPassword())
-                .email(sysUser.getEmail())
-                .nickname(sysUser.getNickname())
-                .phone(sysUser.getPhone())
-                .status(sysUser.getStatus())
-                .dept(dept)
-                .roles(roles)
-                .permissions(permissions)
-                .createTime(createTime)
-                .updateTime(updateTime)
-                .loginTime(loginTime)
-                .build();
+        LoginUser loginUser = new LoginUser();
+        loginUser.setUserId(sysUser.getUserId());
+        loginUser.setDeptId(sysUser.getDeptId());
+        loginUser.setDeptName(deptName);
+        loginUser.setAgentLevel(agentLevel);
+        loginUser.setParentUserId(parentUserId);
+        loginUser.setParentUserName(parentUserName);
+        loginUser.setInvitationCode(sysUser.getInvitationCode());
+        loginUser.setUsername(sysUser.getUsername());
+        loginUser.setPassword(sysUser.getPassword());
+        loginUser.setEmail(sysUser.getEmail());
+        loginUser.setNickname(sysUser.getNickname());
+        loginUser.setPhone(sysUser.getPhone());
+        loginUser.setStatus(sysUser.getStatus());
+        loginUser.setRoles(roles != null ? roles : Collections.emptySet());
+        loginUser.setPermissions(permissions != null ? permissions : Collections.emptySet());
+        loginUser.setCreateTime(createTime);
+        loginUser.setUpdateTime(updateTime);
+        loginUser.setLoginTime(loginTime);
+        loginUser.setDept(dept);
+        return loginUser;
     }
 
     /**
      * 创建匿名用户
      */
     public static LoginUser createAnonymous() {
-        return LoginUser.builder()
-                .userId(-1L)
-                .username("anonymous")
-                .status("0")
-                .roles(Collections.emptySet())
-                .permissions(Collections.emptySet())
-                .build();
+        LoginUser loginUser = new LoginUser();
+        loginUser.setUserId(-1L);
+        loginUser.setUsername("anonymous");
+        loginUser.setStatus("0");
+        loginUser.setRoles(Collections.emptySet());
+        loginUser.setPermissions(Collections.emptySet());
+        return loginUser;
     }
 }
