@@ -27,6 +27,12 @@ public class UserListRequest implements Serializable {
     /** 身份标识（admin、agent_level_1、buyer_main 等） */
     private String identity;
 
+    /** 精确匹配 - 用户ID */
+    private Long userId;
+
+    /** 仅查询直属下级 */
+    private Boolean parentOnly;
+
     /** 精确匹配 - 用户名 */
     private String username;
 

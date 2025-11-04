@@ -1,6 +1,7 @@
 package com.deepreach.web.entity;
 
 import com.deepreach.common.core.domain.BaseEntity;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -83,6 +84,7 @@ public class DrBillingRecord extends BaseEntity {
     /**
      * 各级代理佣金汇总
      */
+    @JsonIgnore
     private Map<String, BigDecimal> agentLevelCommission;
 
     /**

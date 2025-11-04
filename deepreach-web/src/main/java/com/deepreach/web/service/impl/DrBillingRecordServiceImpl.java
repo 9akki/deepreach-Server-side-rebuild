@@ -48,18 +48,6 @@ public class DrBillingRecordServiceImpl implements DrBillingRecordService {
         query.setBillType(1);
         query.setBusinessType(DrBillingRecord.BUSINESS_TYPE_RECHARGE);
         List<DrBillingRecord> records = billingRecordMapper.selectRecordPage(query);
-        if (records != null) {
-            for (DrBillingRecord item : records) {
-                if (item == null) {
-                    continue;
-                }
-                Map<String, BigDecimal> commissionMap = new HashMap<>();
-                commissionMap.put("level1", valueOrZero(item.getLevel1Commission()));
-                commissionMap.put("level2", valueOrZero(item.getLevel2Commission()));
-                commissionMap.put("level3", valueOrZero(item.getLevel3Commission()));
-                item.setAgentLevelCommission(commissionMap);
-            }
-        }
         return records;
     }
 

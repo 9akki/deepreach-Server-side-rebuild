@@ -35,4 +35,6 @@ public class UserSummaryResponse implements Serializable {
     private Set<String> identities = new LinkedHashSet<>();
     private Long parentUserId;
     private String parentUsername;
+    private Set<String> parentRoles = new LinkedHashSet<>();
+    private String remark;
 }

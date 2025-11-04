@@ -9,7 +9,11 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 /**
@@ -170,6 +174,10 @@ public class SysUser extends BaseEntity {
      * 重构后用于列表/详情展示，不再依赖部门。
      */
     private String parentUsername;
+    /**
+     * 父用户角色标识集合，用于前端快速识别上级身份。
+     */
+    private Set<String> parentRoles = new LinkedHashSet<>();
 
     /**
      * 邀请码

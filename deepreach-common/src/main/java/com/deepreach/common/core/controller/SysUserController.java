@@ -27,11 +27,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletResponse;
 
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -78,6 +74,18 @@ public class SysUserController extends BaseController {
     public TableDataInfo list(@RequestBody(required = false) UserListRequest request) {
         try {
             UserListRequest effective = request != null ? request : new UserListRequest();
+            Long parentUserId = effective.getUserId();
+            boolean hasExplicitParentId = parentUserId != null && parentUserId > 0;
+            if (!hasExplicitParentId) {
+                parentUserId = SecurityUtils.getCurrentUserId();
+                if (parentUserId == null || parentUserId <= 0) {
+                    LoginUser loginUser = SecurityUtils.getCurrentLoginUser();
+                    parentUserId = loginUser != null ? loginUser.getUserId() : null;
+                }
+            }
+            effective.setParentOnly(hasExplicitParentId);
+            effective.setUserId(parentUserId);
+
             int pageNum = effective.getPageNum() != null ? effective.getPageNum() : 1;
             int pageSize = effective.getPageSize() != null ? effective.getPageSize() : 10;
             PageHelper.startPage(pageNum, pageSize);
@@ -855,6 +863,7 @@ public class SysUserController extends BaseController {
         response.setInvitationCode(user.getInvitationCode());
         response.setParentUserId(user.getParentUserId());
         response.setParentUsername(user.getParentUsername());
+        response.setRemark(user.getRemark());
         response.setCreateTime(user.getCreateTime());
         response.setUpdateTime(user.getUpdateTime());
         response.setLoginTime(user.getLoginTime());
@@ -865,6 +874,15 @@ public class SysUserController extends BaseController {
         response.setIdentities(UserRoleUtils.resolveIdentities(roles).stream()
             .map(UserIdentity::getRoleKey)
             .collect(Collectors.toCollection(LinkedHashSet::new)));
+
+        Set<String> parentRoleKeys = Optional.ofNullable(user.getParentRoles())
+            .map(set -> set.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(str -> !str.isEmpty())
+                .collect(Collectors.toCollection(LinkedHashSet::new)))
+            .orElseGet(LinkedHashSet::new);
+        response.setParentRoles(parentRoleKeys);
         return response;
     }
 

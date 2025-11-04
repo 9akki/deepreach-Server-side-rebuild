@@ -159,6 +159,7 @@ public class SysUserServiceImpl implements SysUserService {
         Set<String> requiredRoles = normalizeRoleKeys(effective.getRoleKeys());
         if (requiredRoles.isEmpty()) {
             candidates.forEach(this::ensureRoleKeysLoaded);
+            enrichParentRoles(candidates);
             return candidates;
         }
 
@@ -176,7 +177,31 @@ public class SysUserServiceImpl implements SysUserService {
                 result.add(user);
             }
         }
+        enrichParentRoles(result);
         return result;
+    }
+
+    private void enrichParentRoles(List<SysUser> users) {
+        if (users == null || users.isEmpty()) {
+            return;
+        }
+        Set<Long> parentIds = users.stream()
+            .map(SysUser::getParentUserId)
+            .filter(id -> id != null && id > 0)
+            .collect(Collectors.toCollection(LinkedHashSet::new));
+        if (parentIds.isEmpty()) {
+            return;
+        }
+        Map<Long, Set<String>> parentRoleMap = fetchRoleKeysByUserIds(parentIds);
+        users.forEach(user -> {
+            Long parentId = user.getParentUserId();
+            if (parentId == null || parentId <= 0) {
+                user.setParentRoles(Collections.emptySet());
+            } else {
+                Set<String> parentRoleKeys = parentRoleMap.getOrDefault(parentId, Collections.emptySet());
+                user.setParentRoles(parentRoleKeys);
+            }
+        });
     }
 
     /**
@@ -199,7 +224,7 @@ public class SysUserServiceImpl implements SysUserService {
         if (rootUserId != null && rootUserId > 0) {
             scope.add(rootUserId);
             scope.addAll(hierarchyService.findDescendantIds(rootUserId));
-        } else if (currentUser != null && !isAdmin) {
+        } else if (currentUser != null) {
             scope.add(currentUser.getUserId());
             scope.addAll(hierarchyService.findDescendantIds(currentUser.getUserId()));
         }
@@ -347,6 +372,10 @@ public class SysUserServiceImpl implements SysUserService {
                 .add(roleKey);
         }
         return roleKeysByUser;
+    }
+
+    private Map<Long, Set<String>> fetchRoleKeysByUserIds(Set<Long> userIds) {
+        return resolveRoleKeysForUsers(userIds);
     }
 
     private UserHierarchyGroupDTO.UserSummary buildHierarchyUserSummary(SysUser user,
@@ -1526,6 +1555,11 @@ public class SysUserServiceImpl implements SysUserService {
             return filter;
         }
 
+        Long parentId = request.getUserId();
+        if (Boolean.TRUE.equals(request.getParentOnly()) && parentId != null && parentId > 0) {
+            filter.setParentUserId(parentId);
+        }
+
         String username = StringUtils.trimToNull(request.getUsername());
         if (username != null) {
             filter.setUsername(username);
@@ -1853,7 +1887,11 @@ public class SysUserServiceImpl implements SysUserService {
         }
 
         try {
-            return userMapper.selectUserWithDept(userId);
+            SysUser user = userMapper.selectUserWithDept(userId);
+            if (user != null) {
+                ensureRoleKeysLoaded(user);
+            }
+            return user;
         } catch (Exception e) {
             log.error("查询用户完整信息异常：用户ID={}", userId, e);
             return null;

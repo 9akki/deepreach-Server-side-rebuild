@@ -238,6 +238,185 @@ public class HierarchyStatisticsServiceImpl implements HierarchyStatisticsServic
         return dashboard;
     }
 
+    @Override
+    public Map<String, Object> getAdminAgentPerformanceStatistics(Long userId) {
+        Map<String, Object> statistics = new LinkedHashMap<>();
+
+        try {
+            if (userId == null || userId <= 0) {
+                return statistics;
+            }
+
+            // 收集可管理的用户ID
+            Set<Long> managedUserIds = collectManagedUserIds(userId);
+            if (managedUserIds.isEmpty()) {
+                statistics.put("generalAgent", buildEmptyPerformance(UserIdentity.AGENT_LEVEL_1.getRoleKey(), "总代"));
+                statistics.put("level1Agent", buildEmptyPerformance(UserIdentity.AGENT_LEVEL_2.getRoleKey(), "一级代理"));
+                statistics.put("level2Agent", buildEmptyPerformance(UserIdentity.AGENT_LEVEL_3.getRoleKey(), "二级代理"));
+                statistics.put("total", buildEmptyPerformance("total", "合计"));
+                return statistics;
+            }
+
+            Map<UserIdentity, Set<Long>> membership = resolveIdentityMembership(managedUserIds);
+
+            Set<Long> level1Agents = new LinkedHashSet<>(membership.getOrDefault(UserIdentity.AGENT_LEVEL_1, Collections.emptySet()));
+            Set<Long> level2Agents = new LinkedHashSet<>(membership.getOrDefault(UserIdentity.AGENT_LEVEL_2, Collections.emptySet()));
+            Set<Long> level3Agents = new LinkedHashSet<>(membership.getOrDefault(UserIdentity.AGENT_LEVEL_3, Collections.emptySet()));
+            Set<Long> buyerMainIds = new LinkedHashSet<>(membership.getOrDefault(UserIdentity.BUYER_MAIN, Collections.emptySet()));
+            Set<Long> buyerSubIds = new LinkedHashSet<>(membership.getOrDefault(UserIdentity.BUYER_SUB, Collections.emptySet()));
+
+            Set<Long> buyerUserIds = new LinkedHashSet<>(buyerMainIds);
+            buyerUserIds.addAll(buyerSubIds);
+
+            Map<Long, BigDecimal> rechargeMap = fetchRechargeByUserIds(buyerUserIds);
+            Map<Long, BigDecimal> commissionMap = fetchCommissionByUserIds(managedUserIds);
+
+            Map<String, Object> generalPerformance = buildAgentPerformance(
+                UserIdentity.AGENT_LEVEL_1.getRoleKey(), "总代",
+                level1Agents, buyerMainIds, buyerSubIds, rechargeMap, commissionMap);
+            Map<String, Object> level1Performance = buildAgentPerformance(
+                UserIdentity.AGENT_LEVEL_2.getRoleKey(), "一级代理",
+                level2Agents, buyerMainIds, buyerSubIds, rechargeMap, commissionMap);
+            Map<String, Object> level2Performance = buildAgentPerformance(
+                UserIdentity.AGENT_LEVEL_3.getRoleKey(), "二级代理",
+                level3Agents, buyerMainIds, buyerSubIds, rechargeMap, commissionMap);
+
+            BigDecimal totalRecharge = toBigDecimal(generalPerformance.get("totalRecharge"))
+                .add(toBigDecimal(level1Performance.get("totalRecharge")))
+                .add(toBigDecimal(level2Performance.get("totalRecharge")));
+            BigDecimal totalCommission = toBigDecimal(generalPerformance.get("totalCommission"))
+                .add(toBigDecimal(level1Performance.get("totalCommission")))
+                .add(toBigDecimal(level2Performance.get("totalCommission")));
+            long totalAgentCount = Optional.ofNullable(parseLong(generalPerformance.get("agentCount"))).orElse(0L)
+                + Optional.ofNullable(parseLong(level1Performance.get("agentCount"))).orElse(0L)
+                + Optional.ofNullable(parseLong(level2Performance.get("agentCount"))).orElse(0L);
+
+            Map<String, Object> totalPerformance = new LinkedHashMap<>();
+            totalPerformance.put("identity", "total");
+            totalPerformance.put("identityDisplay", "合计");
+            totalPerformance.put("agentCount", totalAgentCount);
+            totalPerformance.put("totalRecharge", formatAmount(totalRecharge));
+            totalPerformance.put("totalCommission", formatAmount(totalCommission));
+
+            statistics.put("generalAgent", generalPerformance);
+            statistics.put("level1Agent", level1Performance);
+            statistics.put("level2Agent", level2Performance);
+            statistics.put("total", totalPerformance);
+
+        } catch (Exception e) {
+            log.error("Failed to build admin agent performance statistics: userId={}", userId, e);
+            statistics.put("generalAgent", buildEmptyPerformance(UserIdentity.AGENT_LEVEL_1.getRoleKey(), "总代"));
+            statistics.put("level1Agent", buildEmptyPerformance(UserIdentity.AGENT_LEVEL_2.getRoleKey(), "一级代理"));
+            statistics.put("level2Agent", buildEmptyPerformance(UserIdentity.AGENT_LEVEL_3.getRoleKey(), "二级代理"));
+            statistics.put("total", buildEmptyPerformance("total", "合计"));
+        }
+
+        return statistics;
+    }
+
+    @Override
+    public Map<String, Object> getAdminMerchantsPerformanceStatistics(Long userId) {
+        Map<String, Object> statistics = new LinkedHashMap<>();
+
+        try {
+            if (userId == null || userId <= 0) {
+                return statistics;
+            }
+
+            Set<Long> managedUserIds = collectManagedUserIds(userId);
+            if (managedUserIds.isEmpty()) {
+                statistics.put("merchantOverview", buildEmptyMerchantOverview());
+                statistics.put("aiCharacterOverview", buildAiCharacterStatistics(Collections.emptySet()));
+                statistics.put("marketingInstanceOverview", buildEmptyInstanceOverview());
+                statistics.put("prospectingInstanceOverview", buildEmptyInstanceOverview());
+                return statistics;
+            }
+
+            Map<UserIdentity, Set<Long>> membership = resolveIdentityMembership(managedUserIds);
+            Set<Long> buyerMainIds = new LinkedHashSet<>(membership.getOrDefault(UserIdentity.BUYER_MAIN, Collections.emptySet()));
+            Set<Long> buyerSubIds = new LinkedHashSet<>(membership.getOrDefault(UserIdentity.BUYER_SUB, Collections.emptySet()));
+            Set<Long> buyerUserIds = new LinkedHashSet<>(buyerMainIds);
+            buyerUserIds.addAll(buyerSubIds);
+
+            Map<Long, BigDecimal> rechargeMap = fetchRechargeByUserIds(buyerMainIds);
+            BigDecimal totalRecharge = formatAmount(sumRechargeForUsers(buyerMainIds, rechargeMap));
+
+            Map<String, Object> merchantOverview = new LinkedHashMap<>();
+            merchantOverview.put("merchantCount", (long) buyerMainIds.size());
+            merchantOverview.put("employeeCount", (long) buyerSubIds.size());
+            merchantOverview.put("totalPerformance", totalRecharge);
+            statistics.put("merchantOverview", merchantOverview);
+
+            statistics.put("aiCharacterOverview", buildAiCharacterStatistics(buyerUserIds));
+
+            Map<String, Object> instanceStats = buildInstanceStatistics(buyerUserIds);
+            Map<String, Object> marketingOverview = new LinkedHashMap<>();
+            marketingOverview.put("instanceCount", instanceStats.getOrDefault("marketingInstanceCount", 0L));
+            marketingOverview.put("platformBreakdown", instanceStats.getOrDefault("marketingPlatformBreakdown", Collections.emptyMap()));
+            statistics.put("marketingInstanceOverview", marketingOverview);
+
+            Map<String, Object> prospectingOverview = new LinkedHashMap<>();
+            prospectingOverview.put("instanceCount", instanceStats.getOrDefault("prospectingInstanceCount", 0L));
+            prospectingOverview.put("platformBreakdown", instanceStats.getOrDefault("prospectingPlatformBreakdown", Collections.emptyMap()));
+            statistics.put("prospectingInstanceOverview", prospectingOverview);
+
+        } catch (Exception e) {
+            log.error("Failed to build admin merchant performance statistics: userId={}", userId, e);
+            statistics.put("merchantOverview", buildEmptyMerchantOverview());
+            statistics.put("aiCharacterOverview", buildAiCharacterStatistics(Collections.emptySet()));
+            statistics.put("marketingInstanceOverview", buildEmptyInstanceOverview());
+            statistics.put("prospectingInstanceOverview", buildEmptyInstanceOverview());
+        }
+
+        return statistics;
+    }
+
+    @Override
+    public Map<String, Object> getAdminMerchantsAssetStatistics(Long userId) {
+        Map<String, Object> statistics = new LinkedHashMap<>();
+
+        try {
+            if (userId == null || userId <= 0) {
+                return statistics;
+            }
+
+            Set<Long> managedUserIds = collectManagedUserIds(userId);
+            if (managedUserIds.isEmpty()) {
+                statistics.put("totalRecharge", formatAmount(BigDecimal.ZERO));
+                statistics.put("settledCommission", formatAmount(BigDecimal.ZERO));
+                statistics.put("netValue", formatAmount(BigDecimal.ZERO));
+                return statistics;
+            }
+
+            Map<UserIdentity, Set<Long>> membership = resolveIdentityMembership(managedUserIds);
+            Set<Long> buyerMainIds = new LinkedHashSet<>(membership.getOrDefault(UserIdentity.BUYER_MAIN, Collections.emptySet()));
+            Set<Long> agentIds = new LinkedHashSet<>();
+            agentIds.addAll(membership.getOrDefault(UserIdentity.AGENT_LEVEL_1, Collections.emptySet()));
+            agentIds.addAll(membership.getOrDefault(UserIdentity.AGENT_LEVEL_2, Collections.emptySet()));
+            agentIds.addAll(membership.getOrDefault(UserIdentity.AGENT_LEVEL_3, Collections.emptySet()));
+
+            Map<Long, BigDecimal> rechargeMap = fetchRechargeByUserIds(buyerMainIds);
+            BigDecimal totalRecharge = formatAmount(sumRechargeForUsers(buyerMainIds, rechargeMap));
+
+            Map<Long, BigDecimal> commissionMap = fetchCommissionByUserIds(agentIds);
+            BigDecimal settledCommission = formatAmount(sumCommissionForAgents(agentIds, commissionMap));
+
+            BigDecimal netValue = formatAmount(totalRecharge.subtract(settledCommission));
+
+            statistics.put("totalRecharge", totalRecharge);
+            statistics.put("settledCommission", settledCommission);
+            statistics.put("netValue", netValue);
+
+        } catch (Exception e) {
+            log.error("Failed to build admin merchant asset statistics: userId={}", userId, e);
+            statistics.put("totalRecharge", formatAmount(BigDecimal.ZERO));
+            statistics.put("settledCommission", formatAmount(BigDecimal.ZERO));
+            statistics.put("netValue", formatAmount(BigDecimal.ZERO));
+        }
+
+        return statistics;
+    }
+
     private Set<Long> collectManagedUserIds(Long rootUserId) {
         if (rootUserId == null || rootUserId <= 0) {
             return Collections.emptySet();
@@ -359,6 +538,50 @@ public class HierarchyStatisticsServiceImpl implements HierarchyStatisticsServic
         commissionStats.put("level3Commission", formatAmount(level3));
         commissionStats.put("totalCommission", formatAmount(total));
         return commissionStats;
+    }
+
+    private Map<String, Object> buildAgentPerformance(String identityKey,
+                                                      String displayLabel,
+                                                      Set<Long> agentIds,
+                                                      Set<Long> buyerMainIds,
+                                                      Set<Long> buyerSubIds,
+                                                      Map<Long, BigDecimal> rechargeMap,
+                                                      Map<Long, BigDecimal> commissionMap) {
+        Map<String, Object> performance = new LinkedHashMap<>();
+        BigDecimal recharge = sumRechargeForAgents(agentIds, buyerMainIds, buyerSubIds, rechargeMap);
+        BigDecimal commission = sumCommissionForAgents(agentIds, commissionMap);
+
+        performance.put("identity", identityKey);
+        performance.put("identityDisplay", displayLabel);
+        performance.put("agentCount", (long) (agentIds != null ? agentIds.size() : 0));
+        performance.put("totalRecharge", formatAmount(recharge));
+        performance.put("totalCommission", formatAmount(commission));
+        return performance;
+    }
+
+    private Map<String, Object> buildEmptyPerformance(String identityKey, String displayLabel) {
+        Map<String, Object> performance = new LinkedHashMap<>();
+        performance.put("identity", identityKey);
+        performance.put("identityDisplay", displayLabel);
+        performance.put("agentCount", 0L);
+        performance.put("totalRecharge", formatAmount(BigDecimal.ZERO));
+        performance.put("totalCommission", formatAmount(BigDecimal.ZERO));
+        return performance;
+    }
+
+    private Map<String, Object> buildEmptyMerchantOverview() {
+        Map<String, Object> merchantOverview = new LinkedHashMap<>();
+        merchantOverview.put("merchantCount", 0L);
+        merchantOverview.put("employeeCount", 0L);
+        merchantOverview.put("totalPerformance", formatAmount(BigDecimal.ZERO));
+        return merchantOverview;
+    }
+
+    private Map<String, Object> buildEmptyInstanceOverview() {
+        Map<String, Object> overview = new LinkedHashMap<>();
+        overview.put("instanceCount", 0L);
+        overview.put("platformBreakdown", Collections.emptyMap());
+        return overview;
     }
 
     private Map<String, Object> buildMerchantPerformance(Set<Long> buyerMainIds,

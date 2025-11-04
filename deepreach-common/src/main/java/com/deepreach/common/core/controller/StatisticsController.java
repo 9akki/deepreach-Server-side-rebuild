@@ -1,10 +1,12 @@
 package com.deepreach.common.core.controller;
 
+import com.deepreach.common.core.domain.model.LoginUser;
 import com.deepreach.common.core.service.HierarchyStatisticsService;
 import com.deepreach.common.core.service.SysUserService;
 import com.deepreach.common.web.domain.Result;
 import com.deepreach.common.annotation.Log;
 import com.deepreach.common.enums.BusinessType;
+import com.deepreach.common.security.SecurityUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -107,6 +109,78 @@ public class StatisticsController {
             return Result.success(statistics);
         } catch (Exception e) {
             log.error("获取代理层级统计信息失败", e);
+            return Result.error("获取统计信息失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 管理员代理业绩统计
+     */
+    @GetMapping("/adminAgentPerformanceStatistics")
+    @Log(title = "统计管理", businessType = BusinessType.OTHER)
+    public Result getAdminAgentPerformanceStatistics() {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return Result.error("用户未登录");
+            }
+            LoginUser loginUser = SecurityUtils.getCurrentLoginUser();
+            if (loginUser == null || !loginUser.isAdminIdentity()) {
+                return Result.error("仅管理员可以查看该统计");
+            }
+
+            Map<String, Object> statistics = statisticsService.getAdminAgentPerformanceStatistics(currentUserId);
+            return Result.success(statistics);
+        } catch (Exception e) {
+            log.error("获取管理员代理业绩统计失败", e);
+            return Result.error("获取统计信息失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 管理员商家业绩统计
+     */
+    @GetMapping("/adminMerchantsPerformanceStatistics")
+    @Log(title = "统计管理", businessType = BusinessType.OTHER)
+    public Result getAdminMerchantsPerformanceStatistics() {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return Result.error("用户未登录");
+            }
+            LoginUser loginUser = SecurityUtils.getCurrentLoginUser();
+            if (loginUser == null || !loginUser.isAdminIdentity()) {
+                return Result.error("仅管理员可以查看该统计");
+            }
+
+            Map<String, Object> statistics = statisticsService.getAdminMerchantsPerformanceStatistics(currentUserId);
+            return Result.success(statistics);
+        } catch (Exception e) {
+            log.error("获取管理员商家业绩统计失败", e);
+            return Result.error("获取统计信息失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 管理员商家资产统计
+     */
+    @GetMapping("/adminMerchantsAssetStatistics")
+    @Log(title = "统计管理", businessType = BusinessType.OTHER)
+    public Result getAdminMerchantsAssetStatistics() {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return Result.error("用户未登录");
+            }
+            LoginUser loginUser = SecurityUtils.getCurrentLoginUser();
+            if (loginUser == null || !loginUser.isAdminIdentity()) {
+                return Result.error("仅管理员可以查看该统计");
+            }
+
+            Map<String, Object> statistics = statisticsService.getAdminMerchantsAssetStatistics(currentUserId);
+            return Result.success(statistics);
+        } catch (Exception e) {
+            log.error("获取管理员商家资产统计失败", e);
             return Result.error("获取统计信息失败：" + e.getMessage());
         }
     }

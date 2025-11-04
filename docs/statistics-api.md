@@ -92,12 +92,102 @@
   }
   ```
 
-### 1.6 指定用户统计
+### 1.6 管理员代理业绩统计
+- **Method**: GET
+- **Path**: `/statistics/adminAgentPerformanceStatistics`
+- **Auth**: 仅管理员账号可访问
+- **Params**: 无
+- **Response**:
+  ```json
+  {
+    "generalAgent": {
+      "identity": "agent_level_1",
+      "identityDisplay": "总代",
+      "agentCount": 3,
+      "totalRecharge": 45678.90,
+      "totalCommission": 8123.45
+    },
+    "level1Agent": {
+      "identity": "agent_level_2",
+      "identityDisplay": "一级代理",
+      "agentCount": 12,
+      "totalRecharge": 22345.67,
+      "totalCommission": 3123.45
+    },
+    "level2Agent": {
+      "identity": "agent_level_3",
+      "identityDisplay": "二级代理",
+      "agentCount": 28,
+      "totalRecharge": 9988.00,
+      "totalCommission": 1456.78
+    },
+    "total": {
+      "identity": "total",
+      "identityDisplay": "合计",
+      "agentCount": 43,
+      "totalRecharge": 78012.57,
+      "totalCommission": 12703.68
+    }
+  }
+  ```
+
+### 1.7 管理员商家业绩统计
+- **Method**: GET
+- **Path**: `/statistics/adminMerchantsPerformanceStatistics`
+- **Auth**: 仅管理员账号可访问
+- **Response**:
+  ```json
+  {
+    "merchantOverview": {
+      "merchantCount": 120,
+      "employeeCount": 360,
+      "totalPerformance": 812345.67
+    },
+    "aiCharacterOverview": {
+      "totalCharacters": 58,
+      "socialAiCount": 35,
+      "customerServiceAiCount": 23
+    },
+    "marketingInstanceOverview": {
+      "instanceCount": 420,
+      "platformBreakdown": {
+        "wechat": 180,
+        "qq": 60,
+        "facebook": 80,
+        "unknown": 100
+      }
+    },
+    "prospectingInstanceOverview": {
+      "instanceCount": 210,
+      "platformBreakdown": {
+        "whatsapp": 100,
+        "telegram": 40,
+        "weixin": 30,
+        "unknown": 40
+      }
+    }
+  }
+  ```
+
+### 1.8 管理员商家资产统计
+- **Method**: GET
+- **Path**: `/statistics/adminMerchantsAssetStatistics`
+- **Auth**: 仅管理员账号可访问
+- **Response**:
+  ```json
+  {
+    "totalRecharge": 812345.67,
+    "settledCommission": 12345.67,
+    "netValue": 799999.99
+  }
+  ```
+
+### 1.9 指定用户统计
 - **Method**: GET
 - **Path**: `/system/user/{userId}/statistics`
 - **Response**: 预留，当前返回空结构 `{}`（TODO）。
 
-### 1.7 角色统计
+### 1.10 角色统计
 - **Method**: GET
 - **Path**: `/system/role/{roleId}/statistics`
 - **Params**: Path `roleId`
@@ -110,7 +200,7 @@
   }
   ```
 
-### 1.8 全角色汇总统计
+### 1.11 全角色汇总统计
 - **Method**: GET
 - **Path**: `/system/role/statistics/all`
 - **Response**:
@@ -193,4 +283,3 @@
 - 所有统计接口均需要携带有效 JWT，后台会根据用户身份和用户树判断可访问范围。
 - 返回结构多数为 `Result` 包裹的 JSON，字段键值可能随业务扩展调整，前端使用时请按照响应结构做兼容处理。
 - 若统计项为空或尚未实现，会返回空 Map 或空数组。
-
