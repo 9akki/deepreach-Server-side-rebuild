@@ -559,9 +559,23 @@ public class SysUserController extends BaseController {
     @Log(title = "用户管理", businessType = BusinessType.DELETE)
     public Result remove(@PathVariable("userId") Long userId) {
         try {
-            // 检查数据权限
-            if (!hasUserDataPermission(userId)) {
-                return Result.error("无权限删除该用户");
+            LoginUser currentUser = SecurityUtils.getCurrentLoginUser();
+            if (currentUser == null) {
+                return Result.error("用户未登录");
+            }
+
+            SysUser targetUser = userService.selectUserById(userId);
+            if (targetUser == null) {
+                return Result.error("用户不存在");
+            }
+
+            boolean isAdmin = currentUser.isAdminIdentity();
+            if (!isAdmin) {
+                Long currentUserId = currentUser.getUserId();
+                if (targetUser.getParentUserId() == null
+                    || !Objects.equals(targetUser.getParentUserId(), currentUserId)) {
+                    return Result.error("仅能删除自己的子用户");
+                }
             }
 
             boolean success = userService.deleteUserById(userId);
@@ -589,10 +603,30 @@ public class SysUserController extends BaseController {
     @Log(title = "用户管理", businessType = BusinessType.DELETE)
     public Result removeBatch(@RequestBody List<Long> userIds) {
         try {
-            // 过滤有权限删除的用户
-            List<Long> validUserIds = userIds.stream()
-                    .filter(this::hasUserDataPermission)
-                    .collect(java.util.stream.Collectors.toList());
+            LoginUser currentUser = SecurityUtils.getCurrentLoginUser();
+            if (currentUser == null) {
+                return Result.error("用户未登录");
+            }
+
+            boolean isAdmin = currentUser.isAdminIdentity();
+            List<Long> validUserIds = new ArrayList<>();
+
+            if (isAdmin) {
+                validUserIds.addAll(userIds);
+            } else {
+                Long currentUserId = currentUser.getUserId();
+                for (Long userId : userIds) {
+                    if (userId == null) {
+                        continue;
+                    }
+                    SysUser target = userService.selectUserById(userId);
+                    if (target != null
+                        && target.getParentUserId() != null
+                        && Objects.equals(target.getParentUserId(), currentUserId)) {
+                        validUserIds.add(userId);
+                    }
+                }
+            }
 
             if (validUserIds.isEmpty()) {
                 return Result.error("没有可删除的用户");
