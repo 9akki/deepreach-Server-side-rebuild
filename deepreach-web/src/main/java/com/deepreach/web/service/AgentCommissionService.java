@@ -85,6 +85,7 @@ public interface AgentCommissionService {
                                                String remark);
 
     AgentCommissionAccountDTO getCommissionAccount(Long agentUserId);
+    com.deepreach.web.dto.AgentCommissionSummaryResponse getAgentCommissionSummary(Long agentUserId);
 
     List<AgentCommissionRecordDTO> getCommissionRecords(Long agentUserId, AgentCommissionRecordQuery query);
 
@@ -97,6 +98,8 @@ public interface AgentCommissionService {
      * @return 符合条件的结算申请
      */
     List<AgentCommissionSettlement> listSettlementsByStatuses(List<String> statuses);
+
+    List<AgentCommissionSettlement> searchAdminSettlements(com.deepreach.web.dto.AdminSettlementQueryRequest query);
 
     /**
      * 汇总所有代理已结算佣金总额

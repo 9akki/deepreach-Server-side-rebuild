@@ -72,29 +72,58 @@ public class SysUserController extends BaseController {
     @PostMapping("/list")
     // @PreAuthorize("@ss.hasPermi('system:user:list')")
     public TableDataInfo list(@RequestBody(required = false) UserListRequest request) {
+        return handleUserList(request);
+    }
+
+    private TableDataInfo handleUserList(UserListRequest request) {
         try {
             UserListRequest effective = request != null ? request : new UserListRequest();
-            Long parentUserId = effective.getUserId();
-            boolean hasExplicitParentId = parentUserId != null && parentUserId > 0;
-            if (!hasExplicitParentId) {
-                parentUserId = SecurityUtils.getCurrentUserId();
-                if (parentUserId == null || parentUserId <= 0) {
-                    LoginUser loginUser = SecurityUtils.getCurrentLoginUser();
-                    parentUserId = loginUser != null ? loginUser.getUserId() : null;
+            Long requestedParentId = effective.getUserId();
+            if (requestedParentId != null && requestedParentId > 0) {
+                effective.setRootUserId(null);
+            } else {
+                Long currentUserId = SecurityUtils.getCurrentUserId();
+                if (currentUserId == null || currentUserId <= 0) {
+                    LoginUser currentUser = SecurityUtils.getCurrentLoginUser();
+                    if (currentUser != null) {
+                        currentUserId = currentUser.getUserId();
+                    }
                 }
+                effective.setRootUserId(currentUserId);
             }
-            effective.setParentOnly(hasExplicitParentId);
-            effective.setUserId(parentUserId);
 
-            int pageNum = effective.getPageNum() != null ? effective.getPageNum() : 1;
-            int pageSize = effective.getPageSize() != null ? effective.getPageSize() : 10;
-            PageHelper.startPage(pageNum, pageSize);
-            List<SysUser> list = userService.searchUsers(effective);
-            PageInfo<SysUser> pageInfo = new PageInfo<>(list);
-            List<UserSummaryResponse> rows = list.stream()
+            List<SysUser> fullList = userService.searchUsers(effective);
+            boolean filterBuyerSubs = requestedParentId == null || requestedParentId <= 0;
+            if (filterBuyerSubs && fullList != null && !fullList.isEmpty()) {
+                fullList = fullList.stream()
+                    .filter(user -> {
+                        Set<String> roles = user.getRoles();
+                        if (roles == null || roles.isEmpty()) {
+                            return true;
+                        }
+                        return roles.stream()
+                            .filter(Objects::nonNull)
+                            .map(role -> role.toLowerCase(Locale.ROOT))
+                            .noneMatch(role -> "buyer_sub".equals(role));
+                    })
+                    .collect(Collectors.toList());
+            }
+            if (fullList == null) {
+                fullList = Collections.emptyList();
+            }
+            int pageNum = effective.getPageNum() != null && effective.getPageNum() > 0 ? effective.getPageNum() : 1;
+            int pageSize = effective.getPageSize() != null && effective.getPageSize() > 0 ? effective.getPageSize() : fullList.size();
+            List<SysUser> pageList = com.deepreach.common.utils.PageUtils.manualPage(fullList, pageNum, pageSize);
+
+            List<UserSummaryResponse> rows = pageList.stream()
                 .map(this::toUserSummary)
                 .collect(Collectors.toList());
-            return TableDataInfo.success(rows, pageInfo.getTotal(), pageInfo.getPageNum(), pageInfo.getPageSize());
+            com.deepreach.common.utils.PageUtils.PageState state = com.deepreach.common.utils.PageUtils.getCurrentPageState();
+            long total = state != null ? state.getTotal() : fullList.size();
+            int responsePageNum = state != null ? state.getPageNum() : pageNum;
+            int responsePageSize = state != null ? state.getPageSize() : pageSize;
+            com.deepreach.common.utils.PageUtils.clearManualPage();
+            return TableDataInfo.success(rows, total, responsePageNum, responsePageSize);
         } catch (Exception e) {
             log.error("查询用户列表失败", e);
             return TableDataInfo.error("查询用户列表失败：" + e.getMessage());

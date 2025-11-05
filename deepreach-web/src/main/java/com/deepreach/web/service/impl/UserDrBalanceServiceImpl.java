@@ -222,7 +222,7 @@ public class UserDrBalanceServiceImpl implements UserDrBalanceService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean preDeductForInstance(Long userId, BigDecimal amount, Long operatorId) {
-        if (userId == null || amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+        if (userId == null || amount == null || amount.compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException("用户ID和预扣费金额不能为空且必须大于0");
         }
 

@@ -8,6 +8,8 @@ import com.deepreach.common.core.service.SysUserService;
 import com.deepreach.common.security.SecurityUtils;
 import com.deepreach.common.security.UserRoleUtils;
 import com.deepreach.common.security.enums.UserIdentity;
+import com.deepreach.common.utils.StringUtils;
+import com.deepreach.web.dto.AdminSettlementQueryRequest;
 import com.deepreach.web.entity.AgentCommissionAccount;
 import com.deepreach.web.entity.AgentCommissionRecord;
 import com.deepreach.web.entity.AgentCommissionSettlement;
@@ -20,6 +22,7 @@ import com.deepreach.web.mapper.AgentCommissionSettlementRecordMapper;
 import com.deepreach.web.service.AgentCommissionService;
 import com.deepreach.web.service.DrPriceConfigService;
 import com.deepreach.web.dto.AgentCommissionAccountDTO;
+import com.deepreach.web.dto.AgentCommissionSummaryResponse;
 import com.deepreach.web.dto.AgentCommissionRecordDTO;
 import com.deepreach.web.dto.AgentCommissionRecordQuery;
 import com.deepreach.web.dto.AgentCommissionOverviewRequest;
@@ -32,7 +35,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.sql.Timestamp;
 import java.util.Collections;
@@ -395,6 +401,25 @@ public class AgentCommissionServiceImpl implements AgentCommissionService {
     }
 
     @Override
+    public AgentCommissionSummaryResponse getAgentCommissionSummary(Long agentUserId) {
+        if (agentUserId == null) {
+            throw new IllegalArgumentException("代理用户ID不能为空");
+        }
+        SysUser agentUser = userMapper.selectUserById(agentUserId);
+        if (agentUser == null) {
+            throw new IllegalArgumentException("代理用户不存在");
+        }
+        AgentCommissionAccount account = accountMapper.selectByAgentUserId(agentUserId);
+        AgentCommissionAccount source = account != null ? account : AgentCommissionAccount.createForAgent(agentUserId);
+        AgentCommissionSummaryResponse summary = new AgentCommissionSummaryResponse();
+        summary.setAgentUserId(agentUserId);
+        summary.setTotalCommission(defaultZero(source.getTotalCommission()));
+        summary.setSettlementCommission(defaultZero(source.getSettledCommission()));
+        summary.setAvailableCommission(defaultZero(source.getAvailableCommission()));
+        return summary;
+    }
+
+    @Override
     public List<AgentCommissionRecordDTO> getCommissionRecords(Long agentUserId, AgentCommissionRecordQuery query) {
         if (agentUserId == null) {
             throw new IllegalArgumentException("代理用户ID不能为空");
@@ -516,6 +541,21 @@ public class AgentCommissionServiceImpl implements AgentCommissionService {
             return Collections.emptyList();
         }
         return settlementMapper.selectByStatuses(statuses);
+    }
+
+    @Override
+    public List<AgentCommissionSettlement> searchAdminSettlements(AdminSettlementQueryRequest query) {
+        AdminSettlementQueryRequest effective = query != null ? query : new AdminSettlementQueryRequest();
+        String username = StringUtils.trimToNull(effective.getUsername());
+        LocalDateTime beginTime = parseDate(effective.getBeginTime(), true);
+        LocalDateTime endTime = parseDate(effective.getEndTime(), false);
+        return settlementMapper.searchAdminSettlements(
+            effective.getSettlementId(),
+            effective.getUserId(),
+            username,
+            beginTime,
+            endTime
+        );
     }
 
     @Override
@@ -965,5 +1005,28 @@ public class AgentCommissionServiceImpl implements AgentCommissionService {
         record.setUpdateTime(now);
         record.setUpdateBy(record.getCreateBy());
         return record;
+    }
+
+    private static final DateTimeFormatter[] ADMIN_QUERY_FORMATTERS = new DateTimeFormatter[]{
+        DateTimeFormatter.ISO_DATE_TIME,
+        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"),
+        DateTimeFormatter.ISO_DATE
+    };
+
+    private LocalDateTime parseDate(String value, boolean isBegin) {
+        if (StringUtils.isEmpty(value)) {
+            return null;
+        }
+        for (DateTimeFormatter formatter : ADMIN_QUERY_FORMATTERS) {
+            try {
+                if (formatter == DateTimeFormatter.ISO_DATE) {
+                    LocalDateTime startOfDay = java.time.LocalDate.parse(value, formatter).atStartOfDay();
+                    return isBegin ? startOfDay : startOfDay.plusDays(1).minusSeconds(1);
+                }
+                return LocalDateTime.parse(value, formatter);
+            } catch (DateTimeParseException ignored) {
+            }
+        }
+        return null;
     }
 }

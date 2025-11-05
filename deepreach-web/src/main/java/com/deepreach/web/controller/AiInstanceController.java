@@ -307,7 +307,6 @@ public class AiInstanceController {
      */
     @PostMapping
     @Log(title = "实例管理", businessType = BusinessType.INSERT)
-    @Transactional(rollbackFor = Exception.class)
     public Result add(@Validated @RequestBody AiInstance instance) {
         try {
             Long currentUserId = getCurrentUserId();

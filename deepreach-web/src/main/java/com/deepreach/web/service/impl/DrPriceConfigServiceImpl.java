@@ -225,6 +225,7 @@ public class DrPriceConfigServiceImpl extends BaseServiceImpl<DrPriceConfigMappe
         defaultConfigs.add(DrPriceConfig.createInstancePreDeductConfig());
         defaultConfigs.add(DrPriceConfig.createMarketingInstanceConfig());
         defaultConfigs.add(DrPriceConfig.createProspectingInstanceConfig());
+        defaultConfigs.add(DrPriceConfig.createAiCharacterConfig());
         defaultConfigs.add(DrPriceConfig.createSmsConfig());
         defaultConfigs.add(DrPriceConfig.createTokenConfig());
 
@@ -264,6 +265,9 @@ public class DrPriceConfigServiceImpl extends BaseServiceImpl<DrPriceConfigMappe
                 break;
             case DrPriceConfig.BUSINESS_TYPE_INSTANCE_PROSPECTING:
                 defaultConfig = DrPriceConfig.createProspectingInstanceConfig();
+                break;
+            case DrPriceConfig.BUSINESS_TYPE_AI_CHARACTER:
+                defaultConfig = DrPriceConfig.createAiCharacterConfig();
                 break;
             case DrPriceConfig.BUSINESS_TYPE_SMS:
                 defaultConfig = DrPriceConfig.createSmsConfig();

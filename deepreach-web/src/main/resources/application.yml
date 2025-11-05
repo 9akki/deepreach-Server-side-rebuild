@@ -13,6 +13,11 @@ spring:
   profiles:
     active: dev
 
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
   # 数据源配置
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource
@@ -87,12 +92,6 @@ security:
     date-format: yyyy-MM-dd HH:mm:ss
     serialization:
       write-dates-as-timestamps: false
-
-  # 文件上传配置
-  servlet:
-    multipart:
-      max-file-size: 10MB
-      max-request-size: 10MB
 
 # MyBatis配置
 mybatis:

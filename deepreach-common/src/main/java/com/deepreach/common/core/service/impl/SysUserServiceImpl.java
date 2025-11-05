@@ -152,9 +152,23 @@ public class SysUserServiceImpl implements SysUserService {
     public List<SysUser> searchUsers(UserListRequest request) {
         UserListRequest effective = request != null ? request : new UserListRequest();
         SysUser filter = buildFilterFromRequest(effective);
+        boolean fetchDirectChildren = effective.getUserId() != null && effective.getUserId() > 0;
 
-        List<SysUser> candidates = selectUsersWithinHierarchy(
-            effective.getRootUserId(), effective.getIdentity(), filter);
+        List<SysUser> candidates = fetchDirectChildren
+            ? userMapper.selectUserList(filter)
+            : selectUsersWithinHierarchy(effective.getRootUserId(), effective.getIdentity(), filter);
+
+        if (candidates == null || candidates.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Iterator<SysUser> iterator = candidates.iterator();
+        while (iterator.hasNext()) {
+            SysUser user = iterator.next();
+            if (!userMatchesIdentity(user, effective.getIdentity())) {
+                iterator.remove();
+            }
+        }
 
         Set<String> requiredRoles = normalizeRoleKeys(effective.getRoleKeys());
         if (requiredRoles.isEmpty()) {
@@ -163,22 +177,24 @@ public class SysUserServiceImpl implements SysUserService {
             return candidates;
         }
 
-        List<SysUser> result = new ArrayList<>();
-        for (SysUser user : candidates) {
+        Iterator<SysUser> roleIterator = candidates.iterator();
+        while (roleIterator.hasNext()) {
+            SysUser user = roleIterator.next();
             Set<String> userRoles = ensureRoleKeysLoaded(user);
             if (userRoles == null || userRoles.isEmpty()) {
+                roleIterator.remove();
                 continue;
             }
             boolean matched = userRoles.stream()
                 .filter(Objects::nonNull)
                 .map(role -> role.toLowerCase(Locale.ROOT))
                 .anyMatch(requiredRoles::contains);
-            if (matched) {
-                result.add(user);
+            if (!matched) {
+                roleIterator.remove();
             }
         }
-        enrichParentRoles(result);
-        return result;
+        enrichParentRoles(candidates);
+        return candidates;
     }
 
     private void enrichParentRoles(List<SysUser> users) {
@@ -229,14 +245,15 @@ public class SysUserServiceImpl implements SysUserService {
             scope.addAll(hierarchyService.findDescendantIds(currentUser.getUserId()));
         }
 
-        if (!scope.isEmpty()) {
+        boolean applyScope = !scope.isEmpty();
+        if (applyScope) {
             criteria.addParam("userIds", scope);
         }
 
         List<SysUser> users = userMapper.selectUserList(criteria);
         List<SysUser> result = new ArrayList<>();
         for (SysUser user : users) {
-            if (!scope.isEmpty() && !scope.contains(user.getUserId())) {
+            if (applyScope && !scope.contains(user.getUserId())) {
                 continue;
             }
             if (!userMatchesIdentity(user, identity)) {
@@ -1409,9 +1426,6 @@ public class SysUserServiceImpl implements SysUserService {
         }
 
         boolean creatorIsAdmin = context.creatorIdentities.contains(UserIdentity.ADMIN);
-        if (UserIdentity.BUYER_SUB.equals(context.targetIdentity) && isAgentIdentity(context.creatorIdentities)) {
-            throw new RuntimeException("代理用户无权创建买家子账户");
-        }
 
         if (!creatorIsAdmin) {
             Long creatorId = context.creator.getUserId();
@@ -1422,13 +1436,9 @@ public class SysUserServiceImpl implements SysUserService {
                 throw new RuntimeException("只能在自己管理的用户树下创建用户");
             }
 
-            if (context.creator.isBuyerSubIdentity()) {
-                throw new RuntimeException("买家子账户用户无权创建用户");
-            }
-
-            if (context.creatorIdentities.contains(UserIdentity.BUYER_MAIN)
-                && !Objects.equals(creatorId, parentId)) {
-                throw new RuntimeException("买家总账户仅能为自己创建下级用户");
+            if (!Objects.equals(creatorId, parentId)
+                && context.parentIdentities.contains(UserIdentity.BUYER_MAIN)) {
+                throw new RuntimeException("商户的子用户仅能由管理员代为创建");
             }
         }
 
@@ -1442,29 +1452,9 @@ public class SysUserServiceImpl implements SysUserService {
         if (parentIdentities == null || parentIdentities.isEmpty()) {
             return Collections.emptySet();
         }
-        EnumSet<UserIdentity> result = EnumSet.noneOf(UserIdentity.class);
-        for (UserIdentity identity : parentIdentities) {
-            result.addAll(childrenForIdentity(identity));
-        }
+        EnumSet<UserIdentity> result = EnumSet.allOf(UserIdentity.class);
+        result.remove(UserIdentity.ADMIN);
         return result;
-    }
-
-    private EnumSet<UserIdentity> childrenForIdentity(UserIdentity identity) {
-        switch (identity) {
-            case ADMIN:
-                return EnumSet.of(UserIdentity.AGENT_LEVEL_1, UserIdentity.AGENT_LEVEL_2,
-                    UserIdentity.AGENT_LEVEL_3, UserIdentity.BUYER_MAIN);
-            case AGENT_LEVEL_1:
-                return EnumSet.of(UserIdentity.AGENT_LEVEL_2, UserIdentity.BUYER_MAIN);
-            case AGENT_LEVEL_2:
-                return EnumSet.of(UserIdentity.AGENT_LEVEL_3, UserIdentity.BUYER_MAIN);
-            case AGENT_LEVEL_3:
-                return EnumSet.of(UserIdentity.BUYER_MAIN);
-            case BUYER_MAIN:
-                return EnumSet.of(UserIdentity.BUYER_SUB);
-            default:
-                return EnumSet.noneOf(UserIdentity.class);
-        }
     }
 
     private boolean isAgentIdentity(Set<UserIdentity> identities) {
@@ -1556,7 +1546,7 @@ public class SysUserServiceImpl implements SysUserService {
         }
 
         Long parentId = request.getUserId();
-        if (Boolean.TRUE.equals(request.getParentOnly()) && parentId != null && parentId > 0) {
+        if (parentId != null && parentId > 0) {
             filter.setParentUserId(parentId);
         }
 

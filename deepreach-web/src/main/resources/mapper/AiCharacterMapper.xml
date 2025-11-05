@@ -9,6 +9,7 @@
         <result property="prompt" column="prompt"/>
         <result property="description" column="description"/>
         <result property="avatar" column="avatar"/>
+        <result property="audio" column="audio"/>
         <result property="isSystem" column="is_system"/>
         <result property="type" column="type"/>
         <result property="createdAt" column="created_time"/>
@@ -22,12 +23,12 @@
 
     <!-- 基本列名 -->
     <sql id="Base_Column_List">
-        id, name, prompt, description, avatar, is_system, type, created_time, updated_time, user_id
+        id, name, prompt, description, avatar, audio, is_system, type, created_time, updated_time, user_id
     </sql>
 
     <!-- 完整列名 -->
     <sql id="Complete_Column_List">
-        id, name, prompt, description, avatar, is_system, type, created_time, updated_time, user_id
+        id, name, prompt, description, avatar, audio, is_system, type, created_time, updated_time, user_id
     </sql>
 
     <!-- 根据人设ID查询人设信息 -->
@@ -173,9 +174,9 @@
     <!-- 插入新人设 -->
     <insert id="insert" parameterType="com.deepreach.web.entity.AiCharacter" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO ai_character (
-            name, prompt, description, avatar, is_system, type, user_id
+            name, prompt, description, avatar, audio, is_system, type, user_id
         ) VALUES (
-            #{name}, #{prompt}, #{description}, #{avatar}, #{isSystem}, #{type}, #{userId}
+            #{name}, #{prompt}, #{description}, #{avatar}, #{audio}, #{isSystem}, #{type}, #{userId}
         )
     </insert>
 
@@ -194,6 +195,9 @@
             </if>
             <if test="avatar != null">
                 avatar = #{avatar},
+            </if>
+            <if test="audio != null">
+                audio = #{audio},
             </if>
             <if test="type != null">
                 type = #{type},

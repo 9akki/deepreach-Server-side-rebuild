@@ -131,6 +131,18 @@
         WHERE u.user_id = #{userId}
     </select>
 
+    <select id="countChildrenByRoleKey" parameterType="Long" resultType="map">
+        SELECT
+            sr.role_key AS roleKey,
+            COUNT(DISTINCT u.user_id) AS userCount
+        FROM sys_user u
+        LEFT JOIN sys_user_role ur ON u.user_id = ur.user_id
+        LEFT JOIN sys_role sr ON ur.role_id = sr.role_id AND sr.del_flag = '0'
+        WHERE u.parent_user_id = #{userId}
+        AND u.status = '0'
+        GROUP BY sr.role_key
+    </select>
+
     <!-- 根据用户ID查询用户完整信息（包含部门和角色） -->
     <select id="selectUserWithDept" parameterType="Long" resultMap="SysUserWithRolesResult">
         <include refid="selectUserWithRolesVo"/>
@@ -791,6 +803,13 @@
         FROM platform
         WHERE status = '0'
         ORDER BY platform_id
+    </select>
+
+    <!-- 查询用户DR余额 -->
+    <select id="selectDrBalanceByUserId" parameterType="Long" resultType="java.math.BigDecimal">
+        SELECT COALESCE(dr_balance, 0)
+        FROM user_dr_balance
+        WHERE user_id = #{userId}
     </select>
 
     <!-- 查询所有用户的父子关系 -->

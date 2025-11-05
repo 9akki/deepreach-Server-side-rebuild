@@ -1155,7 +1155,12 @@ public class AiInstanceServiceImpl implements AiInstanceService {
             BigDecimal availableBalance = parentBalance.getDrBalance();
 
             // 预扣费硬编码！
-            BigDecimal marketingInstancePrice = new BigDecimal("100.00"); // 营销实例预扣费
+            DrPriceConfig preDeductConfig = priceConfigService.selectDrPriceConfigByBusinessType(
+                DrPriceConfig.BUSINESS_TYPE_INSTANCE_PRE_DEDUCT);
+            if (preDeductConfig == null || !preDeductConfig.isActive() || preDeductConfig.getDrPrice() == null) {
+                throw new IllegalStateException("营销实例预扣费价格配置不存在或未启用");
+            }
+            BigDecimal marketingInstancePrice = preDeductConfig.getDrPrice();
 
             if (availableBalance.compareTo(marketingInstancePrice) < 0) {
                 throw new IllegalArgumentException("余额不足，无法创建营销实例");
@@ -1194,23 +1199,14 @@ public class AiInstanceServiceImpl implements AiInstanceService {
             // 1. 获取当前用户的实例统计
             Integer platformId = instance.getPlatformId();
 
-            // 查询该用户名下全局的营销实例数量（与平台无关）
+            // 查询实例数量仅用于审计记录，不再限制拓客数量
             List<AiInstance> allMarketingInstances = selectByUserIdAndType(currentUserId, "0");
             int totalMarketingCount = allMarketingInstances.size();
-
-            // 查询该用户名下该平台的拓客实例数量
             List<AiInstance> platformProspectingInstances = selectByUserIdAndTypeAndPlatform(currentUserId, "1", platformId);
             int platformProspectingCount = platformProspectingInstances.size();
 
-            // 2. 检查拓客实例数量是否超过限制（营销实例总数 * 10）
-            int maxProspectingCount = totalMarketingCount * 10;
-            if (platformProspectingCount >= maxProspectingCount) {
-                throw new InsufficientMarketingInstanceException(String.format("%d个营销实例仅能创建%d个同平台拓客实例！",
-                    totalMarketingCount, maxProspectingCount));
-            }
-
-            log.info("用户 {} 拓客实例检查：全局营销实例数={}，平台{}拓客实例数={}，最大允许数={}",
-                currentUserId, totalMarketingCount, platformId, platformProspectingCount, maxProspectingCount);
+            log.info("用户 {} 拓客实例检查（不再限制数量）：全局营销实例数={}，平台{}拓客实例数={}",
+                currentUserId, totalMarketingCount, platformId, platformProspectingCount);
 
             // 3. 设置创建者信息并创建实例
             instance.setCreateBy(SecurityUtils.getCurrentUsername());

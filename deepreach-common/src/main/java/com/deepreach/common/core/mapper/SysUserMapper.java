@@ -242,6 +242,11 @@ public interface SysUserMapper {
                                                        @Param("instanceType") String instanceType);
 
     /**
+     * 统计父用户的直属子用户角色分布。
+     */
+    List<Map<String, Object>> countChildrenByRoleKey(@Param("userId") Long userId);
+
+    /**
      * 统计指定用户集合的AI人设数量
      */
     List<Map<String, Object>> countAiCharactersByType(@Param("userIds") Set<Long> userIds);
@@ -250,6 +255,14 @@ public interface SysUserMapper {
      * 查询平台列表
      */
     List<Map<String, Object>> selectAllPlatforms();
+
+    /**
+     * 查询用户DR余额
+     *
+     * @param userId 用户ID
+     * @return DR余额
+     */
+    java.math.BigDecimal selectDrBalanceByUserId(@Param("userId") Long userId);
 
     /**
      * 统计用户总数

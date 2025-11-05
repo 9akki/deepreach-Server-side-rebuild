@@ -1,7 +1,9 @@
 package com.deepreach.web.controller;
 
 import com.deepreach.common.web.BaseController;
+import com.deepreach.common.utils.PageUtils;
 import com.deepreach.common.web.Result;
+import com.deepreach.common.web.page.TableDataInfo;
 import com.deepreach.web.dto.AgentCommissionAccountDTO;
 import com.deepreach.web.dto.AgentCommissionAdjustRequest;
 import com.deepreach.web.dto.AgentCommissionRecordDTO;
@@ -11,6 +13,8 @@ import com.deepreach.web.dto.AgentCommissionOverviewResponse;
 import com.deepreach.web.dto.CommissionSettlementApplyRequest;
 import com.deepreach.web.dto.CommissionSettlementApproveRequest;
 import com.deepreach.web.dto.CommissionSettlementRejectRequest;
+import com.deepreach.web.dto.AdminSettlementQueryRequest;
+import com.deepreach.web.dto.AgentCommissionSummaryResponse;
 import com.deepreach.web.entity.AgentCommissionSettlement;
 import com.deepreach.web.service.AgentCommissionService;
 import jakarta.validation.constraints.NotNull;
@@ -108,12 +112,41 @@ public class AgentCommissionController extends BaseController {
     }
 
     /**
+     * 管理员分页查询结算申请
+     */
+    @PostMapping("/settlement/admin/list")
+    public TableDataInfo<AgentCommissionSettlement> listSettlementsForAdmin(
+        @RequestBody(required = false) AdminSettlementQueryRequest request) {
+        AdminSettlementQueryRequest effective = request != null ? request : new AdminSettlementQueryRequest();
+        int pageNum = effective.getPageNum() != null && effective.getPageNum() > 0 ? effective.getPageNum() : 1;
+        int pageSize = effective.getPageSize() != null && effective.getPageSize() > 0 ? effective.getPageSize() : 10;
+
+        List<AgentCommissionSettlement> all = agentCommissionService.searchAdminSettlements(effective);
+        List<AgentCommissionSettlement> rows = PageUtils.manualPage(all, pageNum, pageSize);
+        PageUtils.PageState state = PageUtils.getCurrentPageState();
+        long total = state != null ? state.getTotal() : all.size();
+        int respPageNum = state != null ? state.getPageNum() : pageNum;
+        int respPageSize = state != null ? state.getPageSize() : pageSize;
+        PageUtils.clearManualPage();
+        return TableDataInfo.success(rows, total, respPageNum, respPageSize);
+    }
+
+    /**
      * 获取代理佣金账户
      */
     @GetMapping("/account/{agentUserId}")
     public Result<AgentCommissionAccountDTO> getAccount(@PathVariable Long agentUserId) {
         AgentCommissionAccountDTO account = agentCommissionService.getCommissionAccount(agentUserId);
         return success(account);
+    }
+
+    /**
+     * 获取代理佣金汇总（总佣金/已结算/可用）
+     */
+    @GetMapping("/account/{agentUserId}/summary")
+    public Result<AgentCommissionSummaryResponse> getAccountSummary(@PathVariable Long agentUserId) {
+        AgentCommissionSummaryResponse summary = agentCommissionService.getAgentCommissionSummary(agentUserId);
+        return success(summary);
     }
 
     /**

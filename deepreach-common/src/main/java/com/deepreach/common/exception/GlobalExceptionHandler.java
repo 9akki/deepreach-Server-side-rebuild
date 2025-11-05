@@ -1,15 +1,18 @@
 package com.deepreach.common.exception;
 
 import com.deepreach.common.web.Result;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import com.deepreach.common.exception.BalanceNotEnoughException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
@@ -101,6 +104,36 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Result<?> handleIllegalArgumentException(IllegalArgumentException e) {
         logger.warn("非法参数异常：{}", e.getMessage());
+        return Result.error(400, e.getMessage());
+    }
+
+    /**
+     * 处理缺少 Multipart 部分异常
+     */
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Result<?> handleMissingPartException(MissingServletRequestPartException e) {
+        logger.warn("请求缺少必要的文件部分：{}", e.getRequestPartName());
+        return Result.error(400, "上传失败：缺少文件字段 " + e.getRequestPartName());
+    }
+
+    /**
+     * 处理文件大小超限异常
+     */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Result<?> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException e) {
+        logger.warn("上传文件超过限制：{}", e.getMessage());
+        return Result.error(400, "上传失败：文件大小不能超过10MB");
+    }
+
+    /**
+     * 余额不足异常
+     */
+    @ExceptionHandler(BalanceNotEnoughException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Result<?> handleBalanceNotEnoughException(BalanceNotEnoughException e) {
+        logger.warn("余额不足：{}", e.getMessage());
         return Result.error(400, e.getMessage());
     }
 

@@ -72,6 +72,13 @@ public class AiCharacter extends BaseEntity {
     private String avatar;
 
     /**
+     * 角色音频地址
+     *
+     * 人设关联的语音文件URL，可用于语音播报或形象展示。
+     */
+    private String audio;
+
+    /**
      * 是否系统提供
      *
      * 标识角色的来源：

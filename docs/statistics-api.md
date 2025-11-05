@@ -182,12 +182,40 @@
   }
   ```
 
-### 1.9 指定用户统计
+### 1.9 代理直属用户统计
+- **Method**: GET
+- **Path**: `/statistics/agent/{userId}/children-statistics`
+- **Auth**: 登录态
+- **Response**（根据代理身份返回不同组合）：
+  ```json
+  {
+    "agentId": 20001,
+    "agentUsername": "agent_level_1_user",
+    "identity": "agent_level_1",
+    "agentLevel2Count": 5,
+    "agentLevel3Count": 12,
+    "merchantCount": 48
+  }
+  ```
+
+- **Method**: GET
+- **Path**: `/statistics/agent/general/children?userId={id}`
+- **说明**: 校验用户身份必须是 `agent_level_1`（总代），返回与上面相同结构。
+
+- **Method**: GET
+- **Path**: `/statistics/agent/level1/children?userId={id}`
+- **说明**: 校验用户身份是 `agent_level_2`（一级代理），字段只包含 `agentLevel3Count` 与 `merchantCount`。
+
+- **Method**: GET
+- **Path**: `/statistics/agent/level2/children?userId={id}`
+- **说明**: 校验用户身份是 `agent_level_3`（二级代理），字段只包含 `merchantCount`。
+
+### 1.10 指定用户统计
 - **Method**: GET
 - **Path**: `/system/user/{userId}/statistics`
 - **Response**: 预留，当前返回空结构 `{}`（TODO）。
 
-### 1.10 角色统计
+### 1.11 角色统计
 - **Method**: GET
 - **Path**: `/system/role/{roleId}/statistics`
 - **Params**: Path `roleId`
@@ -200,7 +228,7 @@
   }
   ```
 
-### 1.11 全角色汇总统计
+### 1.12 全角色汇总统计
 - **Method**: GET
 - **Path**: `/system/role/statistics/all`
 - **Response**:

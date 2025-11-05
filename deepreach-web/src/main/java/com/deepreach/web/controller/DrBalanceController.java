@@ -213,16 +213,58 @@ public class DrBalanceController extends BaseController {
         return getDataTable(list);
     }
 
-@PostMapping("/bill/recharge")
-    public TableDataInfo<DrBillingRecord> rechargeOrders(@RequestBody(required = false) DrBillingRecord record) {
+    @PostMapping("/bill/recharge")
+    public TableDataInfo<DrBillingRecord> rechargeOrders(
+        @RequestParam(value = "userId", required = false) Long userId,
+        @RequestBody(required = false) DrBillingRecord record) {
         startPage();
-        if (record == null) {
-            record = new DrBillingRecord();
+        DrBillingRecord query = record != null ? record : new DrBillingRecord();
+        query.setBillType(1);
+        query.setBusinessType(DrBillingRecord.BUSINESS_TYPE_RECHARGE);
+        Long effectiveUserId = resolveUserId(userId, record);
+        if (effectiveUserId != null) {
+            query.setUserId(effectiveUserId);
         }
-        record.setBillType(1);
-        record.setBusinessType(DrBillingRecord.BUSINESS_TYPE_RECHARGE);
-        List<DrBillingRecord> list = billingRecordService.selectRechargeOrders(record);
+        List<DrBillingRecord> list = billingRecordService.selectRechargeOrders(query);
         return getDataTable(list);
+    }
+
+    @GetMapping("/bill/recharge")
+    public TableDataInfo<DrBillingRecord> rechargeOrdersGet(
+        @RequestParam(value = "userId", required = false) Long userId,
+        DrBillingRecord record) {
+        startPage();
+        DrBillingRecord query = record != null ? record : new DrBillingRecord();
+        query.setBillType(1);
+        query.setBusinessType(DrBillingRecord.BUSINESS_TYPE_RECHARGE);
+        Long effectiveUserId = resolveUserId(userId, record);
+        if (effectiveUserId != null) {
+            query.setUserId(effectiveUserId);
+        }
+        List<DrBillingRecord> list = billingRecordService.selectRechargeOrders(query);
+        return getDataTable(list);
+    }
+
+    private Long resolveUserId(Long userIdParam, DrBillingRecord record) {
+        if (userIdParam != null && userIdParam > 0) {
+            return userIdParam;
+        }
+        if (record != null && record.getUserId() != null && record.getUserId() > 0) {
+            return record.getUserId();
+        }
+        if (record != null && record.getParams() != null) {
+            Object value = record.getParams().get("userId");
+            if (value instanceof Number) {
+                return ((Number) value).longValue();
+            }
+            if (value instanceof String) {
+                try {
+                    return Long.parseLong(((String) value).trim());
+                } catch (NumberFormatException ignored) {
+                }
+            }
+        }
+        return null;
     }
 
     /**

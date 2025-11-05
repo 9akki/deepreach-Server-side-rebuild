@@ -155,6 +155,11 @@ public class DrBillingRecord extends BaseEntity {
     public static final String BUSINESS_TYPE_TOKEN = "TOKEN";
 
     /**
+     * 业务类型：AI人设创建
+     */
+    public static final String BUSINESS_TYPE_AI_CHARACTER = "AI_CHARACTER";
+
+    /**
      * 业务类型：手动调账
      */
     public static final String BUSINESS_TYPE_MANUAL_ADJUST = "MANUAL_ADJUST";
@@ -275,6 +280,8 @@ public class DrBillingRecord extends BaseEntity {
                 return "营销实例";
             case BUSINESS_TYPE_INSTANCE_PROSPECTING:
                 return "拓客实例";
+            case BUSINESS_TYPE_AI_CHARACTER:
+                return "AI人设创建";
             case BUSINESS_TYPE_SMS:
                 return "短信服务";
             case BUSINESS_TYPE_TOKEN:

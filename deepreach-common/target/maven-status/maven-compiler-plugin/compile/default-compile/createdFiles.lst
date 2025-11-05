@@ -67,7 +67,9 @@ com/deepreach/common/security/JwtTokenUtil$TokenInfo$TokenInfoBuilder.class
 com/deepreach/common/core/domain/AjaxResult.class
 com/deepreach/common/annotation/PreAuthorize.class
 com/deepreach/common/core/domain/entity/Computer.class
+com/deepreach/common/utils/PageUtils$PageState.class
 com/deepreach/common/core/domain/entity/SysDept.class
+com/deepreach/common/exception/BalanceNotEnoughException.class
 com/deepreach/common/core/page/PageDomain.class
 com/deepreach/common/web/BaseController.class
 com/deepreach/common/annotation/Log.class

@@ -1,13 +1,21 @@
 package com.deepreach.web.service.impl;
 
+import com.deepreach.common.core.domain.entity.SysUser;
+import com.deepreach.common.core.service.SysUserService;
+import com.deepreach.common.exception.BalanceNotEnoughException;
 import com.deepreach.web.entity.AiCharacter;
+import com.deepreach.web.entity.DrBillingRecord;
+import com.deepreach.web.entity.DrPriceConfig;
 import com.deepreach.web.mapper.AiCharacterMapper;
 import com.deepreach.web.service.AiCharacterService;
+import com.deepreach.web.service.DrPriceConfigService;
+import com.deepreach.web.service.UserDrBalanceService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -31,6 +39,15 @@ public class AiCharacterServiceImpl implements AiCharacterService {
 
     @Autowired
     private AiCharacterMapper characterMapper;
+
+    @Autowired
+    private SysUserService sysUserService;
+
+    @Autowired
+    private DrPriceConfigService priceConfigService;
+
+    @Autowired
+    private UserDrBalanceService userDrBalanceService;
 
     @Override
     public AiCharacter selectById(Long id) {
@@ -129,7 +146,26 @@ public class AiCharacterServiceImpl implements AiCharacterService {
             throw new Exception("人设名称已存在");
         }
 
-        // 数据库会自动设置created_time和updated_time
+        SysUser creator = sysUserService.selectUserById(character.getUserId());
+        if (creator == null) {
+            throw new Exception("用户信息不存在");
+        }
+
+        Long parentUserId = creator.getParentUserId();
+        if (parentUserId == null || parentUserId <= 0) {
+            throw new Exception("当前用户未绑定父级账户，无法创建人设");
+        }
+
+        DrPriceConfig priceConfig = priceConfigService.selectDrPriceConfigByBusinessType(DrPriceConfig.BUSINESS_TYPE_AI_CHARACTER);
+        if (priceConfig == null || !priceConfig.isActive() || priceConfig.getDrPrice() == null) {
+            throw new Exception("AI人设价格配置不存在或未启用");
+        }
+        BigDecimal characterPrice = priceConfig.getDrPrice();
+        if (characterPrice.compareTo(BigDecimal.ZERO) > 0
+            && !userDrBalanceService.checkBalanceSufficient(parentUserId, characterPrice)) {
+            throw new BalanceNotEnoughException("父账户余额不足，无法创建AI人设");
+        }
+
 
         try {
             int result = characterMapper.insert(character);
@@ -137,6 +173,25 @@ public class AiCharacterServiceImpl implements AiCharacterService {
                 throw new Exception("创建人设失败");
             }
             log.info("创建人设成功：人设ID={}, 名称={}", character.getId(), character.getName());
+
+            if (characterPrice.compareTo(BigDecimal.ZERO) > 0) {
+                Integer billingType = priceConfig.getBillingType() != null
+                    ? priceConfig.getBillingType()
+                    : DrPriceConfig.BILLING_TYPE_INSTANT;
+                boolean deducted = userDrBalanceService.consume(
+                    parentUserId,
+                    characterPrice,
+                    DrBillingRecord.BUSINESS_TYPE_AI_CHARACTER,
+                    character.getId(),
+                    billingType,
+                    character.getUserId(),
+                    "创建AI人设：" + character.getName()
+                );
+                if (!deducted) {
+                    throw new Exception("扣除AI人设创建费用失败");
+                }
+                log.info("创建AI人设扣费成功：父账户ID={}, 扣费金额={}", parentUserId, characterPrice);
+            }
             return character;
         } catch (Exception e) {
             log.error("创建人设失败：名称={}", character.getName(), e);

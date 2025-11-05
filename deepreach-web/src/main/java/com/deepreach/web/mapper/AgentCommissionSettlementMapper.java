@@ -16,4 +16,10 @@ public interface AgentCommissionSettlementMapper {
     List<AgentCommissionSettlement> selectByAgentUserId(Long agentUserId);
 
     List<AgentCommissionSettlement> selectByStatuses(@Param("statuses") List<String> statuses);
+
+    List<AgentCommissionSettlement> searchAdminSettlements(@Param("settlementId") Long settlementId,
+                                                           @Param("agentUserId") Long agentUserId,
+                                                           @Param("username") String username,
+                                                           @Param("beginTime") java.time.LocalDateTime beginTime,
+                                                           @Param("endTime") java.time.LocalDateTime endTime);
 }

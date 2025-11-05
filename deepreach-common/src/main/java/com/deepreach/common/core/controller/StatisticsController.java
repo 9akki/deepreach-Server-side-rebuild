@@ -186,6 +186,86 @@ public class StatisticsController {
     }
 
     /**
+     * 代理直属子用户统计
+     */
+    @GetMapping("/agent/{userId}/children-statistics")
+    @Log(title = "统计管理", businessType = BusinessType.OTHER)
+    public Result getAgentChildrenStatistics(@PathVariable Long userId) {
+        try {
+            if (userId == null || userId <= 0) {
+                return Result.error("用户ID无效");
+            }
+            Map<String, Object> statistics = statisticsService.getAgentChildrenStatistics(userId);
+            if (statistics.containsKey("error")) {
+                return Result.error(statistics.get("error").toString());
+            }
+            return Result.success(statistics);
+        } catch (Exception e) {
+            log.error("获取代理直属子用户统计失败：userId={}", userId, e);
+            return Result.error("获取统计信息失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 买家账户运营概览
+     */
+    @GetMapping("/buyer/{buyerId}/overview")
+    @Log(title = "统计管理", businessType = BusinessType.OTHER)
+    public Result getBuyerOverview(@PathVariable("buyerId") Long buyerId) {
+        try {
+            if (buyerId == null || buyerId <= 0) {
+                return Result.error("买家ID无效");
+            }
+            Map<String, Object> overview = statisticsService.getBuyerOperationalStatistics(buyerId);
+            if (overview.containsKey("error")) {
+                return Result.error(overview.get("error").toString());
+            }
+            return Result.success(overview);
+        } catch (Exception e) {
+            log.error("获取买家运营概览失败：buyerId={}", buyerId, e);
+            return Result.error("获取统计信息失败：" + e.getMessage());
+        }
+    }
+
+    @GetMapping("/agent/general/children")
+    @Log(title = "统计管理", businessType = BusinessType.OTHER)
+    public Result getGeneralAgentChildren(@RequestParam Long userId) {
+        return getAgentChildrenStatisticsWithIdentity(userId, com.deepreach.common.security.enums.UserIdentity.AGENT_LEVEL_1);
+    }
+
+    @GetMapping("/agent/level1/children")
+    @Log(title = "统计管理", businessType = BusinessType.OTHER)
+    public Result getLevel1AgentChildren(@RequestParam Long userId) {
+        return getAgentChildrenStatisticsWithIdentity(userId, com.deepreach.common.security.enums.UserIdentity.AGENT_LEVEL_2);
+    }
+
+    @GetMapping("/agent/level2/children")
+    @Log(title = "统计管理", businessType = BusinessType.OTHER)
+    public Result getLevel2AgentChildren(@RequestParam Long userId) {
+        return getAgentChildrenStatisticsWithIdentity(userId, com.deepreach.common.security.enums.UserIdentity.AGENT_LEVEL_3);
+    }
+
+    private Result getAgentChildrenStatisticsWithIdentity(Long userId, com.deepreach.common.security.enums.UserIdentity expected) {
+        try {
+            if (userId == null || userId <= 0) {
+                return Result.error("用户ID无效");
+            }
+            Map<String, Object> statistics = statisticsService.getAgentChildrenStatistics(userId);
+            if (statistics.containsKey("error")) {
+                return Result.error(statistics.get("error").toString());
+            }
+            Object identity = statistics.get("identity");
+            if (identity == null || !expected.getRoleKey().equals(identity)) {
+                return Result.error("用户身份不匹配，预期：" + expected.getRoleKey());
+            }
+            return Result.success(statistics);
+        } catch (Exception e) {
+            log.error("获取代理直属子用户统计失败：userId={}, expected={}", userId, expected, e);
+            return Result.error("获取统计信息失败：" + e.getMessage());
+        }
+    }
+
+    /**
      * 获取买家账户统计信息
      *
      * 统计当前用户管理的买家总账户和子账户数量

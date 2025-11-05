@@ -67,11 +67,28 @@ public abstract class BaseController {
         rspData.setMsg("查询成功");
         rspData.setRows((List<T>) list);
 
-        // 使用PageHelper获取真正的分页信息
-        rspData.setTotal(PageUtils.getTotal(list));
-        rspData.setPageNum(PageUtils.getPageNum(list));
-        rspData.setPageSize(PageUtils.getPageSize(list));
-        rspData.setPages(PageUtils.getPages(list));
+        com.github.pagehelper.Page<?> page = com.github.pagehelper.PageHelper.getLocalPage();
+        if (page != null) {
+            rspData.setTotal(page.getTotal());
+            rspData.setPageNum(page.getPageNum());
+            rspData.setPageSize(page.getPageSize());
+            rspData.setPages(page.getPages());
+        } else {
+            com.deepreach.common.utils.PageUtils.PageState manualState = com.deepreach.common.utils.PageUtils.getCurrentPageState();
+            if (manualState != null) {
+                rspData.setTotal(manualState.getTotal());
+                rspData.setPageNum(manualState.getPageNum());
+                rspData.setPageSize(manualState.getPageSize());
+                rspData.setPages(manualState.getPages());
+                com.deepreach.common.utils.PageUtils.clearManualPage();
+            } else {
+                int size = list == null ? 0 : list.size();
+                rspData.setTotal(size);
+                rspData.setPageNum(1);
+                rspData.setPageSize(size);
+                rspData.setPages(size > 0 ? 1 : 0);
+            }
+        }
 
         return rspData;
     }

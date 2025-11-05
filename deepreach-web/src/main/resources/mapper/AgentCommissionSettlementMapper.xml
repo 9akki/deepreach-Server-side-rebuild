@@ -6,6 +6,7 @@
         <id column="settlement_id" property="settlementId"/>
         <result column="agent_user_id" property="agentUserId"/>
         <result column="agent_username" property="agentUsername"/>
+        <result column="agent_role_keys" property="agentRoleKeys"/>
         <result column="request_amount" property="requestAmount"/>
         <result column="approved_amount" property="approvedAmount"/>
         <result column="status" property="status"/>
@@ -67,18 +68,84 @@
 
     <select id="selectByStatuses" parameterType="map" resultMap="SettlementResultMap">
         select
-            s.settlement_id, s.agent_user_id, u.username as agent_username,
-            s.request_amount, s.approved_amount, s.status,
-            s.approval_user_id, s.approval_time, s.remark, s.extra_data,
-            s.create_by, s.create_time, s.update_by, s.update_time
+            s.settlement_id,
+            s.agent_user_id,
+            u.username as agent_username,
+            roles.agent_role_keys,
+            s.request_amount,
+            s.approved_amount,
+            s.status,
+            s.approval_user_id,
+            s.approval_time,
+            s.remark,
+            s.extra_data,
+            s.create_by,
+            s.create_time,
+            s.update_by,
+            s.update_time
         from dr_agent_commission_settlement s
         left join sys_user u on s.agent_user_id = u.user_id
+        left join (
+            select
+                ur.user_id,
+                group_concat(distinct r.role_key order by r.role_key) as agent_role_keys
+            from sys_user_role ur
+            join sys_role r on ur.role_id = r.role_id and r.del_flag = '0'
+            group by ur.user_id
+        ) roles on roles.user_id = s.agent_user_id
         <where>
             <if test="statuses != null and statuses.size() > 0">
                 s.status in
                 <foreach collection="statuses" item="status" open="(" separator="," close=")">
                     #{status}
                 </foreach>
+            </if>
+        </where>
+        order by s.create_time desc
+    </select>
+
+    <select id="searchAdminSettlements" resultMap="SettlementResultMap">
+        select
+            s.settlement_id,
+            s.agent_user_id,
+            u.username as agent_username,
+            roles.agent_role_keys,
+            s.request_amount,
+            s.approved_amount,
+            s.status,
+            s.approval_user_id,
+            s.approval_time,
+            s.remark,
+            s.extra_data,
+            s.create_by,
+            s.create_time,
+            s.update_by,
+            s.update_time
+        from dr_agent_commission_settlement s
+        left join sys_user u on s.agent_user_id = u.user_id
+        left join (
+            select
+                ur.user_id,
+                group_concat(distinct r.role_key order by r.role_key) as agent_role_keys
+            from sys_user_role ur
+            join sys_role r on ur.role_id = r.role_id and r.del_flag = '0'
+            group by ur.user_id
+        ) roles on roles.user_id = s.agent_user_id
+        <where>
+            <if test="settlementId != null">
+                and s.settlement_id = #{settlementId}
+            </if>
+            <if test="agentUserId != null">
+                and s.agent_user_id = #{agentUserId}
+            </if>
+            <if test="username != null and username != ''">
+                and u.username like concat('%', #{username}, '%')
+            </if>
+            <if test="beginTime != null">
+                and s.create_time &gt;= #{beginTime}
+            </if>
+            <if test="endTime != null">
+                and s.create_time &lt;= #{endTime}
             </if>
         </where>
         order by s.create_time desc

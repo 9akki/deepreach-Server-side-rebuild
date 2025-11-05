@@ -170,6 +170,22 @@ public class DrPriceConfig extends BaseEntity {
     }
 
     /**
+     * 创建AI人设价格配置
+     *
+     * @return 价格配置对象
+     */
+    public static DrPriceConfig createAiCharacterConfig() {
+        DrPriceConfig config = new DrPriceConfig();
+        config.setBusinessType(BUSINESS_TYPE_AI_CHARACTER);
+        config.setBusinessName("AI人设创建费用");
+        config.setPriceUnit("DR/个");
+        config.setDrPrice(new BigDecimal("100.0000"));
+        config.setBillingType(1);
+        config.setStatus("0");
+        return config;
+    }
+
+    /**
      * 创建短信服务价格配置
      *
      * @return 价格配置对象
@@ -217,6 +233,11 @@ public class DrPriceConfig extends BaseEntity {
      * 业务类型：拓客实例
      */
     public static final String BUSINESS_TYPE_INSTANCE_PROSPECTING = "INSTANCE_PROSPECTING";
+
+    /**
+     * 业务类型：AI人设
+     */
+    public static final String BUSINESS_TYPE_AI_CHARACTER = "AI_CHARACTER";
 
     /**
      * 业务类型：短信

@@ -5,6 +5,7 @@ import com.deepreach.common.core.mapper.AgentCommissionAccountStatMapper;
 import com.deepreach.common.core.mapper.SysUserMapper;
 import com.deepreach.common.core.service.HierarchyStatisticsService;
 import com.deepreach.common.core.service.UserHierarchyService;
+import com.deepreach.common.security.UserRoleUtils;
 import com.deepreach.common.security.enums.UserIdentity;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +31,16 @@ public class HierarchyStatisticsServiceImpl implements HierarchyStatisticsServic
         Collections.unmodifiableSet(new HashSet<>(Collections.singletonList("marketing")));
     private static final Set<String> PROSPECTING_PLATFORM_TYPES =
         Collections.unmodifiableSet(new HashSet<>(Arrays.asList("customer-acquisition", "prospecting")));
+    private static final List<String> MARKETING_DISPLAY_PLATFORMS =
+        Collections.unmodifiableList(Arrays.asList("Telegram", "WhatsApp", "Facebook", "Line"));
+    private static final List<String> PROSPECTING_DISPLAY_PLATFORMS =
+        Collections.unmodifiableList(Arrays.asList("Instagram", "TikTok", "Facebook", "X"));
+
+    private static final Map<UserIdentity, List<UserIdentity>> DIRECT_CHILDREN_BY_IDENTITY = Map.of(
+        UserIdentity.AGENT_LEVEL_1, Arrays.asList(UserIdentity.AGENT_LEVEL_2, UserIdentity.AGENT_LEVEL_3, UserIdentity.BUYER_MAIN),
+        UserIdentity.AGENT_LEVEL_2, Arrays.asList(UserIdentity.AGENT_LEVEL_3, UserIdentity.BUYER_MAIN),
+        UserIdentity.AGENT_LEVEL_3, Collections.singletonList(UserIdentity.BUYER_MAIN)
+    );
 
     @Autowired
     private SysUserMapper userMapper;
@@ -398,7 +409,7 @@ public class HierarchyStatisticsServiceImpl implements HierarchyStatisticsServic
             Map<Long, BigDecimal> rechargeMap = fetchRechargeByUserIds(buyerMainIds);
             BigDecimal totalRecharge = formatAmount(sumRechargeForUsers(buyerMainIds, rechargeMap));
 
-            Map<Long, BigDecimal> commissionMap = fetchCommissionByUserIds(agentIds);
+            Map<Long, BigDecimal> commissionMap = fetchSettledCommissionByUserIds(agentIds);
             BigDecimal settledCommission = formatAmount(sumCommissionForAgents(agentIds, commissionMap));
 
             BigDecimal netValue = formatAmount(totalRecharge.subtract(settledCommission));
@@ -415,6 +426,139 @@ public class HierarchyStatisticsServiceImpl implements HierarchyStatisticsServic
         }
 
         return statistics;
+    }
+
+    @Override
+    public Map<String, Object> getAgentChildrenStatistics(Long agentUserId) {
+        Map<String, Object> statistics = new LinkedHashMap<>();
+
+        try {
+            if (agentUserId == null || agentUserId <= 0) {
+                return statistics;
+            }
+
+            SysUser agent = userMapper.selectUserWithDept(agentUserId);
+            if (agent == null) {
+                throw new RuntimeException("用户不存在");
+            }
+
+            Set<String> roleKeys = userMapper.selectRoleKeysByUserId(agentUserId);
+            if (roleKeys == null || roleKeys.isEmpty()) {
+                throw new RuntimeException("用户未配置身份");
+            }
+
+            UserIdentity identity = resolvePrimaryIdentity(roleKeys);
+            if (identity == null || !UserRoleUtils.hasAnyIdentity(roleKeys,
+                UserIdentity.AGENT_LEVEL_1, UserIdentity.AGENT_LEVEL_2, UserIdentity.AGENT_LEVEL_3)) {
+                throw new RuntimeException("仅代理用户支持该统计");
+            }
+
+            List<UserIdentity> children = DIRECT_CHILDREN_BY_IDENTITY.getOrDefault(identity, Collections.emptyList());
+            Map<String, Long> childCounts = countDirectChildrenByRole(agentUserId);
+
+            statistics.put("agentId", agentUserId);
+            statistics.put("agentUsername", agent.getUsername());
+            statistics.put("identity", identity.getRoleKey());
+
+            for (UserIdentity childIdentity : children) {
+                String key;
+                switch (childIdentity) {
+                    case AGENT_LEVEL_2:
+                        key = "agentLevel2Count";
+                        break;
+                    case AGENT_LEVEL_3:
+                        key = "agentLevel3Count";
+                        break;
+                    case BUYER_MAIN:
+                        key = "merchantCount";
+                        break;
+                    default:
+                        key = childIdentity.getRoleKey() + "Count";
+                        break;
+                }
+                statistics.put(key, childCounts.getOrDefault(childIdentity.getRoleKey(), 0L));
+            }
+
+        } catch (Exception e) {
+            log.error("Failed to build agent children statistics: agentUserId={}", agentUserId, e);
+            statistics.put("error", e.getMessage());
+        }
+
+        return statistics;
+    }
+
+    @Override
+    public Map<String, Object> getBuyerOperationalStatistics(Long buyerUserId) {
+        Map<String, Object> snapshot = new LinkedHashMap<>();
+        try {
+            if (buyerUserId == null || buyerUserId <= 0) {
+                throw new IllegalArgumentException("买家用户ID无效");
+            }
+
+            SysUser buyer = userMapper.selectUserWithDept(buyerUserId);
+            if (buyer == null) {
+                throw new RuntimeException("买家不存在");
+            }
+
+            Set<String> buyerRoles = userMapper.selectRoleKeysByUserId(buyerUserId);
+            if (buyerRoles == null || buyerRoles.isEmpty()
+                || !UserRoleUtils.hasIdentity(buyerRoles, UserIdentity.BUYER_MAIN)) {
+                throw new RuntimeException("仅支持买家主账户查询");
+            }
+
+            BigDecimal drBalance = formatAmount(userMapper.selectDrBalanceByUserId(buyerUserId));
+
+            Set<Long> managedUserIds = collectManagedUserIds(buyerUserId);
+            if (managedUserIds.size() <= 1) {
+                List<SysUser> directSubs = userMapper.selectSubAccountsByParentUserId(buyerUserId);
+                if (directSubs != null) {
+                    directSubs.stream()
+                        .map(SysUser::getUserId)
+                        .filter(Objects::nonNull)
+                        .forEach(managedUserIds::add);
+                }
+            }
+
+            Map<UserIdentity, Set<Long>> membership = resolveIdentityMembership(managedUserIds);
+            Set<Long> staffIds = new LinkedHashSet<>(membership.getOrDefault(UserIdentity.BUYER_SUB, Collections.emptySet()));
+            long staffCount = staffIds.size();
+
+            Map<String, Object> aiStats = buildAiCharacterStatistics(staffIds);
+            Map<String, Long> aiCharacterCounts = new LinkedHashMap<>();
+            aiCharacterCounts.put("customerService", safeLongValue(aiStats.get("customerServiceAiCount")));
+            aiCharacterCounts.put("design", safeLongValue(aiStats.get("socialAiCount")));
+            aiCharacterCounts.put("total", safeLongValue(aiStats.get("totalCharacters")));
+
+            Set<Long> instanceOwners = new LinkedHashSet<>(staffIds);
+            instanceOwners.add(buyerUserId);
+            Map<String, Object> instanceStats = buildInstanceStatistics(instanceOwners);
+            Map<String, Long> marketingBreakdown = castToLongMap(instanceStats.get("marketingPlatformBreakdown"));
+            Map<String, Long> prospectingBreakdown = castToLongMap(instanceStats.get("prospectingPlatformBreakdown"));
+
+            Map<String, Long> marketingPlatforms = projectPlatformCounts(marketingBreakdown, MARKETING_DISPLAY_PLATFORMS);
+            Map<String, Long> prospectingPlatforms = projectPlatformCounts(prospectingBreakdown, PROSPECTING_DISPLAY_PLATFORMS);
+
+            Map<String, Object> marketingOverview = new LinkedHashMap<>();
+            marketingOverview.put("total", marketingPlatforms.values().stream().mapToLong(Long::longValue).sum());
+            marketingOverview.put("platforms", marketingPlatforms);
+
+            Map<String, Object> prospectingOverview = new LinkedHashMap<>();
+            prospectingOverview.put("total", prospectingPlatforms.values().stream().mapToLong(Long::longValue).sum());
+            prospectingOverview.put("platforms", prospectingPlatforms);
+
+            snapshot.put("buyerId", buyerUserId);
+            snapshot.put("buyerUsername", Objects.toString(buyer.getUsername(), ""));
+            snapshot.put("buyerNickname", Objects.toString(buyer.getNickname(), ""));
+            snapshot.put("drBalance", drBalance);
+            snapshot.put("staffCount", staffCount);
+            snapshot.put("aiCharacterCounts", aiCharacterCounts);
+            snapshot.put("marketingInstances", marketingOverview);
+            snapshot.put("prospectingInstances", prospectingOverview);
+        } catch (Exception e) {
+            log.error("Failed to build buyer operational statistics: buyerUserId={}", buyerUserId, e);
+            snapshot.put("error", e.getMessage());
+        }
+        return snapshot;
     }
 
     private Set<Long> collectManagedUserIds(Long rootUserId) {
@@ -584,6 +728,54 @@ public class HierarchyStatisticsServiceImpl implements HierarchyStatisticsServic
         return overview;
     }
 
+    private Map<String, Long> countDirectChildrenByRole(Long parentUserId) {
+        Map<String, Long> counts = new LinkedHashMap<>();
+        if (parentUserId == null || parentUserId <= 0) {
+            return counts;
+        }
+        List<Map<String, Object>> rows = userMapper.countChildrenByRoleKey(parentUserId);
+        if (rows == null) {
+            return counts;
+        }
+        for (Map<String, Object> row : rows) {
+            if (row == null || row.isEmpty()) {
+                continue;
+            }
+            Object roleKey = row.get("roleKey");
+            Object countObj = row.get("userCount");
+            if (!(roleKey instanceof String) || !(countObj instanceof Number)) {
+                continue;
+            }
+            counts.put((String) roleKey, ((Number) countObj).longValue());
+        }
+        return counts;
+    }
+
+    private UserIdentity resolvePrimaryIdentity(Set<String> roleKeys) {
+        if (roleKeys == null || roleKeys.isEmpty()) {
+            return null;
+        }
+        if (UserRoleUtils.hasIdentity(roleKeys, UserIdentity.AGENT_LEVEL_1)) {
+            return UserIdentity.AGENT_LEVEL_1;
+        }
+        if (UserRoleUtils.hasIdentity(roleKeys, UserIdentity.AGENT_LEVEL_2)) {
+            return UserIdentity.AGENT_LEVEL_2;
+        }
+        if (UserRoleUtils.hasIdentity(roleKeys, UserIdentity.AGENT_LEVEL_3)) {
+            return UserIdentity.AGENT_LEVEL_3;
+        }
+        if (UserRoleUtils.hasIdentity(roleKeys, UserIdentity.BUYER_MAIN)) {
+            return UserIdentity.BUYER_MAIN;
+        }
+        if (UserRoleUtils.hasIdentity(roleKeys, UserIdentity.BUYER_SUB)) {
+            return UserIdentity.BUYER_SUB;
+        }
+        if (UserRoleUtils.hasIdentity(roleKeys, UserIdentity.ADMIN)) {
+            return UserIdentity.ADMIN;
+        }
+        return null;
+    }
+
     private Map<String, Object> buildMerchantPerformance(Set<Long> buyerMainIds,
                                                          Set<Long> buyerSubIds,
                                                          Map<Long, BigDecimal> rechargeMap,
@@ -638,6 +830,28 @@ public class HierarchyStatisticsServiceImpl implements HierarchyStatisticsServic
                 continue;
             }
             result.put(userId, formatAmount(toBigDecimal(row.get("totalCommission"))));
+        }
+        return result;
+    }
+
+    private Map<Long, BigDecimal> fetchSettledCommissionByUserIds(Set<Long> userIds) {
+        Map<Long, BigDecimal> result = new HashMap<>();
+        if (userIds == null || userIds.isEmpty()) {
+            return result;
+        }
+        List<Map<String, Object>> rows = agentCommissionAccountMapper.selectCommissionByUserIds(userIds);
+        if (rows == null) {
+            return result;
+        }
+        for (Map<String, Object> row : rows) {
+            if (row == null || row.isEmpty()) {
+                continue;
+            }
+            Long userId = parseLong(row.get("userId"));
+            if (userId == null) {
+                continue;
+            }
+            result.put(userId, formatAmount(toBigDecimal(row.get("settledCommission"))));
         }
         return result;
     }
@@ -937,11 +1151,42 @@ public class HierarchyStatisticsServiceImpl implements HierarchyStatisticsServic
         return null;
     }
 
+    private long safeLongValue(Object value) {
+        Long parsed = parseLong(value);
+        return parsed != null ? parsed : 0L;
+    }
+
     private BigDecimal formatAmount(BigDecimal amount) {
         if (amount == null) {
             amount = BigDecimal.ZERO;
         }
         return amount.setScale(MONEY_SCALE, RoundingMode.HALF_UP);
+    }
+
+    private Map<String, Long> castToLongMap(Object value) {
+        Map<String, Long> result = new LinkedHashMap<>();
+        if (value instanceof Map<?, ?>) {
+            Map<?, ?> map = (Map<?, ?>) value;
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                if (entry == null || entry.getKey() == null) {
+                    continue;
+                }
+                String key = Objects.toString(entry.getKey(), "UNKNOWN_PLATFORM");
+                result.put(key, safeLongValue(entry.getValue()));
+            }
+        }
+        return result;
+    }
+
+    private Map<String, Long> projectPlatformCounts(Map<String, Long> source, List<String> displayKeys) {
+        Map<String, Long> result = new LinkedHashMap<>();
+        if (displayKeys == null) {
+            return result;
+        }
+        for (String key : displayKeys) {
+            result.put(key, source != null ? source.getOrDefault(key, 0L) : 0L);
+        }
+        return result;
     }
 
     private void initializeDeptStatistics(Map<String, Object> statistics,

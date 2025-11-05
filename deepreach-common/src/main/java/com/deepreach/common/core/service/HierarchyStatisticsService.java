@@ -41,4 +41,17 @@ public interface HierarchyStatisticsService {
      * 管理员查看商家资产统计（总充值/总结算/净值）。
      */
     Map<String, Object> getAdminMerchantsAssetStatistics(Long userId);
+
+    /**
+     * 统计指定代理的直属子节点情况。
+     */
+    Map<String, Object> getAgentChildrenStatistics(Long agentUserId);
+
+    /**
+     * 获取买家账户运营概览。
+     *
+     * @param buyerUserId 买家主账号ID
+     * @return 包含余额、员工和实例统计的数据
+     */
+    Map<String, Object> getBuyerOperationalStatistics(Long buyerUserId);
 }

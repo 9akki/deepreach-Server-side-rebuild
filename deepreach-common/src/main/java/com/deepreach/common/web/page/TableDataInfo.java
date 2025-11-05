@@ -72,7 +72,11 @@ public class TableDataInfo<T> implements Serializable {
         this.total = total;
         this.pageNum = pageNum;
         this.pageSize = pageSize;
-        this.pages = (int) Math.ceil((double) total / pageSize);
+        if (pageSize <= 0) {
+            this.pages = total > 0 ? 1 : 0;
+        } else {
+            this.pages = (int) Math.ceil((double) total / pageSize);
+        }
         this.timestamp = System.currentTimeMillis();
         this.code = 200;
         this.msg = "查询成功";

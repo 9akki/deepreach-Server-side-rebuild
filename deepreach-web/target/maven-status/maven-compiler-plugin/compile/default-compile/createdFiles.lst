@@ -16,6 +16,7 @@ com/deepreach/web/service/ProxyService.class
 com/deepreach/web/dto/CommissionSettlementRejectRequest.class
 com/deepreach/web/entity/AgentCommissionSettlementRecord.class
 com/deepreach/web/domain/dto/BatchDeleteResultDTO.class
+com/deepreach/web/dto/AgentCommissionSummaryResponse.class
 com/deepreach/web/DeepReachApplication.class
 com/deepreach/web/dto/CommissionSettlementApplyRequest.class
 com/deepreach/web/service/impl/DrPriceConfigServiceImpl.class
@@ -74,6 +75,7 @@ com/deepreach/web/domain/vo/ProxyVO$ProxyVOBuilder.class
 com/deepreach/web/dto/AgentCommissionAccountDTO.class
 com/deepreach/web/controller/CloudComputerController.class
 com/deepreach/web/controller/AgentCommissionController.class
+com/deepreach/web/dto/AdminSettlementQueryRequest.class
 com/deepreach/web/entity/AiInstance.class
 com/deepreach/web/config/DataSourceHealthCheck.class
 com/deepreach/web/mapper/CloudUserMapper.class
