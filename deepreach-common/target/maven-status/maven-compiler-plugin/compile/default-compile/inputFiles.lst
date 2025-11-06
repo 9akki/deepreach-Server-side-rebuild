@@ -17,7 +17,6 @@
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-common/src/main/java/com/deepreach/common/core/domain/dto/UserHierarchyGroupDTO.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-common/src/main/java/com/deepreach/common/security/JwtTokenUtil.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-common/src/main/java/com/deepreach/common/core/dto/CloudComputerParameterDTO.java
-/Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-common/src/main/java/com/deepreach/common/core/event/MerchantCreatedEvent.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-common/src/main/java/com/deepreach/common/security/impl/MemorySecurityCache.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-common/src/main/java/com/deepreach/common/exception/BalanceNotEnoughException.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-common/src/main/java/com/deepreach/common/core/mapper/SysOperLogMapper.java
