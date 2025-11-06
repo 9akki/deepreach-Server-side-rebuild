@@ -139,6 +139,14 @@ public interface UserDrBalanceService {
     boolean checkBalanceSufficient(Long userId, BigDecimal amount);
 
     /**
+     * 尝试消耗一次AI人设免费创建次数
+     *
+     * @param userId 买家总账户ID
+     * @return true表示成功消耗，false表示无可用次数
+     */
+    boolean tryConsumeAiCharacterFreeTimes(Long userId);
+
+    /**
      * 创建用户余额账户
      *
      * @param userId 用户ID

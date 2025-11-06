@@ -156,4 +156,12 @@ public interface UserDrBalanceMapper {
     int deleteByUserId(@Param("userId") Long userId);
 
     int deductForToken(UserDrBalance userBalance);
+
+    /**
+     * 消耗一次AI人设免费创建次数
+     *
+     * @param userId 买家总账户ID
+     * @return 影响行数
+     */
+    int consumeAiCharacterFreeTimes(@Param("userId") Long userId);
 }

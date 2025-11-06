@@ -68,6 +68,13 @@ public class UserDrBalance extends BaseEntity {
      */
     private String status;
 
+    /**
+     * AI人设免费创建次数
+     *
+     * 买家总账户与其子账户共享
+     */
+    private Integer aiCharacterFreeTimes;
+
     // ==================== 业务判断方法 ====================
 
     /**
@@ -190,6 +197,7 @@ public class UserDrBalance extends BaseEntity {
         balance.setFrozenAmount(BigDecimal.ZERO);
         balance.setVersion(0);
         balance.setStatus("0");
+        balance.setAiCharacterFreeTimes(1);
         return balance;
     }
 }

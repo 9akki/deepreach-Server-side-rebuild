@@ -167,7 +167,12 @@ public class AiCharacterServiceImpl implements AiCharacterService {
             throw new Exception("AI人设价格配置不存在或未启用");
         }
         BigDecimal characterPrice = priceConfig.getDrPrice();
-        if (characterPrice.compareTo(BigDecimal.ZERO) > 0
+        boolean consumedFreeQuota = false;
+        if (characterPrice.compareTo(BigDecimal.ZERO) > 0) {
+            consumedFreeQuota = userDrBalanceService.tryConsumeAiCharacterFreeTimes(chargeAccountId);
+        }
+        if (!consumedFreeQuota
+            && characterPrice.compareTo(BigDecimal.ZERO) > 0
             && !userDrBalanceService.checkBalanceSufficient(chargeAccountId, characterPrice)) {
             throw new BalanceNotEnoughException("账户余额不足，无法创建AI人设");
         }
@@ -180,7 +185,7 @@ public class AiCharacterServiceImpl implements AiCharacterService {
             }
             log.info("创建人设成功：人设ID={}, 名称={}", character.getId(), character.getName());
 
-            if (characterPrice.compareTo(BigDecimal.ZERO) > 0) {
+            if (characterPrice.compareTo(BigDecimal.ZERO) > 0 && !consumedFreeQuota) {
                 Integer billingType = priceConfig.getBillingType() != null
                     ? priceConfig.getBillingType()
                     : DrPriceConfig.BILLING_TYPE_INSTANT;
@@ -197,6 +202,8 @@ public class AiCharacterServiceImpl implements AiCharacterService {
                     throw new Exception("扣除AI人设创建费用失败");
                 }
                 log.info("创建AI人设扣费成功：计费账户ID={}, 扣费金额={}", chargeAccountId, characterPrice);
+            } else if (consumedFreeQuota) {
+                log.info("创建AI人设使用免费额度成功：计费账户ID={}", chargeAccountId);
             }
             return character;
         } catch (Exception e) {

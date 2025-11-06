@@ -483,6 +483,16 @@ public class UserDrBalanceServiceImpl implements UserDrBalanceService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    public boolean tryConsumeAiCharacterFreeTimes(Long userId) {
+        if (userId == null) {
+            return false;
+        }
+        getByUserId(userId);
+        return balanceMapper.consumeAiCharacterFreeTimes(userId) > 0;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
     public UserDrBalance createBalanceAccount(Long userId) {
         if (userId == null) {
             throw new IllegalArgumentException("用户ID不能为空");

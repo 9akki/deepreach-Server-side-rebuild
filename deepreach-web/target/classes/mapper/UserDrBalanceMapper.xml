@@ -14,6 +14,7 @@
         <result column="frozen_amount" property="frozenAmount" />
         <result column="version" property="version" />
         <result column="status" property="status" />
+        <result column="ai_character_free_times" property="aiCharacterFreeTimes" />
         <result column="create_by" property="createBy" />
         <result column="create_time" property="createTime" />
         <result column="update_by" property="updateBy" />
@@ -24,7 +25,7 @@
     <!-- 通用列名 -->
     <sql id="Base_Column_List">
         balance_id, user_id, dr_balance, pre_deducted_balance, total_recharge, total_consume,
-        total_refund, frozen_amount, version, status, create_by, create_time, update_by, update_time, remark
+        total_refund, frozen_amount, version, status, ai_character_free_times, create_by, create_time, update_by, update_time, remark
     </sql>
 
     <!-- 根据用户ID查询余额信息 -->
@@ -62,10 +63,10 @@
     <insert id="insert" parameterType="com.deepreach.web.entity.UserDrBalance" useGeneratedKeys="true" keyProperty="balanceId">
         insert into user_dr_balance (
             user_id, dr_balance, pre_deducted_balance, total_recharge, total_consume,
-            total_refund, frozen_amount, version, status, create_by, create_time, remark
+            total_refund, frozen_amount, version, status, ai_character_free_times, create_by, create_time, remark
         ) values (
             #{userId}, #{drBalance}, #{preDeductedBalance}, #{totalRecharge}, #{totalConsume},
-            #{totalRefund}, #{frozenAmount}, #{version}, #{status}, #{createBy}, #{createTime}, #{remark}
+            #{totalRefund}, #{frozenAmount}, #{version}, #{status}, #{aiCharacterFreeTimes}, #{createBy}, #{createTime}, #{remark}
         )
     </insert>
 
@@ -96,6 +97,9 @@
             </if>
             <if test="status != null and status != ''">
                 status = #{status},
+            </if>
+            <if test="aiCharacterFreeTimes != null">
+                ai_character_free_times = #{aiCharacterFreeTimes},
             </if>
             <if test="updateBy != null and updateBy != ''">
                 update_by = #{updateBy},
@@ -196,6 +200,14 @@
             version = version + 1,
             update_time = now()
         where user_id = #{userId}
+    </update>
+
+    <update id="consumeAiCharacterFreeTimes">
+        update user_dr_balance
+        set ai_character_free_times = ai_character_free_times - 1,
+            update_time = now()
+        where user_id = #{userId}
+          and ai_character_free_times &gt; 0
     </update>
 
     <!-- 删除余额记录 -->
