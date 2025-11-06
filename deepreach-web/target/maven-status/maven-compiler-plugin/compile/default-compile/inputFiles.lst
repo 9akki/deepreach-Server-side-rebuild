@@ -53,6 +53,7 @@
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/service/impl/AiInstanceServiceImpl.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/dto/AgentCommissionAccountDTO.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/config/DataSourceHealthCheck.java
+/Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/listener/MerchantAccountInitializer.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/entity/AgentCommissionSettlementRecord.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/service/AiInstanceService.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/entity/AiCharacter.java

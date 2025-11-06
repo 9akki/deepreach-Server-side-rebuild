@@ -10,6 +10,7 @@ import com.deepreach.common.core.domain.entity.SysUser;
 import com.deepreach.common.core.domain.model.LoginUser;
 import com.deepreach.common.core.mapper.SysUserMapper;
 import com.deepreach.common.core.mapper.SysRoleMapper;
+import com.deepreach.common.core.event.MerchantCreatedEvent;
 import com.deepreach.common.core.service.UserHierarchyService;
 import com.deepreach.common.core.service.SysUserService;
 import com.deepreach.common.utils.UserHierarchyTreeBuilder;
@@ -23,6 +24,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -89,6 +91,9 @@ public class SysUserServiceImpl implements SysUserService {
 
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
+
+    @Autowired
+    private ApplicationEventPublisher applicationEventPublisher;
 
     // ==================== 基础查询方法 ====================
 
@@ -539,6 +544,8 @@ public class SysUserServiceImpl implements SysUserService {
 
             // 设置简化的角色和部门信息
             setSimplifiedUserInfo(user);
+
+            publishMerchantCreatedEventIfNeeded(user);
 
             log.info("创建用户成功：用户ID={}, 用户名={}, 创建者={}",
                     user.getUserId(), user.getUsername(), user.getCreateBy());
@@ -1159,10 +1166,21 @@ public class SysUserServiceImpl implements SysUserService {
 
             log.info("用户注册成功：用户ID={}, 用户名={}", user.getUserId(), user.getUsername());
             refreshUserHierarchyCacheSilently();
+            publishMerchantCreatedEventIfNeeded(user);
             return user;
         } catch (Exception e) {
             log.error("用户注册异常：用户名={}", user.getUsername(), e);
             throw new RuntimeException("注册失败：" + e.getMessage(), e);
+        }
+    }
+
+    private void publishMerchantCreatedEventIfNeeded(SysUser user) {
+        if (user != null && user.isBuyerMainIdentity()) {
+            try {
+                applicationEventPublisher.publishEvent(new MerchantCreatedEvent(this, user));
+            } catch (Exception ex) {
+                log.warn("发布商家创建事件失败：userId={}", user.getUserId(), ex);
+            }
         }
     }
 

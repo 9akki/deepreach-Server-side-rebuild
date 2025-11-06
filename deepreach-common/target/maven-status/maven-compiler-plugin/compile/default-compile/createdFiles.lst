@@ -48,6 +48,7 @@ com/deepreach/common/core/controller/SysRoleController.class
 com/deepreach/common/security/JwtTokenUtil$TokenInfo.class
 com/deepreach/common/core/domain/dto/UserListRequest.class
 com/deepreach/common/core/domain/entity/SysRole.class
+com/deepreach/common/core/event/MerchantCreatedEvent.class
 com/deepreach/common/core/service/impl/SysRoleServiceImpl.class
 com/deepreach/common/annotation/DataScope.class
 com/deepreach/common/security/impl/MemorySecurityCache$CacheEntry.class
