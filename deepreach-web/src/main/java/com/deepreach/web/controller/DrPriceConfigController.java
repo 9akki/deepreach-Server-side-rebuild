@@ -35,9 +35,12 @@ public class DrPriceConfigController extends BaseController {
     // @PreAuthorize("@ss.hasPermi('dr:price:list')")
     @GetMapping("/list")
     public TableDataInfo<DrPriceConfig> list(DrPriceConfig drPriceConfig) {
-        startPage();
-        List<DrPriceConfig> list = drPriceConfigService.selectDrPriceConfigPage(drPriceConfig);
-        return getDataTable(list);
+        com.deepreach.common.core.page.PageDomain pageDomain = com.deepreach.common.core.page.TableSupport.buildPageRequest();
+        Integer pageNum = pageDomain.getPageNum() != null ? pageDomain.getPageNum() : 1;
+        Integer pageSize = pageDomain.getPageSize() != null ? pageDomain.getPageSize() : 10;
+        List<DrPriceConfig> all = drPriceConfigService.selectDrPriceConfigPage(drPriceConfig);
+        List<DrPriceConfig> rows = com.deepreach.common.utils.PageUtils.manualPage(all, pageNum, pageSize);
+        return getDataTable(rows);
     }
 
     /**
