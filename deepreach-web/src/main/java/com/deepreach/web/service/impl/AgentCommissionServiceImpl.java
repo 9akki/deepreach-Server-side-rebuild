@@ -124,7 +124,7 @@ public class AgentCommissionServiceImpl implements AgentCommissionService {
                 continue;
             }
 
-            int updated = accountMapper.incrementCommission(node.agentUserId, commission);
+            int updated = accountMapper.incrementCommission(node.agentUserId, commission, commission);
             if (updated <= 0) {
                 log.warn("更新代理佣金账户失败：agentUserId={}", node.agentUserId);
                 continue;
@@ -598,7 +598,19 @@ public class AgentCommissionServiceImpl implements AgentCommissionService {
         boolean isIncrease = amount.compareTo(BigDecimal.ZERO) > 0;
         BigDecimal changeAmount = amount.abs();
         BigDecimal appliedChange = ZERO;
-        if (!isIncrease) {
+        if (isIncrease) {
+            appliedChange = changeAmount;
+            int updated = accountMapper.adjustAvailableCommission(
+                agentUserId,
+                appliedChange,
+                ZERO,
+                ZERO,
+                ZERO
+            );
+            if (updated <= 0) {
+                throw new IllegalStateException("调整可用佣金失败，请重试");
+            }
+        } else {
             BigDecimal available = account.getAvailableCommission() != null ? account.getAvailableCommission() : ZERO;
             if (available.compareTo(ZERO) > 0) {
                 appliedChange = changeAmount.min(available);
@@ -614,15 +626,6 @@ public class AgentCommissionServiceImpl implements AgentCommissionService {
                         throw new IllegalStateException("扣减佣金账户失败，请重试");
                     }
                 }
-            }
-        } else {
-            appliedChange = changeAmount;
-            int updated = accountMapper.incrementCommission(
-                agentUserId,
-                appliedChange
-            );
-            if (updated <= 0) {
-                throw new IllegalStateException("增加佣金账户失败，请重试");
             }
         }
 

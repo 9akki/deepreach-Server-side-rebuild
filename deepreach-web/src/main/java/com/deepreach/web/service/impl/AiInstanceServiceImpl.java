@@ -1106,27 +1106,32 @@ public class AiInstanceServiceImpl implements AiInstanceService {
                 throw new IllegalArgumentException("平台ID不能为空");
             }
 
-            // 2. 用户权限验证 - 只有买家子账户可以创建实例
+            // 2. 用户权限验证 - 买家总账户或子账户可以创建实例
             SysUser currentUser = userService.selectUserWithDept(currentUserId);
             if (currentUser == null) {
                 throw new IllegalArgumentException("用户信息不存在");
             }
 
-            // 检查是否为买家子账户（部门类型为4，且有父用户）
-            if (!currentUser.isBuyerSubIdentity() || currentUser.getParentUserId() == null) {
-                throw new IllegalArgumentException("只有买家子账户可以创建实例");
+            boolean buyerMain = currentUser.isBuyerMainIdentity();
+            boolean buyerSub = currentUser.isBuyerSubIdentity();
+            if (!buyerMain && !buyerSub) {
+                throw new IllegalArgumentException("仅支持商家总账户或子账户创建实例");
             }
 
-            Long parentUserId = currentUser.getParentUserId();
+            Long parentUserId = buyerSub ? currentUser.getParentUserId() : currentUserId;
+            if (buyerSub && (parentUserId == null || parentUserId <= 0)) {
+                throw new IllegalArgumentException("未找到商家总账户信息");
+            }
+            boolean skipBilling = buyerMain;
 
             // 3. 根据实例类型进行不同的业务逻辑处理
             String instanceType = instance.getInstanceType();
             if ("0".equals(instanceType)) {
                 // 营销实例处理逻辑
-                return createMarketingInstance(instance, currentUserId, parentUserId);
+                return createMarketingInstance(instance, currentUserId, parentUserId, skipBilling);
             } else if ("1".equals(instanceType)) {
                 // 拓客实例处理逻辑
-                return createProspectingInstance(instance, currentUserId, parentUserId);
+                return createProspectingInstance(instance, currentUserId, parentUserId, skipBilling);
             } else {
                 throw new IllegalArgumentException("不支持的实例类型：" + instanceType);
             }
@@ -1144,42 +1149,43 @@ public class AiInstanceServiceImpl implements AiInstanceService {
     /**
      * 创建营销实例
      */
-    private AiInstance createMarketingInstance(AiInstance instance, Long currentUserId, Long parentUserId) {
+    private AiInstance createMarketingInstance(AiInstance instance, Long currentUserId, Long parentUserId, boolean skipBilling) {
         try {
-            // 1. 检查父账户余额是否大于100
-            UserDrBalance parentBalance = balanceService.getByUserId(parentUserId);
-            if (parentBalance == null) {
-                throw new IllegalArgumentException("父账户余额信息不存在");
-            }
-
-            BigDecimal availableBalance = parentBalance.getDrBalance();
-
-            // 预扣费硬编码！
-            DrPriceConfig preDeductConfig = priceConfigService.selectDrPriceConfigByBusinessType(
-                DrPriceConfig.BUSINESS_TYPE_INSTANCE_PRE_DEDUCT);
-            if (preDeductConfig == null || !preDeductConfig.isActive() || preDeductConfig.getDrPrice() == null) {
-                throw new IllegalStateException("营销实例预扣费价格配置不存在或未启用");
-            }
-            BigDecimal marketingInstancePrice = preDeductConfig.getDrPrice();
-
-            if (availableBalance.compareTo(marketingInstancePrice) < 0) {
-                throw new IllegalArgumentException("余额不足，无法创建营销实例");
-            }
-
-            // 2. 将100元余额转为预扣费余额
-            if (!userDrBalanceService.preDeductForInstance(parentUserId, marketingInstancePrice, currentUserId)) {
-                throw new IllegalArgumentException("预扣费操作失败");
-            }
-            log.info("为父账户 {} 转移 {} 元到预扣费余额", parentUserId, marketingInstancePrice);
-
-            // 3. 设置创建者信息并创建实例
             instance.setCreateBy(SecurityUtils.getCurrentUsername());
             instance.setUserId(currentUserId);
 
+            if (!skipBilling) {
+                UserDrBalance parentBalance = balanceService.getByUserId(parentUserId);
+                if (parentBalance == null) {
+                    throw new IllegalArgumentException("父账户余额信息不存在");
+                }
+
+                BigDecimal availableBalance = parentBalance.getDrBalance();
+
+                DrPriceConfig preDeductConfig = priceConfigService.selectDrPriceConfigByBusinessType(
+                    DrPriceConfig.BUSINESS_TYPE_INSTANCE_PRE_DEDUCT);
+                if (preDeductConfig == null || !preDeductConfig.isActive() || preDeductConfig.getDrPrice() == null) {
+                    throw new IllegalStateException("营销实例预扣费价格配置不存在或未启用");
+                }
+                BigDecimal marketingInstancePrice = preDeductConfig.getDrPrice();
+
+                if (availableBalance.compareTo(marketingInstancePrice) < 0) {
+                    throw new IllegalArgumentException("余额不足，无法创建营销实例");
+                }
+
+                if (!userDrBalanceService.preDeductForInstance(parentUserId, marketingInstancePrice, currentUserId)) {
+                    throw new IllegalArgumentException("预扣费操作失败");
+                }
+                log.info("为父账户 {} 转移 {} 元到预扣费余额", parentUserId, marketingInstancePrice);
+            } else {
+                log.info("商家总账户 {} 创建营销实例，跳过预扣费与扣费。", currentUserId);
+            }
+
             AiInstance created = insert(instance);
 
-            // 4. 扣除当天费用并创建BillingRecord
-            deductDailyFeeWithRecord(created, parentUserId, "0"); // "0"表示营销实例
+            if (!skipBilling) {
+                deductDailyFeeWithRecord(created, parentUserId, "0");
+            }
 
             return created;
 
@@ -1194,7 +1200,7 @@ public class AiInstanceServiceImpl implements AiInstanceService {
     /**
      * 创建拓客实例
      */
-    private AiInstance createProspectingInstance(AiInstance instance, Long currentUserId, Long parentUserId) {
+    private AiInstance createProspectingInstance(AiInstance instance, Long currentUserId, Long parentUserId, boolean skipBilling) {
         try {
             // 1. 获取当前用户的实例统计
             Integer platformId = instance.getPlatformId();
@@ -1214,8 +1220,11 @@ public class AiInstanceServiceImpl implements AiInstanceService {
 
             AiInstance created = insert(instance);
 
-            // 4. 扣除当天费用并创建BillingRecord
-            deductDailyFeeWithRecord(created, parentUserId, "1"); // "1"表示拓客实例
+            if (!skipBilling) {
+                deductDailyFeeWithRecord(created, parentUserId, "1"); // "1"表示拓客实例
+            } else {
+                log.info("商家总账户 {} 创建拓客实例，跳过当天扣费。", currentUserId);
+            }
 
             return created;
 

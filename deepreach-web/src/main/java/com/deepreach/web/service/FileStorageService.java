@@ -2,6 +2,7 @@ package com.deepreach.web.service;
 
 import com.deepreach.web.dto.FileUploadResponse;
 import org.springframework.web.multipart.MultipartFile;
+import java.nio.file.Path;
 
 public interface FileStorageService {
     /**
@@ -19,4 +20,11 @@ public interface FileStorageService {
      * @return 是否删除成功
      */
     boolean delete(String fileName);
+
+    /**
+     * 获取文件上传路径
+     *
+     * @return 文件上传路径
+     */
+    Path getUploadPath();
 }

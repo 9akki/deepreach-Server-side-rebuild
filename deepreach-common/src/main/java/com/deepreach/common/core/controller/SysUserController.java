@@ -2,6 +2,7 @@ package com.deepreach.common.core.controller;
 
 import com.deepreach.common.annotation.Log;
 import com.deepreach.common.core.domain.entity.SysUser;
+import com.deepreach.common.core.domain.dto.AgentIdentityAdjustRequest;
 import com.deepreach.common.core.domain.dto.UserHierarchyGroupDTO;
 import com.deepreach.common.core.domain.dto.UserListRequest;
 import com.deepreach.common.core.domain.dto.UserSummaryResponse;
@@ -78,22 +79,27 @@ public class SysUserController extends BaseController {
     private TableDataInfo handleUserList(UserListRequest request) {
         try {
             UserListRequest effective = request != null ? request : new UserListRequest();
-            Long requestedParentId = effective.getUserId();
-            if (requestedParentId != null && requestedParentId > 0) {
-                effective.setRootUserId(null);
-            } else {
-                Long currentUserId = SecurityUtils.getCurrentUserId();
+            Long requestedParentId = effective.getParentId() != null && effective.getParentId() > 0
+                ? effective.getParentId()
+                : null;
+
+            Long currentUserId = effective.getRootUserId();
+            if ((requestedParentId == null || requestedParentId <= 0) && (currentUserId == null || currentUserId <= 0)) {
+                currentUserId = SecurityUtils.getCurrentUserId();
                 if (currentUserId == null || currentUserId <= 0) {
                     LoginUser currentUser = SecurityUtils.getCurrentLoginUser();
                     if (currentUser != null) {
                         currentUserId = currentUser.getUserId();
                     }
                 }
-                effective.setRootUserId(currentUserId);
             }
+            effective.setParentId(requestedParentId);
+            effective.setRootUserId(currentUserId);
 
             List<SysUser> fullList = userService.searchUsers(effective);
-            boolean filterBuyerSubs = requestedParentId == null || requestedParentId <= 0;
+            Long requestedUserId = effective.getUserId();
+            boolean filterBuyerSubs = (requestedParentId == null || requestedParentId <= 0)
+                && (requestedUserId == null || requestedUserId <= 0);
             if (filterBuyerSubs && fullList != null && !fullList.isEmpty()) {
                 fullList = fullList.stream()
                     .filter(user -> {
@@ -771,6 +777,54 @@ public class SysUserController extends BaseController {
         } catch (Exception e) {
             log.error("分配用户角色失败：用户ID={}, 角色IDs={}", userId, roleIds, e);
             return Result.error("分配角色失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 调整代理身份（仅支持代理层级之间的升级）。
+     *
+     * @param userId 用户ID
+     * @param request 调整请求
+     * @return 操作结果
+     */
+    @PutMapping("/{userId}/agent-identity")
+    // @PreAuthorize("@ss.hasPermi('system:user:edit')")
+    @Log(title = "调整代理身份", businessType = BusinessType.UPDATE)
+    public Result adjustAgentIdentity(@PathVariable("userId") Long userId,
+                                      @RequestBody @Validated AgentIdentityAdjustRequest request) {
+        try {
+            if (request == null) {
+                return Result.error("目标身份不能为空");
+            }
+            String rawIdentity = StringUtils.trimToNull(request.getTargetIdentity());
+            if (rawIdentity == null) {
+                return Result.error("目标身份不能为空");
+            }
+
+            if (!hasUserDataPermission(userId)) {
+                return Result.error("无权限调整该用户身份");
+            }
+
+            String normalizedIdentity = rawIdentity.toLowerCase(Locale.ROOT);
+            Optional<UserIdentity> optionalIdentity = UserIdentity.fromRoleKey(normalizedIdentity);
+            if (!optionalIdentity.isPresent()) {
+                return Result.error("目标身份无效");
+            }
+
+            UserIdentity targetIdentity = optionalIdentity.get();
+            if (!EnumSet.of(UserIdentity.AGENT_LEVEL_1, UserIdentity.AGENT_LEVEL_2, UserIdentity.AGENT_LEVEL_3)
+                .contains(targetIdentity)) {
+                return Result.error("仅支持调整为代理身份");
+            }
+
+            boolean success = userService.adjustAgentIdentity(userId, targetIdentity);
+            if (success) {
+                return Result.success("调整代理身份成功");
+            }
+            return Result.error("调整代理身份失败");
+        } catch (Exception e) {
+            log.error("调整代理身份失败：userId={}, request={}", userId, request, e);
+            return Result.error("调整代理身份失败：" + e.getMessage());
         }
     }
 

@@ -30,8 +30,8 @@ public class UserListRequest implements Serializable {
     /** 精确匹配 - 用户ID */
     private Long userId;
 
-    /** 仅查询直属下级 */
-    private Boolean parentOnly;
+    /** 父用户ID：传入时仅查询该父节点的直属用户 */
+    private Long parentId;
 
     /** 精确匹配 - 用户名 */
     private String username;

@@ -158,6 +158,10 @@ management:
     health:
       show-details: always
 
+file:
+  storage:
+    base-path: ${FILE_STORAGE_BASE_PATH:uploads}
+
 ---
 # 开发环境配置
 spring:
@@ -166,11 +170,16 @@ spring:
       on-profile: dev
 
   # 开发环境数据源
+#  datasource:
+#    url: jdbc:mysql://110.42.110.38:3306/newsmspike?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+#    username: newsmspike
+#    password: KY7zrNkhy6kdTSjP
+#    driver-class-name: com.mysql.cj.jdbc.Driver
   datasource:
-    url: jdbc:mysql://110.42.110.38:3306/newsmspike?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
-    username: newsmspike
-    password: KY7zrNkhy6kdTSjP
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://206.82.1.18:33900/smspikenew?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+    username: smspikenew
+    password: LHKhXAyjcyxe4Wni
+
 
   # 云电脑数据源配置
   cloud-computer:
@@ -186,6 +195,10 @@ spring:
       host: localhost
       port: 6379
       database: 0
+
+  file:
+    storage:
+      base-path: /uploads
 
 ---
 # 测试环境配置
@@ -204,10 +217,21 @@ spring:
     activate:
       on-profile: prod
 
+file:
+  storage:
+    base-path: /home/uploads
+
+---
+# 生产环境配置
+spring:
+  config:
+    activate:
+      on-profile: prod
+
   datasource:
-    url: jdbc:mysql://localhost:3306/smspike?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
-    username: smspike
-    password: h5wBHxi34miDKwsc
+    url: jdbc:mysql://localhost:3306/smspikenew?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+    username: smspikenew
+    password: LHKhXAyjcyxe4Wni
 
   
   data:

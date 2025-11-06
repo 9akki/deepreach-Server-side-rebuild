@@ -45,13 +45,13 @@
     </insert>
 
     <update id="incrementCommission">
-        update dr_agent_commission_account
-        set total_commission = total_commission + #{amount},
-            available_commission = available_commission + #{amount},
+        UPDATE dr_agent_commission_account
+        SET available_commission = available_commission + #{availableDelta},
+            total_commission = total_commission + #{totalDelta},
             version = version + 1,
             update_time = NOW()
-        where agent_user_id = #{agentUserId}
-          and status = '0'
+        WHERE agent_user_id = #{agentUserId}
+          AND status = '0'
     </update>
 
     <update id="adjustAvailableCommission">

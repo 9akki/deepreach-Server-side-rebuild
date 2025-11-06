@@ -7,6 +7,7 @@ import com.deepreach.common.web.domain.Result;
 import com.deepreach.common.annotation.Log;
 import com.deepreach.common.enums.BusinessType;
 import com.deepreach.common.security.SecurityUtils;
+import com.deepreach.common.security.enums.UserIdentity;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -114,6 +115,112 @@ public class StatisticsController {
     }
 
     /**
+     * 总代理伞下统计。
+     *
+     * 仅允许总代访问，返回一级代理、二级代理、商家数量及金额汇总。
+     */
+    @GetMapping("/agent/general/subtree")
+    @Log(title = "统计管理", businessType = BusinessType.OTHER)
+    public Result getGeneralAgentSubtreeStatistics() {
+        try {
+            LoginUser loginUser = SecurityUtils.getCurrentLoginUser();
+            if (loginUser == null) {
+                return Result.error("用户未登录");
+            }
+            if (!loginUser.hasIdentity(UserIdentity.AGENT_LEVEL_1)) {
+                return Result.error("仅总代可以访问该统计");
+            }
+
+            Map<String, Object> statistics = statisticsService.getGeneralAgentContributionStatistics(loginUser.getUserId());
+            if (statistics.containsKey("error")) {
+                return Result.error(statistics.get("error").toString());
+            }
+            return Result.success(statistics);
+        } catch (Exception e) {
+            log.error("获取总代伞下统计失败", e);
+            return Result.error("获取统计信息失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 一级代理伞下统计。
+     */
+    @GetMapping("/agent/level1/subtree")
+    @Log(title = "统计管理", businessType = BusinessType.OTHER)
+    public Result getLevel1AgentSubtreeStatistics() {
+        try {
+            LoginUser loginUser = SecurityUtils.getCurrentLoginUser();
+            if (loginUser == null) {
+                return Result.error("用户未登录");
+            }
+            if (!loginUser.hasIdentity(UserIdentity.AGENT_LEVEL_2)) {
+                return Result.error("仅一级代理可以访问该统计");
+            }
+
+            Map<String, Object> statistics = statisticsService.getLevel1AgentContributionStatistics(loginUser.getUserId());
+            if (statistics.containsKey("error")) {
+                return Result.error(statistics.get("error").toString());
+            }
+            return Result.success(statistics);
+        } catch (Exception e) {
+            log.error("获取一级代理伞下统计失败", e);
+            return Result.error("获取统计信息失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 二级代理伞下统计。
+     */
+    @GetMapping("/agent/level2/subtree")
+    @Log(title = "统计管理", businessType = BusinessType.OTHER)
+    public Result getLevel2AgentSubtreeStatistics() {
+        try {
+            LoginUser loginUser = SecurityUtils.getCurrentLoginUser();
+            if (loginUser == null) {
+                return Result.error("用户未登录");
+            }
+            if (!loginUser.hasIdentity(UserIdentity.AGENT_LEVEL_3)) {
+                return Result.error("仅二级代理可以访问该统计");
+            }
+
+            Map<String, Object> statistics = statisticsService.getLevel2AgentContributionStatistics(loginUser.getUserId());
+            if (statistics.containsKey("error")) {
+                return Result.error(statistics.get("error").toString());
+            }
+            return Result.success(statistics);
+        } catch (Exception e) {
+            log.error("获取二级代理伞下统计失败", e);
+            return Result.error("获取统计信息失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 代理佣金概览（基于 token）。
+     */
+    @GetMapping("/agent/commission-overview")
+    @Log(title = "统计管理", businessType = BusinessType.OTHER)
+    public Result getAgentCommissionOverview() {
+        try {
+            LoginUser loginUser = SecurityUtils.getCurrentLoginUser();
+            if (loginUser == null) {
+                return Result.error("用户未登录");
+            }
+            if (!loginUser.hasAnyIdentity(UserIdentity.AGENT_LEVEL_1, UserIdentity.AGENT_LEVEL_2, UserIdentity.AGENT_LEVEL_3)) {
+                return Result.error("仅代理用户可以访问该统计");
+            }
+
+            Map<String, Object> overview = statisticsService.getAgentCommissionOverview(loginUser.getUserId());
+            if (overview.containsKey("error")) {
+                return Result.error(overview.get("error").toString());
+            }
+            return Result.success(overview);
+        } catch (Exception e) {
+            log.error("获取代理佣金概览失败", e);
+            return Result.error("获取统计信息失败：" + e.getMessage());
+        }
+    }
+
+    /**
      * 管理员代理业绩统计
      */
     @GetMapping("/adminAgentPerformanceStatistics")
@@ -181,27 +288,6 @@ public class StatisticsController {
             return Result.success(statistics);
         } catch (Exception e) {
             log.error("获取管理员商家资产统计失败", e);
-            return Result.error("获取统计信息失败：" + e.getMessage());
-        }
-    }
-
-    /**
-     * 代理直属子用户统计
-     */
-    @GetMapping("/agent/{userId}/children-statistics")
-    @Log(title = "统计管理", businessType = BusinessType.OTHER)
-    public Result getAgentChildrenStatistics(@PathVariable Long userId) {
-        try {
-            if (userId == null || userId <= 0) {
-                return Result.error("用户ID无效");
-            }
-            Map<String, Object> statistics = statisticsService.getAgentChildrenStatistics(userId);
-            if (statistics.containsKey("error")) {
-                return Result.error(statistics.get("error").toString());
-            }
-            return Result.success(statistics);
-        } catch (Exception e) {
-            log.error("获取代理直属子用户统计失败：userId={}", userId, e);
             return Result.error("获取统计信息失败：" + e.getMessage());
         }
     }

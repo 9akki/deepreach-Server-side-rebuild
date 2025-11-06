@@ -21,6 +21,7 @@
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-common/src/main/java/com/deepreach/common/exception/BalanceNotEnoughException.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-common/src/main/java/com/deepreach/common/core/mapper/SysOperLogMapper.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-common/src/main/java/com/deepreach/common/core/page/PageDomain.java
+/Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-common/src/main/java/com/deepreach/common/core/domain/dto/AgentIdentityAdjustRequest.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-common/src/main/java/com/deepreach/common/core/service/impl/HierarchyStatisticsServiceImpl.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-common/src/main/java/com/deepreach/common/annotation/DataScope.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-common/src/main/java/com/deepreach/common/enums/BusinessType.java

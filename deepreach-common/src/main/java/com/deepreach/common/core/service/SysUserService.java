@@ -4,6 +4,7 @@ import com.deepreach.common.core.domain.dto.UserHierarchyNodeDTO;
 import com.deepreach.common.core.domain.dto.UserHierarchyGroupDTO;
 import com.deepreach.common.core.domain.entity.SysUser;
 import com.deepreach.common.core.domain.model.LoginUser;
+import com.deepreach.common.security.enums.UserIdentity;
 
 import java.util.List;
 import java.util.Set;
@@ -237,6 +238,18 @@ public interface SysUserService {
      * @return 角色ID列表
      */
     List<Long> getUserRoleIds(Long userId);
+
+    /**
+     * 调整代理用户身份。
+     *
+     * 限定在代理层级之间升降级，会根据目标身份重新分配身份角色。
+     *
+     * @param userId 用户ID
+     * @param targetIdentity 目标身份（仅支持代理层级）
+     * @return 是否调整成功
+     * @throws Exception 当参数或权限校验失败时抛出异常
+     */
+    boolean adjustAgentIdentity(Long userId, UserIdentity targetIdentity) throws Exception;
 
     /**
      * 获取用户权限标识集合

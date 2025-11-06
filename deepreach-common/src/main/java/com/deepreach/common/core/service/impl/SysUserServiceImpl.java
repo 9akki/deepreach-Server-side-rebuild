@@ -152,11 +152,22 @@ public class SysUserServiceImpl implements SysUserService {
     public List<SysUser> searchUsers(UserListRequest request) {
         UserListRequest effective = request != null ? request : new UserListRequest();
         SysUser filter = buildFilterFromRequest(effective);
-        boolean fetchDirectChildren = effective.getUserId() != null && effective.getUserId() > 0;
+        Long parentId = effective.getParentId();
 
-        List<SysUser> candidates = fetchDirectChildren
-            ? userMapper.selectUserList(filter)
-            : selectUsersWithinHierarchy(effective.getRootUserId(), effective.getIdentity(), filter);
+        List<SysUser> candidates;
+        if (parentId != null && parentId > 0) {
+            filter.setParentUserId(parentId);
+            candidates = userMapper.selectUserList(filter);
+        } else {
+            Long rootUserId = effective.getRootUserId();
+            if (rootUserId == null || rootUserId <= 0) {
+                LoginUser currentUser = SecurityUtils.getCurrentLoginUser();
+                if (currentUser != null) {
+                    rootUserId = currentUser.getUserId();
+                }
+            }
+            candidates = selectUsersWithinHierarchy(rootUserId, effective.getIdentity(), filter);
+        }
 
         if (candidates == null || candidates.isEmpty()) {
             return Collections.emptyList();
@@ -854,6 +865,137 @@ public class SysUserServiceImpl implements SysUserService {
         }
     }
 
+    /**
+     * 调整代理身份。
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean adjustAgentIdentity(Long userId, UserIdentity targetIdentity) throws Exception {
+        if (userId == null || userId <= 0) {
+            throw new RuntimeException("用户ID无效");
+        }
+        if (targetIdentity == null || !AGENT_IDENTITIES.contains(targetIdentity)) {
+            throw new RuntimeException("仅支持调整为代理身份");
+        }
+
+        if (!hasUserDataPermission(userId)) {
+            throw new RuntimeException("无权限调整该用户身份");
+        }
+
+        SysUser user = selectUserWithDept(userId);
+        if (user == null) {
+            throw new RuntimeException("用户不存在");
+        }
+        if (user.isBuyerIdentity()) {
+            throw new RuntimeException("商家用户不能调整代理等级");
+        }
+
+        Set<String> currentRoleKeys = ensureRoleKeysLoaded(user);
+        UserIdentity currentAgentIdentity = resolveAgentIdentity(currentRoleKeys);
+        if (currentAgentIdentity == null) {
+            throw new RuntimeException("仅支持调整代理身份用户");
+        }
+        if (currentAgentIdentity == targetIdentity) {
+            throw new RuntimeException("目标身份与当前身份相同，无需调整");
+        }
+        if (!isAllowedAgentTransition(currentAgentIdentity, targetIdentity)) {
+            throw new RuntimeException("不支持的身份调整，请检查目标身份");
+        }
+
+        Long parentUserId = user.getParentUserId();
+        if (parentUserId == null || parentUserId <= 0) {
+            throw new RuntimeException("用户缺少上级，无法调整身份");
+        }
+
+        SysUser parentUser = selectUserWithDept(parentUserId);
+        if (parentUser == null) {
+            throw new RuntimeException("上级用户不存在，无法调整身份");
+        }
+
+        UserIdentity parentIdentity = resolvePrimaryIdentity(ensureRoleKeysLoaded(parentUser));
+        if (!isParentSuperior(parentIdentity, targetIdentity)) {
+            throw new RuntimeException("上级用户身份不足，无法执行该调整");
+        }
+
+        LinkedHashSet<String> updatedRoleKeys = new LinkedHashSet<>(currentRoleKeys);
+        updatedRoleKeys.removeIf(roleKey ->
+            UserIdentity.fromRoleKey(roleKey)
+                .filter(AGENT_IDENTITIES::contains)
+                .isPresent()
+        );
+        updatedRoleKeys.add(targetIdentity.getRoleKey());
+
+        List<Long> roleIds = resolveRoleIdsFromKeys(updatedRoleKeys);
+        userMapper.deleteUserRoles(userId);
+        if (!roleIds.isEmpty()) {
+            int result = userMapper.assignUserRoles(userId, roleIds);
+            if (result <= 0) {
+                throw new RuntimeException("更新用户角色失败");
+            }
+        }
+
+        refreshUserHierarchyCacheSilently();
+        log.info("调整代理身份成功：userId={}, from={}, to={}", userId, currentAgentIdentity, targetIdentity);
+        return true;
+    }
+
+    private UserIdentity resolveAgentIdentity(Collection<String> roleKeys) {
+        if (roleKeys == null || roleKeys.isEmpty()) {
+            return null;
+        }
+        if (UserRoleUtils.hasIdentity(roleKeys, UserIdentity.AGENT_LEVEL_1)) {
+            return UserIdentity.AGENT_LEVEL_1;
+        }
+        if (UserRoleUtils.hasIdentity(roleKeys, UserIdentity.AGENT_LEVEL_2)) {
+            return UserIdentity.AGENT_LEVEL_2;
+        }
+        if (UserRoleUtils.hasIdentity(roleKeys, UserIdentity.AGENT_LEVEL_3)) {
+            return UserIdentity.AGENT_LEVEL_3;
+        }
+        return null;
+    }
+
+    private boolean isAllowedAgentTransition(UserIdentity current, UserIdentity target) {
+        if (current == null || target == null) {
+            return false;
+        }
+        if (current == UserIdentity.AGENT_LEVEL_3 && target == UserIdentity.AGENT_LEVEL_2) {
+            return true;
+        }
+        if (current == UserIdentity.AGENT_LEVEL_2 && target == UserIdentity.AGENT_LEVEL_1) {
+            return true;
+        }
+        if (current == UserIdentity.AGENT_LEVEL_3 && target == UserIdentity.AGENT_LEVEL_1) {
+            return true;
+        }
+        return false;
+    }
+
+    private boolean isParentSuperior(UserIdentity parent, UserIdentity target) {
+        if (parent == null || target == null) {
+            return false;
+        }
+        return identityHierarchyRank(parent) > identityHierarchyRank(target);
+    }
+
+    private int identityHierarchyRank(UserIdentity identity) {
+        if (identity == null) {
+            return 0;
+        }
+        switch (identity) {
+            case ADMIN:
+                return 4;
+            case AGENT_LEVEL_1:
+                return 3;
+            case AGENT_LEVEL_2:
+                return 2;
+            case AGENT_LEVEL_3:
+                return 1;
+            default:
+                return 0;
+        }
+    }
+
     // ==================== 认证相关方法 ====================
 
     /**
@@ -1544,10 +1686,8 @@ public class SysUserServiceImpl implements SysUserService {
         if (request == null) {
             return filter;
         }
-
-        Long parentId = request.getUserId();
-        if (parentId != null && parentId > 0) {
-            filter.setParentUserId(parentId);
+        if (request.getUserId() != null && request.getUserId() > 0) {
+            filter.setUserId(request.getUserId());
         }
 
         String username = StringUtils.trimToNull(request.getUsername());

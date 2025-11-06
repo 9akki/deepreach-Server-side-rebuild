@@ -57,6 +57,7 @@
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/service/AiInstanceService.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/entity/AiCharacter.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/dto/AgentCommissionRecordDTO.java
+/Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/config/WebMvcConfig.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/service/DrPriceConfigService.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/mapper/ComputerMapper.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/dto/RechargeResult.java

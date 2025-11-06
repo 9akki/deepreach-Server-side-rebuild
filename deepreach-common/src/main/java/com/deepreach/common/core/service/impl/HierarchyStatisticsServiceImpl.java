@@ -15,6 +15,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * 用户树统计实现，替代原部门统计逻辑。
@@ -429,6 +430,146 @@ public class HierarchyStatisticsServiceImpl implements HierarchyStatisticsServic
     }
 
     @Override
+    public Map<String, Object> getGeneralAgentContributionStatistics(Long generalAgentId) {
+        Map<String, Object> statistics = new LinkedHashMap<>();
+        try {
+            if (generalAgentId == null || generalAgentId <= 0) {
+                throw new IllegalArgumentException("总代ID无效");
+            }
+            SysUser generalAgent = userMapper.selectUserWithDept(generalAgentId);
+            if (generalAgent == null) {
+                throw new IllegalArgumentException("总代不存在");
+            }
+
+            Set<String> roleKeys = userMapper.selectRoleKeysByUserId(generalAgentId);
+            if (roleKeys == null || !UserRoleUtils.hasIdentity(roleKeys, UserIdentity.AGENT_LEVEL_1)) {
+                throw new IllegalArgumentException("仅支持总代查询");
+            }
+
+            statistics.put("level1Agent", buildGeneralAgentSummary(generalAgent));
+
+            Set<Long> managedUserIds = collectManagedUserIds(generalAgentId);
+            if (managedUserIds.size() <= 1) {
+                statistics.put("level2Agents", buildAgentTierSummary(UserIdentity.AGENT_LEVEL_2, "一级代理", 0L, BigDecimal.ZERO));
+                statistics.put("level3Agents", buildAgentTierSummary(UserIdentity.AGENT_LEVEL_3, "二级代理", 0L, BigDecimal.ZERO));
+                statistics.put("merchants", buildMerchantSummary(UserIdentity.BUYER_MAIN, "商家", 0L, BigDecimal.ZERO));
+                statistics.put("totals", buildTotalsSummary(BigDecimal.ZERO, BigDecimal.ZERO));
+                return statistics;
+            }
+
+            Map<UserIdentity, Set<Long>> membership = resolveIdentityMembership(managedUserIds);
+            Set<Long> agentLevel1Ids = new LinkedHashSet<>(membership.getOrDefault(UserIdentity.AGENT_LEVEL_2, Collections.emptySet()));
+            Set<Long> agentLevel2Ids = new LinkedHashSet<>(membership.getOrDefault(UserIdentity.AGENT_LEVEL_3, Collections.emptySet()));
+            Set<Long> buyerMainIds = new LinkedHashSet<>(membership.getOrDefault(UserIdentity.BUYER_MAIN, Collections.emptySet()));
+            Set<Long> buyerSubIds = new LinkedHashSet<>(membership.getOrDefault(UserIdentity.BUYER_SUB, Collections.emptySet()));
+
+            agentLevel1Ids.remove(generalAgentId);
+            agentLevel2Ids.remove(generalAgentId);
+            buyerMainIds.remove(generalAgentId);
+            buyerSubIds.remove(generalAgentId);
+
+            Set<Long> commissionTargets = new LinkedHashSet<>();
+            commissionTargets.addAll(agentLevel1Ids);
+            commissionTargets.addAll(agentLevel2Ids);
+            Map<Long, BigDecimal> commissionMap = fetchCommissionByUserIds(commissionTargets);
+
+            BigDecimal level1Commission = sumCommissionForAgents(agentLevel1Ids, commissionMap);
+            BigDecimal level2Commission = sumCommissionForAgents(agentLevel2Ids, commissionMap);
+
+            Set<Long> rechargeTargets = new LinkedHashSet<>(buyerMainIds);
+            Map<Long, BigDecimal> rechargeMap = fetchRechargeByUserIds(rechargeTargets);
+            BigDecimal merchantRecharge = sumRechargeForUsers(rechargeTargets, rechargeMap);
+
+            statistics.put("level2Agents", buildAgentTierSummary(
+                UserIdentity.AGENT_LEVEL_2, "一级代理", (long) agentLevel1Ids.size(), level1Commission));
+            statistics.put("level3Agents", buildAgentTierSummary(
+                UserIdentity.AGENT_LEVEL_3, "二级代理", (long) agentLevel2Ids.size(), level2Commission));
+            statistics.put("merchants", buildMerchantSummary(
+                UserIdentity.BUYER_MAIN, "商家", (long) buyerMainIds.size(), merchantRecharge));
+
+            BigDecimal totalCommission = level1Commission.add(level2Commission);
+            statistics.put("totals", buildTotalsSummary(totalCommission, merchantRecharge));
+        } catch (Exception ex) {
+            log.error("Failed to build general agent contribution statistics: generalAgentId={}", generalAgentId, ex);
+            statistics.put("error", ex.getMessage());
+        }
+        return statistics;
+    }
+
+    @Override
+    public Map<String, Object> getLevel1AgentContributionStatistics(Long level1AgentId) {
+        Map<String, Object> statistics = new LinkedHashMap<>();
+        try {
+            SysUser agent = validateAgentIdentity(level1AgentId, UserIdentity.AGENT_LEVEL_2,
+                "一级代理ID无效", "一级代理不存在", "仅支持一级代理查询");
+            statistics.put("level2Agent", buildGeneralAgentSummary(agent));
+
+            Set<Long> managedIds = collectManagedUserIds(level1AgentId);
+            if (managedIds.size() <= 1) {
+                statistics.put("level3Agents", buildAgentTierSummary(UserIdentity.AGENT_LEVEL_3, "二级代理", 0L, BigDecimal.ZERO));
+                statistics.put("merchants", buildMerchantSummary(UserIdentity.BUYER_MAIN, "商家", 0L, BigDecimal.ZERO));
+                statistics.put("totals", buildTotalsSummary(BigDecimal.ZERO, BigDecimal.ZERO));
+                return statistics;
+            }
+
+            Map<UserIdentity, Set<Long>> membership = resolveIdentityMembership(managedIds);
+            Set<Long> level2Agents = new LinkedHashSet<>(membership.getOrDefault(UserIdentity.AGENT_LEVEL_3, Collections.emptySet()));
+            Set<Long> merchants = new LinkedHashSet<>(membership.getOrDefault(UserIdentity.BUYER_MAIN, Collections.emptySet()));
+
+            level2Agents.remove(level1AgentId);
+            merchants.remove(level1AgentId);
+
+            Map<Long, BigDecimal> commissionMap = fetchCommissionByUserIds(level2Agents);
+            BigDecimal level2Commission = sumCommissionForAgents(level2Agents, commissionMap);
+
+            Map<Long, BigDecimal> rechargeMap = fetchRechargeByUserIds(merchants);
+            BigDecimal merchantRecharge = sumRechargeForUsers(merchants, rechargeMap);
+
+            statistics.put("level3Agents", buildAgentTierSummary(
+                UserIdentity.AGENT_LEVEL_3, "二级代理", (long) level2Agents.size(), level2Commission));
+            statistics.put("merchants", buildMerchantSummary(
+                UserIdentity.BUYER_MAIN, "商家", (long) merchants.size(), merchantRecharge));
+            statistics.put("totals", buildTotalsSummary(level2Commission, merchantRecharge));
+        } catch (Exception ex) {
+            log.error("Failed to build level1 agent contribution statistics: level1AgentId={}", level1AgentId, ex);
+            statistics.put("error", ex.getMessage());
+        }
+        return statistics;
+    }
+
+    @Override
+    public Map<String, Object> getLevel2AgentContributionStatistics(Long level2AgentId) {
+        Map<String, Object> statistics = new LinkedHashMap<>();
+        try {
+            SysUser agent = validateAgentIdentity(level2AgentId, UserIdentity.AGENT_LEVEL_3,
+                "二级代理ID无效", "二级代理不存在", "仅支持二级代理查询");
+            statistics.put("level3Agent", buildGeneralAgentSummary(agent));
+
+            Set<Long> managedIds = collectManagedUserIds(level2AgentId);
+            if (managedIds.size() <= 1) {
+                statistics.put("merchants", buildMerchantSummary(UserIdentity.BUYER_MAIN, "商家", 0L, BigDecimal.ZERO));
+                statistics.put("totals", buildTotalsSummary(BigDecimal.ZERO, BigDecimal.ZERO));
+                return statistics;
+            }
+
+            Map<UserIdentity, Set<Long>> membership = resolveIdentityMembership(managedIds);
+            Set<Long> merchants = new LinkedHashSet<>(membership.getOrDefault(UserIdentity.BUYER_MAIN, Collections.emptySet()));
+            merchants.remove(level2AgentId);
+
+            Map<Long, BigDecimal> rechargeMap = fetchRechargeByUserIds(merchants);
+            BigDecimal merchantRecharge = sumRechargeForUsers(merchants, rechargeMap);
+
+            statistics.put("merchants", buildMerchantSummary(
+                UserIdentity.BUYER_MAIN, "商家", (long) merchants.size(), merchantRecharge));
+            statistics.put("totals", buildTotalsSummary(BigDecimal.ZERO, merchantRecharge));
+        } catch (Exception ex) {
+            log.error("Failed to build level2 agent contribution statistics: level2AgentId={}", level2AgentId, ex);
+            statistics.put("error", ex.getMessage());
+        }
+        return statistics;
+    }
+
+    @Override
     public Map<String, Object> getAgentChildrenStatistics(Long agentUserId) {
         Map<String, Object> statistics = new LinkedHashMap<>();
 
@@ -559,6 +700,44 @@ public class HierarchyStatisticsServiceImpl implements HierarchyStatisticsServic
             snapshot.put("error", e.getMessage());
         }
         return snapshot;
+    }
+
+    @Override
+    public Map<String, Object> getAgentCommissionOverview(Long agentUserId) {
+        Map<String, Object> overview = new LinkedHashMap<>();
+        try {
+            if (agentUserId == null || agentUserId <= 0) {
+                throw new IllegalArgumentException("代理用户ID无效");
+            }
+            SysUser agent = userMapper.selectUserWithDept(agentUserId);
+            if (agent == null) {
+                throw new IllegalArgumentException("代理用户不存在");
+            }
+
+            Set<String> roles = userMapper.selectRoleKeysByUserId(agentUserId);
+            if (roles == null || !UserRoleUtils.hasAnyIdentity(roles,
+                UserIdentity.AGENT_LEVEL_1, UserIdentity.AGENT_LEVEL_2, UserIdentity.AGENT_LEVEL_3)) {
+                throw new IllegalArgumentException("仅代理身份用户支持查询");
+            }
+
+            Map<Long, BigDecimal> commissionMap = fetchCommissionByUserIds(Collections.singleton(agentUserId));
+            Map<Long, BigDecimal> settledMap = fetchSettledCommissionByUserIds(Collections.singleton(agentUserId));
+
+            BigDecimal totalCommission = commissionMap.getOrDefault(agentUserId, BigDecimal.ZERO);
+            BigDecimal settledCommission = settledMap.getOrDefault(agentUserId, BigDecimal.ZERO);
+            BigDecimal availableCommission = totalCommission.subtract(settledCommission);
+
+            overview.put("agentUserId", agentUserId);
+            overview.put("username", Objects.toString(agent.getUsername(), ""));
+            overview.put("nickname", Objects.toString(agent.getNickname(), ""));
+            overview.put("totalCommission", formatAmount(totalCommission));
+            overview.put("settledCommission", formatAmount(settledCommission));
+            overview.put("availableCommission", formatAmount(availableCommission));
+        } catch (Exception e) {
+            log.error("Failed to build agent commission overview: agentUserId={}", agentUserId, e);
+            overview.put("error", e.getMessage());
+        }
+        return overview;
     }
 
     private Set<Long> collectManagedUserIds(Long rootUserId) {
@@ -852,6 +1031,28 @@ public class HierarchyStatisticsServiceImpl implements HierarchyStatisticsServic
                 continue;
             }
             result.put(userId, formatAmount(toBigDecimal(row.get("settledCommission"))));
+        }
+        return result;
+    }
+
+    private Map<Long, BigDecimal> fetchAvailableCommissionByUserIds(Set<Long> userIds) {
+        Map<Long, BigDecimal> result = new HashMap<>();
+        if (userIds == null || userIds.isEmpty()) {
+            return result;
+        }
+        List<Map<String, Object>> rows = agentCommissionAccountMapper.selectCommissionByUserIds(userIds);
+        if (rows == null) {
+            return result;
+        }
+        for (Map<String, Object> row : rows) {
+            if (row == null || row.isEmpty()) {
+                continue;
+            }
+            Long userId = parseLong(row.get("userId"));
+            if (userId == null) {
+                continue;
+            }
+            result.put(userId, formatAmount(toBigDecimal(row.get("availableCommission"))));
         }
         return result;
     }
@@ -1211,5 +1412,81 @@ public class HierarchyStatisticsServiceImpl implements HierarchyStatisticsServic
                                            Long buyerMain, Long buyerSub) {
         statistics.put("buyerMainAccountCount", buyerMain);
         statistics.put("buyerSubAccountCount", buyerSub);
+    }
+
+    private Map<String, Object> buildLevelSummary(Long count, BigDecimal totalCommission) {
+        Map<String, Object> summary = new LinkedHashMap<>();
+        summary.put("count", count != null ? count : 0L);
+        summary.put("totalCommission", formatAmount(totalCommission));
+        return summary;
+    }
+
+    private Map<String, Object> buildBuyerSummary(Long count, BigDecimal totalRecharge) {
+        Map<String, Object> summary = new LinkedHashMap<>();
+        summary.put("count", count != null ? count : 0L);
+        summary.put("totalRecharge", formatAmount(totalRecharge));
+        return summary;
+    }
+
+    private Map<String, Object> buildGeneralAgentSummary(SysUser generalAgent) {
+        Map<String, Object> summary = new LinkedHashMap<>();
+        summary.put("userId", generalAgent.getUserId());
+        summary.put("username", Objects.toString(generalAgent.getUsername(), ""));
+        summary.put("nickname", Objects.toString(generalAgent.getNickname(), ""));
+        summary.put("realName", Objects.toString(generalAgent.getRealName(), ""));
+        summary.put("phone", Objects.toString(generalAgent.getPhone(), ""));
+        summary.put("email", Objects.toString(generalAgent.getEmail(), ""));
+        return summary;
+    }
+
+    private Map<String, Object> buildAgentTierSummary(UserIdentity identity,
+                                                      String displayName,
+                                                      Long count,
+                                                      BigDecimal totalCommission) {
+        Map<String, Object> summary = new LinkedHashMap<>();
+        summary.put("identity", identity != null ? identity.getRoleKey() : "");
+        summary.put("displayName", displayName != null ? displayName : "");
+        summary.put("agentCount", count != null ? count : 0L);
+        summary.put("totalCommission", formatAmount(totalCommission));
+        return summary;
+    }
+
+    private Map<String, Object> buildMerchantSummary(UserIdentity identity,
+                                                     String displayName,
+                                                     Long count,
+                                                     BigDecimal totalRecharge) {
+        Map<String, Object> summary = new LinkedHashMap<>();
+        summary.put("identity", identity != null ? identity.getRoleKey() : "");
+        summary.put("displayName", displayName != null ? displayName : "");
+        summary.put("merchantCount", count != null ? count : 0L);
+        summary.put("totalRecharge", formatAmount(totalRecharge));
+        return summary;
+    }
+
+    private Map<String, Object> buildTotalsSummary(BigDecimal totalCommission,
+                                                   BigDecimal totalRecharge) {
+        Map<String, Object> summary = new LinkedHashMap<>();
+        summary.put("totalCommission", formatAmount(totalCommission));
+        summary.put("totalRecharge", formatAmount(totalRecharge));
+        return summary;
+    }
+
+    private SysUser validateAgentIdentity(Long userId,
+                                          UserIdentity requiredIdentity,
+                                          String invalidMessage,
+                                          String missingMessage,
+                                          String identityMessage) {
+        if (userId == null || userId <= 0) {
+            throw new IllegalArgumentException(invalidMessage);
+        }
+        SysUser agent = userMapper.selectUserWithDept(userId);
+        if (agent == null) {
+            throw new IllegalArgumentException(missingMessage);
+        }
+        Set<String> roles = userMapper.selectRoleKeysByUserId(userId);
+        if (roles == null || !UserRoleUtils.hasIdentity(roles, requiredIdentity)) {
+            throw new IllegalArgumentException(identityMessage);
+        }
+        return agent;
     }
 }

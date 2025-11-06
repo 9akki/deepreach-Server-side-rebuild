@@ -44,6 +44,7 @@ public class SysOperLogServiceImpl implements SysOperLogService {
     @Override
     public boolean insertOperLog(SysOperLog operLog) {
         try {
+            sanitizeOperLogForStorage(operLog);
             int result = operLogMapper.insertOperLog(operLog);
             return result > 0;
         } catch (Exception e) {
@@ -302,5 +303,35 @@ public class SysOperLogServiceImpl implements SysOperLogService {
         policy.put("compressionEnabled", false);
 
         return policy;
+    }
+
+    /**
+     * 避免日志内容超出数据库字段限制导致插入失败.
+     *
+     * sys_oper_log 表中 oper_param/json_result/error_msg 配置为 VARCHAR(2000)，
+     * 这里在写库前做一次兜底截断，确保长请求不会抛出 DataIntegrityViolationException。
+     *
+     * @param operLog 待持久化的操作日志
+     */
+    private void sanitizeOperLogForStorage(SysOperLog operLog) {
+        if (operLog == null) {
+            return;
+        }
+        operLog.setOperParam(truncateIfNeeded("operParam", operLog.getOperParam(), 2000));
+        operLog.setJsonResult(truncateIfNeeded("jsonResult", operLog.getJsonResult(), 2000));
+        operLog.setErrorMsg(truncateIfNeeded("errorMsg", operLog.getErrorMsg(), 2000));
+    }
+
+    private String truncateIfNeeded(String fieldName, String value, int maxLength) {
+        if (value == null) {
+            return null;
+        }
+        if (value.length() <= maxLength) {
+            return value;
+        }
+        int suffixReserve = Math.min(3, maxLength);
+        String truncated = value.substring(0, maxLength - suffixReserve) + "...".substring(0, suffixReserve);
+        log.warn("操作日志字段 {} 超过 {} 字符，已截断保存", fieldName, maxLength);
+        return truncated;
     }
 }

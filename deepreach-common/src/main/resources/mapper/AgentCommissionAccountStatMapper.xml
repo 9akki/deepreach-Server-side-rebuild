@@ -6,7 +6,8 @@
         SELECT
             agent_user_id AS userId,
             COALESCE(total_commission, 0) AS totalCommission,
-            COALESCE(settled_commission, 0) AS settledCommission
+            COALESCE(settled_commission, 0) AS settledCommission,
+            COALESCE(available_commission, 0) AS availableCommission
         FROM dr_agent_commission_account
         WHERE agent_user_id IN
         <foreach collection="userIds" item="userId" open="(" separator="," close=")">

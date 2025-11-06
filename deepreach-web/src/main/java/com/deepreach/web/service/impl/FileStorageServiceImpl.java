@@ -3,6 +3,7 @@ package com.deepreach.web.service.impl;
 import com.deepreach.web.dto.FileUploadResponse;
 import com.deepreach.web.service.FileStorageService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -22,8 +23,8 @@ public class FileStorageServiceImpl implements FileStorageService {
     private static final String DEFAULT_UPLOAD_DIR = "uploads";
     private final Path rootLocation;
 
-    public FileStorageServiceImpl() {
-        this.rootLocation = Paths.get(DEFAULT_UPLOAD_DIR);
+    public FileStorageServiceImpl(@Value("${file.storage.base-path:}") String configuredBasePath) {
+        this.rootLocation = resolveUploadPath(configuredBasePath);
         initStorage();
     }
 
@@ -86,6 +87,27 @@ public class FileStorageServiceImpl implements FileStorageService {
             log.error("初始化上传目录失败: {}", rootLocation, e);
             throw new RuntimeException("初始化上传目录失败：" + e.getMessage(), e);
         }
+    }
+
+    private Path resolveUploadPath(String configuredBasePath) {
+        String basePath;
+        if (StringUtils.hasText(configuredBasePath)) {
+            basePath = configuredBasePath.trim();
+        } else {
+            String userHome = System.getProperty("user.home");
+            if (!StringUtils.hasText(userHome)) {
+                userHome = System.getProperty("user.dir");
+            }
+            basePath = Paths.get(userHome, DEFAULT_UPLOAD_DIR).toString();
+        }
+        Path resolved = Paths.get(basePath).toAbsolutePath().normalize();
+        log.info("文件上传目录: {}", resolved);
+        return resolved;
+    }
+
+    @Override
+    public Path getUploadPath() {
+        return rootLocation;
     }
 
     private String extractExtension(String filename) {

@@ -218,8 +218,14 @@
             <if test="email != null and email != ''">
                 AND u.email LIKE CONCAT('%', #{email}, '%')
             </if>
+            <if test="userId != null">
+                AND u.user_id = #{userId}
+            </if>
             <if test="phone != null and phone != ''">
                 AND u.phone LIKE CONCAT('%', #{phone}, '%')
+            </if>
+            <if test="userId != null">
+                AND u.user_id = #{userId}
             </if>
             <if test="userType != null">
                 AND u.user_type = #{userType}

@@ -100,7 +100,7 @@
 - **Response**:
   ```json
   {
-    "generalAgent": {
+    "level1Agent": {
       "identity": "agent_level_1",
       "identityDisplay": "总代",
       "agentCount": 3,
@@ -182,7 +182,119 @@
   }
   ```
 
-### 1.9 代理直属用户统计
+### 1.9 总代理伞下贡献统计
+- **Method**: GET
+- **Path**: `/statistics/general-agent/{agentId}/contribution`
+- **Auth**: 管理员、总代本人或对该总代拥有层级数据权限的上级
+- **Response**:
+  ```json
+  {
+    "generalAgentId": 332,
+    "generalAgentUsername": "fanyonceshi",
+    "generalAgentNickname": "总代-测试",
+    "level1AgentCount": 3,
+    "level1AgentTotalCommission": 8421.50,
+    "level2AgentCount": 5,
+    "level2AgentTotalCommission": 5123.40,
+    "merchantCount": 12,
+    "merchantTotalRecharge": 67890.12
+  }
+  ```
+
+### 1.10 总代伞下统计
+- **Method**: GET
+- **Path**: `/statistics/agent/general/subtree`
+- **Auth**: 需总代（`agent_level_1`）登录，自动从 token 解析用户
+- **Response**:
+  ```json
+  {
+    "generalAgent": {
+      "userId": 10001,
+      "username": "general_agent_001",
+      "nickname": "总代-华南"
+    },
+    "level2Agents": {
+      "identity": "agent_level_2",
+      "displayName": "一级代理",
+      "agentCount": 12,
+      "totalCommission": 23888.00
+    },
+    "level3Agents": {
+      "identity": "agent_level_3",
+      "displayName": "二级代理",
+      "agentCount": 37,
+      "totalCommission": 11888.00
+    },
+    "merchants": {
+      "identity": "buyer_main",
+      "displayName": "商家",
+      "merchantCount": 260,
+      "totalRecharge": 880000.00
+    },
+    "totals": {
+      "totalCommission": 35776.00,
+      "totalRecharge": 880000.00
+    }
+  }
+  ```
+
+### 1.11 一级代理伞下统计
+- **Method**: GET
+- **Path**: `/statistics/agent/level1/subtree`
+- **Auth**: 需一级代理（`agent_level_2`）登录
+- **Response**:
+  ```json
+  {
+    "level2Agent": {
+      "userId": 21001,
+      "username": "agent_level1_a",
+      "nickname": "一级代理-A"
+    },
+    "level3Agents": {
+      "identity": "agent_level_3",
+      "displayName": "二级代理",
+      "agentCount": 18,
+      "totalCommission": 12888.00
+    },
+    "merchants": {
+      "identity": "buyer_main",
+      "displayName": "商家",
+      "merchantCount": 96,
+      "totalRecharge": 320000.00
+    },
+    "totals": {
+      "totalCommission": 12888.00,
+      "totalRecharge": 320000.00
+    }
+  }
+  ```
+
+### 1.12 二级代理伞下统计
+- **Method**: GET
+- **Path**: `/statistics/agent/level2/subtree`
+- **Auth**: 需二级代理（`agent_level_3`）登录
+- **Response**:
+  ```json
+  {
+    "level3Agent": {
+      "userId": 22001,
+      "username": "agent_level2_a",
+      "nickname": "二级代理-A"
+    },
+    "merchants": {
+      "identity": "buyer_main",
+      "displayName": "商家",
+      "merchantCount": 42,
+      "totalRecharge": 98000.00
+    },
+    "totals": {
+      "totalCommission": 0.00,
+      "totalRecharge": 98000.00
+    }
+  }
+  ```
+
+### 1.11 代理直属用户统计
 - **Method**: GET
 - **Path**: `/statistics/agent/{userId}/children-statistics`
 - **Auth**: 登录态
@@ -210,12 +322,28 @@
 - **Path**: `/statistics/agent/level2/children?userId={id}`
 - **说明**: 校验用户身份是 `agent_level_3`（二级代理），字段只包含 `merchantCount`。
 
-### 1.10 指定用户统计
+### 1.12 代理佣金概览
+- **Method**: GET
+- **Path**: `/statistics/agent/commission-overview`
+- **Auth**: 需代理（`agent_level_1/2/3`）登录，自动从 token 解析用户
+- **Response**:
+  ```json
+  {
+    "agentUserId": 20001,
+    "username": "agent_user_a",
+    "nickname": "一级代理-A",
+    "totalCommission": 23888.00,
+    "settledCommission": 12000.00,
+    "availableCommission": 11888.00
+  }
+  ```
+
+### 1.13 指定用户统计
 - **Method**: GET
 - **Path**: `/system/user/{userId}/statistics`
 - **Response**: 预留，当前返回空结构 `{}`（TODO）。
 
-### 1.11 角色统计
+### 1.14 角色统计
 - **Method**: GET
 - **Path**: `/system/role/{roleId}/statistics`
 - **Params**: Path `roleId`
@@ -228,7 +356,7 @@
   }
   ```
 
-### 1.12 全角色汇总统计
+### 1.15 全角色汇总统计
 - **Method**: GET
 - **Path**: `/system/role/statistics/all`
 - **Response**:

@@ -4,6 +4,7 @@ com/deepreach/common/core/domain/model/UserInfo.class
 com/deepreach/common/enums/OperatorType.class
 com/deepreach/common/exception/InsufficientMarketingInstanceException.class
 com/deepreach/common/core/domain/dto/UserHierarchyNodeDTO.class
+com/deepreach/common/core/domain/dto/UserSummaryResponse.class
 com/deepreach/common/core/domain/entity/SysDept$DeptTreeNode.class
 com/deepreach/common/core/service/impl/SysUserServiceImpl$UserCreationContext.class
 com/deepreach/common/core/service/impl/CloudComputerServiceImpl.class
@@ -45,6 +46,7 @@ com/deepreach/common/core/domain/entity/SysMenu.class
 com/deepreach/common/core/service/SysOperLogService.class
 com/deepreach/common/core/controller/SysRoleController.class
 com/deepreach/common/security/JwtTokenUtil$TokenInfo.class
+com/deepreach/common/core/domain/dto/UserListRequest.class
 com/deepreach/common/core/domain/entity/SysRole.class
 com/deepreach/common/core/service/impl/SysRoleServiceImpl.class
 com/deepreach/common/annotation/DataScope.class
@@ -86,8 +88,10 @@ com/deepreach/common/web/page/TableDataInfo.class
 com/deepreach/common/core/page/TableSupport.class
 com/deepreach/common/core/service/impl/UserHierarchyServiceImpl.class
 com/deepreach/common/core/service/impl/SysUserServiceImpl.class
+com/deepreach/common/core/domain/dto/AgentIdentityAdjustRequest.class
 com/deepreach/common/security/DataScopeCalculator.class
 com/deepreach/common/config/WebSecurityConfig.class
+com/deepreach/common/core/service/impl/HierarchyStatisticsServiceImpl$1.class
 com/deepreach/common/core/service/impl/SysUserServiceImpl$1.class
 com/deepreach/common/config/RedisConfig.class
 com/deepreach/common/core/domain/dto/UserHierarchyGroupDTO.class

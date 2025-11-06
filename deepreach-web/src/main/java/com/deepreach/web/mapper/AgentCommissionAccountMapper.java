@@ -15,7 +15,8 @@ public interface AgentCommissionAccountMapper {
     int insert(AgentCommissionAccount account);
 
     int incrementCommission(@Param("agentUserId") Long agentUserId,
-                            @Param("amount") BigDecimal amount);
+                            @Param("availableDelta") BigDecimal availableDelta,
+                            @Param("totalDelta") BigDecimal totalDelta);
 
     int adjustAvailableCommission(@Param("agentUserId") Long agentUserId,
                                   @Param("availableDelta") BigDecimal availableDelta,
