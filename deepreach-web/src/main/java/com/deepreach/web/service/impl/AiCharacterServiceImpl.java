@@ -146,14 +146,20 @@ public class AiCharacterServiceImpl implements AiCharacterService {
             throw new Exception("人设名称已存在");
         }
 
-        SysUser creator = sysUserService.selectUserById(character.getUserId());
+        SysUser creator = sysUserService.selectUserWithDept(character.getUserId());
         if (creator == null) {
             throw new Exception("用户信息不存在");
         }
 
-        Long parentUserId = creator.getParentUserId();
-        if (parentUserId == null || parentUserId <= 0) {
-            throw new Exception("当前用户未绑定父级账户，无法创建人设");
+        boolean buyerMain = creator.isBuyerMainIdentity();
+        boolean buyerSub = creator.isBuyerSubIdentity();
+        if (!buyerMain && !buyerSub) {
+            throw new Exception("仅支持商家总账户或子账户创建人设");
+        }
+
+        Long chargeAccountId = buyerSub ? creator.getParentUserId() : creator.getUserId();
+        if (chargeAccountId == null || chargeAccountId <= 0) {
+            throw new Exception("未找到商家计费账户信息，无法创建人设");
         }
 
         DrPriceConfig priceConfig = priceConfigService.selectDrPriceConfigByBusinessType(DrPriceConfig.BUSINESS_TYPE_AI_CHARACTER);
@@ -162,8 +168,8 @@ public class AiCharacterServiceImpl implements AiCharacterService {
         }
         BigDecimal characterPrice = priceConfig.getDrPrice();
         if (characterPrice.compareTo(BigDecimal.ZERO) > 0
-            && !userDrBalanceService.checkBalanceSufficient(parentUserId, characterPrice)) {
-            throw new BalanceNotEnoughException("父账户余额不足，无法创建AI人设");
+            && !userDrBalanceService.checkBalanceSufficient(chargeAccountId, characterPrice)) {
+            throw new BalanceNotEnoughException("账户余额不足，无法创建AI人设");
         }
 
 
@@ -179,7 +185,7 @@ public class AiCharacterServiceImpl implements AiCharacterService {
                     ? priceConfig.getBillingType()
                     : DrPriceConfig.BILLING_TYPE_INSTANT;
                 boolean deducted = userDrBalanceService.consume(
-                    parentUserId,
+                    chargeAccountId,
                     characterPrice,
                     DrBillingRecord.BUSINESS_TYPE_AI_CHARACTER,
                     character.getId(),
@@ -190,7 +196,7 @@ public class AiCharacterServiceImpl implements AiCharacterService {
                 if (!deducted) {
                     throw new Exception("扣除AI人设创建费用失败");
                 }
-                log.info("创建AI人设扣费成功：父账户ID={}, 扣费金额={}", parentUserId, characterPrice);
+                log.info("创建AI人设扣费成功：计费账户ID={}, 扣费金额={}", chargeAccountId, characterPrice);
             }
             return character;
         } catch (Exception e) {

@@ -664,7 +664,9 @@ public class HierarchyStatisticsServiceImpl implements HierarchyStatisticsServic
             Set<Long> staffIds = new LinkedHashSet<>(membership.getOrDefault(UserIdentity.BUYER_SUB, Collections.emptySet()));
             long staffCount = staffIds.size();
 
-            Map<String, Object> aiStats = buildAiCharacterStatistics(staffIds);
+            Set<Long> characterOwners = new LinkedHashSet<>(staffIds);
+            characterOwners.add(buyerUserId);
+            Map<String, Object> aiStats = buildAiCharacterStatistics(characterOwners);
             Map<String, Long> aiCharacterCounts = new LinkedHashMap<>();
             aiCharacterCounts.put("customerService", safeLongValue(aiStats.get("customerServiceAiCount")));
             aiCharacterCounts.put("design", safeLongValue(aiStats.get("socialAiCount")));
@@ -720,12 +722,15 @@ public class HierarchyStatisticsServiceImpl implements HierarchyStatisticsServic
                 throw new IllegalArgumentException("仅代理身份用户支持查询");
             }
 
-            Map<Long, BigDecimal> commissionMap = fetchCommissionByUserIds(Collections.singleton(agentUserId));
-            Map<Long, BigDecimal> settledMap = fetchSettledCommissionByUserIds(Collections.singleton(agentUserId));
+            Set<Long> targetIds = Collections.singleton(agentUserId);
+            Map<Long, BigDecimal> commissionMap = fetchCommissionByUserIds(targetIds);
+            Map<Long, BigDecimal> settledMap = fetchSettledCommissionByUserIds(targetIds);
+            Map<Long, BigDecimal> availableMap = fetchAvailableCommissionByUserIds(targetIds);
 
             BigDecimal totalCommission = commissionMap.getOrDefault(agentUserId, BigDecimal.ZERO);
             BigDecimal settledCommission = settledMap.getOrDefault(agentUserId, BigDecimal.ZERO);
-            BigDecimal availableCommission = totalCommission.subtract(settledCommission);
+            BigDecimal availableCommission = availableMap.getOrDefault(agentUserId,
+                totalCommission.subtract(settledCommission));
 
             overview.put("agentUserId", agentUserId);
             overview.put("username", Objects.toString(agent.getUsername(), ""));

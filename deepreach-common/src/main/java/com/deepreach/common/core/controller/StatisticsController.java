@@ -115,34 +115,6 @@ public class StatisticsController {
     }
 
     /**
-     * 总代理伞下统计。
-     *
-     * 仅允许总代访问，返回一级代理、二级代理、商家数量及金额汇总。
-     */
-    @GetMapping("/agent/general/subtree")
-    @Log(title = "统计管理", businessType = BusinessType.OTHER)
-    public Result getGeneralAgentSubtreeStatistics() {
-        try {
-            LoginUser loginUser = SecurityUtils.getCurrentLoginUser();
-            if (loginUser == null) {
-                return Result.error("用户未登录");
-            }
-            if (!loginUser.hasIdentity(UserIdentity.AGENT_LEVEL_1)) {
-                return Result.error("仅总代可以访问该统计");
-            }
-
-            Map<String, Object> statistics = statisticsService.getGeneralAgentContributionStatistics(loginUser.getUserId());
-            if (statistics.containsKey("error")) {
-                return Result.error(statistics.get("error").toString());
-            }
-            return Result.success(statistics);
-        } catch (Exception e) {
-            log.error("获取总代伞下统计失败", e);
-            return Result.error("获取统计信息失败：" + e.getMessage());
-        }
-    }
-
-    /**
      * 一级代理伞下统计。
      */
     @GetMapping("/agent/level1/subtree")
@@ -153,17 +125,17 @@ public class StatisticsController {
             if (loginUser == null) {
                 return Result.error("用户未登录");
             }
-            if (!loginUser.hasIdentity(UserIdentity.AGENT_LEVEL_2)) {
-                return Result.error("仅一级代理可以访问该统计");
+            if (!loginUser.hasIdentity(UserIdentity.AGENT_LEVEL_1)) {
+                return Result.error("仅 level1 代理可以访问该统计");
             }
 
-            Map<String, Object> statistics = statisticsService.getLevel1AgentContributionStatistics(loginUser.getUserId());
+            Map<String, Object> statistics = statisticsService.getGeneralAgentContributionStatistics(loginUser.getUserId());
             if (statistics.containsKey("error")) {
                 return Result.error(statistics.get("error").toString());
             }
             return Result.success(statistics);
         } catch (Exception e) {
-            log.error("获取一级代理伞下统计失败", e);
+            log.error("获取 level1 代理伞下统计失败", e);
             return Result.error("获取统计信息失败：" + e.getMessage());
         }
     }
@@ -179,8 +151,34 @@ public class StatisticsController {
             if (loginUser == null) {
                 return Result.error("用户未登录");
             }
+            if (!loginUser.hasIdentity(UserIdentity.AGENT_LEVEL_2)) {
+                return Result.error("仅 level2 代理可以访问该统计");
+            }
+
+            Map<String, Object> statistics = statisticsService.getLevel1AgentContributionStatistics(loginUser.getUserId());
+            if (statistics.containsKey("error")) {
+                return Result.error(statistics.get("error").toString());
+            }
+            return Result.success(statistics);
+        } catch (Exception e) {
+            log.error("获取 level2 代理伞下统计失败", e);
+            return Result.error("获取统计信息失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 三级代理伞下统计。
+     */
+    @GetMapping("/agent/level3/subtree")
+    @Log(title = "统计管理", businessType = BusinessType.OTHER)
+    public Result getLevel3AgentSubtreeStatistics() {
+        try {
+            LoginUser loginUser = SecurityUtils.getCurrentLoginUser();
+            if (loginUser == null) {
+                return Result.error("用户未登录");
+            }
             if (!loginUser.hasIdentity(UserIdentity.AGENT_LEVEL_3)) {
-                return Result.error("仅二级代理可以访问该统计");
+                return Result.error("仅 level3 代理可以访问该统计");
             }
 
             Map<String, Object> statistics = statisticsService.getLevel2AgentContributionStatistics(loginUser.getUserId());
@@ -189,7 +187,7 @@ public class StatisticsController {
             }
             return Result.success(statistics);
         } catch (Exception e) {
-            log.error("获取二级代理伞下统计失败", e);
+            log.error("获取 level3 代理伞下统计失败", e);
             return Result.error("获取统计信息失败：" + e.getMessage());
         }
     }

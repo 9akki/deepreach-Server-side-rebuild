@@ -118,6 +118,15 @@ public class AgentCommissionController extends BaseController {
     public TableDataInfo<AgentCommissionSettlement> listSettlementsForAdmin(
         @RequestBody(required = false) AdminSettlementQueryRequest request) {
         AdminSettlementQueryRequest effective = request != null ? request : new AdminSettlementQueryRequest();
+        Long currentUserId = getCurrentUserId();
+        if (currentUserId == null) {
+            return TableDataInfo.error("用户未登录");
+        }
+        com.deepreach.common.core.domain.model.LoginUser loginUser = com.deepreach.common.security.SecurityUtils.getCurrentLoginUser();
+        boolean isAdmin = loginUser != null && loginUser.isAdminIdentity();
+        if (!isAdmin) {
+            effective.setUserId(currentUserId);
+        }
         int pageNum = effective.getPageNum() != null && effective.getPageNum() > 0 ? effective.getPageNum() : 1;
         int pageSize = effective.getPageSize() != null && effective.getPageSize() > 0 ? effective.getPageSize() : 10;
 
