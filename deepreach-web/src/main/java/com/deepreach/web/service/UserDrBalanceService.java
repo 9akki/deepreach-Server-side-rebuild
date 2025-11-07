@@ -141,7 +141,7 @@ public interface UserDrBalanceService {
     /**
      * 尝试消耗一次AI人设免费创建次数
      *
-     * @param userId 买家总账户ID
+     * @param userId 商家总账号ID
      * @return true表示成功消耗，false表示无可用次数
      */
     boolean tryConsumeAiCharacterFreeTimes(Long userId);
@@ -178,7 +178,7 @@ public interface UserDrBalanceService {
      * 使用事务管理确保数据一致性
      *
      * @param record 扣费记录
-     * @param originalUserId 原始请求用户ID（买家子账户）
+     * @param originalUserId 原始请求用户ID（员工）
      * @return 扣费响应信息
      */
     @Transactional(rollbackFor = Exception.class)

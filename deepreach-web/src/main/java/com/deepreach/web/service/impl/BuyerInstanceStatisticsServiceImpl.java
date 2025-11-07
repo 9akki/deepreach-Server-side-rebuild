@@ -77,15 +77,15 @@ public class BuyerInstanceStatisticsServiceImpl implements BuyerInstanceStatisti
 
     private SysUser requireBuyerMainUser(Long buyerMainUserId) {
         if (buyerMainUserId == null) {
-            throw new IllegalArgumentException("买家总账户用户ID不能为空");
+            throw new IllegalArgumentException("商家总账号用户ID不能为空");
         }
         SysUser buyerMainUser = userMapper.selectUserById(buyerMainUserId);
         if (buyerMainUser == null) {
-            throw new IllegalArgumentException("买家总账户用户不存在");
+            throw new IllegalArgumentException("商家总账号用户不存在");
         }
         Set<String> roleKeys = userMapper.selectRoleKeysByUserId(buyerMainUserId);
         if (!UserRoleUtils.hasIdentity(roleKeys, UserIdentity.BUYER_MAIN)) {
-            throw new IllegalArgumentException("指定用户不是买家总账户用户");
+            throw new IllegalArgumentException("指定用户不是商家总账号用户");
         }
         buyerMainUser.setRoles(roleKeys);
         return buyerMainUser;
@@ -93,15 +93,15 @@ public class BuyerInstanceStatisticsServiceImpl implements BuyerInstanceStatisti
 
     private SysUser requireBuyerMainUser(String buyerMainUsername) {
         if (buyerMainUsername == null || buyerMainUsername.trim().isEmpty()) {
-            throw new IllegalArgumentException("买家总账户用户名不能为空");
+            throw new IllegalArgumentException("商家总账号用户名不能为空");
         }
         SysUser buyerMainUser = userMapper.selectUserByUsername(buyerMainUsername.trim());
         if (buyerMainUser == null) {
-            throw new IllegalArgumentException("买家总账户用户不存在");
+            throw new IllegalArgumentException("商家总账号用户不存在");
         }
         Set<String> roleKeys = userMapper.selectRoleKeysByUserId(buyerMainUser.getUserId());
         if (!UserRoleUtils.hasIdentity(roleKeys, UserIdentity.BUYER_MAIN)) {
-            throw new IllegalArgumentException("指定用户不是买家总账户用户");
+            throw new IllegalArgumentException("指定用户不是商家总账号用户");
         }
         buyerMainUser.setRoles(roleKeys);
         return buyerMainUser;
@@ -110,7 +110,7 @@ public class BuyerInstanceStatisticsServiceImpl implements BuyerInstanceStatisti
     private BuyerHierarchyData resolveHierarchyData(SysUser buyerMainUser) {
         Long buyerMainUserId = buyerMainUser.getUserId();
         if (buyerMainUserId == null) {
-            throw new IllegalArgumentException("买家总账户用户ID无效");
+            throw new IllegalArgumentException("商家总账号用户ID无效");
         }
 
         List<SysUser> buyerSubUsers = userService.selectUsersWithinHierarchy(buyerMainUserId, "buyer_sub", null);

@@ -81,12 +81,12 @@ public class DeductResponse {
     private BigDecimal frozenAmount;
 
     /**
-     * 实际扣费用户ID（买家总账户ID）
+     * 实际扣费用户ID（商家总账号ID）
      */
     private Long actualUserId;
 
     /**
-     * 原始请求用户ID（买家子账户ID）
+     * 原始请求用户ID（员工ID）
      */
     private Long requestUserId;
 

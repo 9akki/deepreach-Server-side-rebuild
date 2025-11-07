@@ -456,9 +456,9 @@ public interface SysUserMapper {
     /**
      * 根据父用户ID查询子账号列表
      *
-     * 查询指定买家总账户下的所有买家子账户
+     * 查询指定商家总账号下的所有员工
      *
-     * @param parentUserId 父用户ID（买家总账户用户ID）
+     * @param parentUserId 父用户ID（商家总账号用户ID）
      * @return 子账号列表
      */
     List<SysUser> selectSubAccountsByParentUserId(@Param("parentUserId") Long parentUserId);
@@ -476,9 +476,9 @@ public interface SysUserMapper {
     /**
      * 查询买家账户树（总账户及其子账户）
      *
-     * 查询指定买家总账户及其所有子账户的完整树形结构
+     * 查询指定商家总账号及其所有子账户的完整树形结构
      *
-     * @param userId 买家总账户用户ID
+     * @param userId 商家总账号用户ID
      * @return 买家账户列表（包含总账户和所有子账户）
      */
     List<SysUser> selectBuyerAccountTree(@Param("userId") Long userId);
@@ -486,7 +486,7 @@ public interface SysUserMapper {
     /**
      * 统计指定用户的子账号数量
      *
-     * @param parentUserId 父用户ID（买家总账户用户ID）
+     * @param parentUserId 父用户ID（商家总账号用户ID）
      * @return 子账号数量
      */
     int countSubAccountsByParentUserId(@Param("parentUserId") Long parentUserId);
@@ -505,7 +505,7 @@ public interface SysUserMapper {
     /**
      * 检查用户是否可以创建子账号
      *
-     * 基于角色身份检查是否具备创建买家子账号的权限。
+     * 基于角色身份检查是否具备创建员工的权限。
      * 当前仅允许拥有 buyer_main 身份的用户创建子账号。
      *
      * @param userId 用户ID

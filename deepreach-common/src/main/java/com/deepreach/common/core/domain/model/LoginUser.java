@@ -48,7 +48,7 @@ public class LoginUser implements UserDetails {
     private Long userId;
 
     /**
-     * 父用户ID（仅买家子账户有效）
+     * 父用户ID（仅员工有效）
      */
     private Long parentUserId;
 

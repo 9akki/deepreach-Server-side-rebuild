@@ -45,7 +45,7 @@ public class SysRole extends BaseEntity {
      * 角色名称
      *
      * 角色的显示名称，用于系统界面显示
-     * 可以包含中文，如"超级管理员"、"代理"、"买家总账号"
+     * 可以包含中文，如"超级管理员"、"代理"、"商家总账号"
      * 长度限制：最多30个字符
      */
     private String roleName;
@@ -75,8 +75,8 @@ public class SysRole extends BaseEntity {
      * 1 - 全部数据权限：可以访问所有数据（系统管理员）
      * 2 - 自定义数据权限：根据自定义规则访问数据
      * 3 - 本部门数据权限：只能访问本部门的数据
-     * 4 - 本部门及以下数据权限：可以访问本部门及所有子部门的数据（代理、买家总账号）
-     * 5 - 本人数据权限：只能访问自己的数据（买家子账号）
+     * 4 - 本部门及以下数据权限：可以访问本部门及所有子部门的数据（代理、商家总账号）
+     * 5 - 本人数据权限：只能访问自己的数据（员工）
      *
      * 这个字段决定了用户的数据访问范围
      */
@@ -269,15 +269,15 @@ public class SysRole extends BaseEntity {
      */
 
     /**
-     * 判断是否为买家总账户角色
+     * 判断是否为商家总账号角色
      *
-     * @return true如果是买家总账户角色，false否则
+     * @return true如果是商家总账号角色，false否则
      */
 
     /**
-     * 判断是否为买家子账户角色
+     * 判断是否为员工角色
      *
-     * @return true如果是买家子账户角色，false否则
+     * @return true如果是员工角色，false否则
      */
 
     /**
@@ -328,14 +328,14 @@ public class SysRole extends BaseEntity {
     }
 
     /**
-     * 判断是否为买家总账号角色
+     * 判断是否为商家总账号角色
      */
     public boolean isBuyerMainRole() {
         return resolveIdentity() == UserIdentity.BUYER_MAIN;
     }
 
     /**
-     * 判断是否为买家子账号角色
+     * 判断是否为员工角色
      */
     public boolean isBuyerSubRole() {
         return resolveIdentity() == UserIdentity.BUYER_SUB;
@@ -539,13 +539,13 @@ public class SysRole extends BaseEntity {
     }
 
     /**
-     * 创建默认的买家总账号角色
+     * 创建默认的商家总账号角色
      *
-     * @return 买家总账号角色对象
+     * @return 商家总账号角色对象
      */
     public static SysRole createBuyerMainRole() {
         SysRole role = new SysRole();
-        role.setRoleName("买家总账号");
+        role.setRoleName("商家总账号");
         role.setRoleKey("buyer_main");
         role.setRoleSort(20);
         role.setDataScope("4"); // 本部门及以下数据权限
@@ -556,13 +556,13 @@ public class SysRole extends BaseEntity {
     }
 
     /**
-     * 创建默认的买家子账号角色
+     * 创建默认的员工角色
      *
-     * @return 买家子账号角色对象
+     * @return 员工角色对象
      */
     public static SysRole createBuyerSubRole() {
         SysRole role = new SysRole();
-        role.setRoleName("买家子账号");
+        role.setRoleName("员工");
         role.setRoleKey("buyer_sub");
         role.setRoleSort(21);
         role.setDataScope("5"); // 本人数据权限

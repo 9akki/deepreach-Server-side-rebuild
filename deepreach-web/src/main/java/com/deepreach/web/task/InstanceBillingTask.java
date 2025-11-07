@@ -82,16 +82,16 @@ public class InstanceBillingTask {
                         continue;
                     }
 
-                    // 只对买家子账户的实例进行计费
+                    // 只对员工的实例进行计费
                     if (!user.isBuyerSubIdentity()) {
-                        log.debug("跳过非买家子账户的实例，实例ID：{}, 用户ID：{}", instance.getInstanceId(), instance.getUserId());
+                        log.debug("跳过非员工的实例，实例ID：{}, 用户ID：{}", instance.getInstanceId(), instance.getUserId());
                         continue;
                     }
 
-                    // 获取父用户ID（买家总账户）
+                    // 获取父用户ID（商家总账号）
                     Long parentUserId = user.getParentUserId();
                     if (parentUserId == null) {
-                        log.warn("用户没有关联的买家总账户，实例ID：{}, 用户ID：{}", instance.getInstanceId(), instance.getUserId());
+                        log.warn("用户没有关联的商家总账号，实例ID：{}, 用户ID：{}", instance.getInstanceId(), instance.getUserId());
                         continue;
                     }
 
@@ -197,7 +197,7 @@ public class InstanceBillingTask {
      *
      * 使用事务管理确保数据一致性
      *
-     * @param parentUserId 父用户ID（买家总账户）
+     * @param parentUserId 父用户ID（商家总账号）
      * @param totalAmount 扣费总金额
      * @param description 扣费描述
      * @param instanceCount 实例数量
@@ -220,7 +220,7 @@ public class InstanceBillingTask {
 
             // 2. 创建扣费记录
             DrBillingRecord billingRecord = new DrBillingRecord();
-            billingRecord.setUserId(parentUserId); // 实际扣费的是买家总账户
+            billingRecord.setUserId(parentUserId); // 实际扣费的是商家总账号
             billingRecord.setOperatorId(parentUserId); // 系统自动扣费，操作者设置为被扣费用户
             billingRecord.setBillType(2); // 消费类型
             billingRecord.setBillingType(priceConfig.getBillingType()); // 结算类型

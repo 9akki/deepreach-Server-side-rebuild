@@ -24,7 +24,7 @@ public class UserDrBalance extends BaseEntity {
     private Long balanceId;
 
     /**
-     * 用户ID（买家总账户）
+     * 用户ID（商家总账号）
      */
     private Long userId;
 
@@ -71,7 +71,7 @@ public class UserDrBalance extends BaseEntity {
     /**
      * AI人设免费创建次数
      *
-     * 买家总账户与其子账户共享
+     * 商家总账号与其子账户共享
      */
     private Integer aiCharacterFreeTimes;
 

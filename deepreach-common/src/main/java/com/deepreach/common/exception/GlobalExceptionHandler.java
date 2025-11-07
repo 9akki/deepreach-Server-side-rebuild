@@ -144,6 +144,10 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Result<?> handleException(Exception e) {
         logger.error("系统异常", e);
-        return Result.error(500, "系统异常，请联系管理员");
+        String message = e.getMessage();
+        if (message == null || message.trim().isEmpty()) {
+            message = "系统异常，请联系管理员";
+        }
+        return Result.error(500, message);
     }
 }

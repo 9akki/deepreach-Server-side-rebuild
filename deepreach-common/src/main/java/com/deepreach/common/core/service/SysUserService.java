@@ -476,9 +476,9 @@ public interface SysUserService {
     /**
      * 根据父用户ID查询子账号列表
      *
-     * 查询指定买家总账户下的所有买家子账户
+     * 查询指定商家总账号下的所有员工
      *
-     * @param parentUserId 父用户ID（买家总账户用户ID）
+     * @param parentUserId 父用户ID（商家总账号用户ID）
      * @return 子账号列表
      * @throws Exception 当查询失败时抛出异常
      */
@@ -498,9 +498,9 @@ public interface SysUserService {
     /**
      * 查询买家账户树（总账户及其子账户）
      *
-     * 查询指定买家总账户及其所有子账户的完整树形结构
+     * 查询指定商家总账号及其所有子账户的完整树形结构
      *
-     * @param userId 买家总账户用户ID
+     * @param userId 商家总账号用户ID
      * @return 买家账户列表（包含总账户和所有子账户）
      * @throws Exception 当查询失败时抛出异常
      */
@@ -510,7 +510,7 @@ public interface SysUserService {
      * 检查用户是否可以创建子账号
      *
      * 基于部门类型检查用户是否有权限创建子账号
-     * 只有买家总账户用户可以创建买家子账户
+     * 只有商家总账号用户可以创建员工
      *
      * @param userId 用户ID
      * @return true如果可以创建，false否则
@@ -543,24 +543,24 @@ public interface SysUserService {
     boolean canCreateSubAgent(com.deepreach.common.core.domain.model.LoginUser user);
 
     /**
-     * 检查是否可以创建买家总账户
+     * 检查是否可以创建商家总账号
      *
-     * 检查当前用户是否可以创建买家总账户
-     * 系统部门和代理部门（2级及以上）可以创建买家总账户
+     * 检查当前用户是否可以创建商家总账号
+     * 系统部门和代理部门（2级及以上）可以创建商家总账号
      *
      * @param user 当前登录用户
-     * @return true如果可以创建买家总账户，false否则
+     * @return true如果可以创建商家总账号，false否则
      */
     boolean canCreateBuyerAccount(com.deepreach.common.core.domain.model.LoginUser user);
 
     /**
-     * 检查是否可以创建买家子账户
+     * 检查是否可以创建员工
      *
-     * 检查当前用户是否可以创建买家子账户
-     * 只有买家总账户用户可以创建买家子账户
+     * 检查当前用户是否可以创建员工
+     * 只有商家总账号用户可以创建员工
      *
      * @param user 当前登录用户
-     * @return true如果可以创建买家子账户，false否则
+     * @return true如果可以创建员工，false否则
      */
     boolean canCreateSubAccount(com.deepreach.common.core.domain.model.LoginUser user);
 

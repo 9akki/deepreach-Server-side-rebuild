@@ -29,7 +29,7 @@ public class BuyerInstanceStatisticsController extends BaseController {
     private final BuyerInstanceStatisticsService buyerInstanceStatisticsService;
 
     /**
-     * 根据买家总账户用户ID统计实例。
+     * 根据商家总账号用户ID统计实例。
      */
     @GetMapping("/by-user-id/{buyerMainUserId}")
     @Log(title = "买家实例统计", businessType = BusinessType.OTHER)
@@ -44,7 +44,7 @@ public class BuyerInstanceStatisticsController extends BaseController {
     }
 
     /**
-     * 根据买家总账户用户名统计实例。
+     * 根据商家总账号用户名统计实例。
      */
     @GetMapping("/by-username")
     @Log(title = "买家实例统计", businessType = BusinessType.OTHER)
@@ -59,7 +59,7 @@ public class BuyerInstanceStatisticsController extends BaseController {
     }
 
     /**
-     * 根据买家总账户用户ID获取综合统计信息。
+     * 根据商家总账号用户ID获取综合统计信息。
      */
     @GetMapping("/overview/{buyerMainUserId}")
     @Log(title = "买家实例综合统计", businessType = BusinessType.OTHER)

@@ -1106,7 +1106,7 @@ public class AiInstanceServiceImpl implements AiInstanceService {
                 throw new IllegalArgumentException("平台ID不能为空");
             }
 
-            // 2. 用户权限验证 - 买家总账户或子账户可以创建实例
+            // 2. 用户权限验证 - 商家总账号或子账户可以创建实例
             SysUser currentUser = userService.selectUserWithDept(currentUserId);
             if (currentUser == null) {
                 throw new IllegalArgumentException("用户信息不存在");
@@ -1270,7 +1270,7 @@ public class AiInstanceServiceImpl implements AiInstanceService {
 
             // 创建扣费记录
             DrBillingRecord billingRecord = new DrBillingRecord();
-            billingRecord.setUserId(parentUserId); // 实际扣费的是买家总账户
+            billingRecord.setUserId(parentUserId); // 实际扣费的是商家总账号
             billingRecord.setOperatorId(parentUserId); // 自动扣费
             billingRecord.setBillType(2); // 消费类型
             billingRecord.setBillingType(priceConfig.getBillingType()); // 结算类型

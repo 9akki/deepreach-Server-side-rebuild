@@ -32,7 +32,7 @@ public class DrBillingRecord extends BaseEntity {
     private String billNo;
 
     /**
-     * 用户ID（买家总账户）
+     * 用户ID（商家总账号）
      */
     private Long userId;
 

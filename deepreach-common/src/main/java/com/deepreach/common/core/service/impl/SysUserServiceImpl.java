@@ -458,9 +458,9 @@ public class SysUserServiceImpl implements SysUserService {
             case AGENT_LEVEL_3:
                 return "二级代理";
             case BUYER_MAIN:
-                return "买家总账号";
+                return "商家总账号";
             case BUYER_SUB:
-                return "买家子账号";
+                return "员工";
             default:
                 return fallbackKey != null ? fallbackKey : "未知身份";
         }
@@ -1500,7 +1500,7 @@ public class SysUserServiceImpl implements SysUserService {
     }
 
     /**
-     * 验证买家子账户的父用户
+     * 验证员工的父用户
      */
     /**
      * 验证用户创建权限（基于部门类型的权限控制）
@@ -1627,7 +1627,7 @@ public class SysUserServiceImpl implements SysUserService {
     }
 
     /**
-     * 检查代理用户是否可以创建买家总账户
+     * 检查代理用户是否可以创建商家总账号
      *
      * @param user 当前用户
      * @return true如果可以创建，false否则
@@ -1637,13 +1637,13 @@ public class SysUserServiceImpl implements SysUserService {
             return false;
         }
 
-        // 系统管理员角色可以创建买家总账户
+        // 系统管理员角色可以创建商家总账号
         if (user.hasRole("ADMIN") || user.hasRole("SYSTEM_ADMIN") ||
             user.hasRole("TECH_ADMIN") || user.hasRole("OPS_ADMIN")) {
             return true;
         }
 
-        // 所有代理角色都可以创建买家总账户（不论层级）
+        // 所有代理角色都可以创建商家总账号（不论层级）
         if (user.hasRole("AGENT")) {
             return true;
         }
@@ -1652,7 +1652,7 @@ public class SysUserServiceImpl implements SysUserService {
     }
 
     /**
-     * 检查买家总账户用户是否可以创建子账户
+     * 检查商家总账号用户是否可以创建子账户
      *
      * @param user 当前用户
      * @return true如果可以创建，false否则
@@ -1662,7 +1662,7 @@ public class SysUserServiceImpl implements SysUserService {
             return false;
         }
 
-        // 买家总账户都可以创建子账户
+        // 商家总账号都可以创建子账户
         return true;
     }
 
@@ -1945,7 +1945,7 @@ public class SysUserServiceImpl implements SysUserService {
     }
 
     /**
-     * 查询买家总账号及其子账号
+     * 查询商家总账号及其子账号
      */
     @Override
     public List<SysUser> selectBuyerAccountTree(Long userId) {

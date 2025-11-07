@@ -300,7 +300,7 @@ public class AiInstanceController {
     /**
      * 创建实例
      *
-     * 用户创建实例接口 - 只有买家子账户可以创建实例
+     * 用户创建实例接口 - 只有员工可以创建实例
      *
      * @param instance 实例对象
      * @return 创建结果
@@ -460,7 +460,7 @@ public class AiInstanceController {
 
             // 创建扣费记录
             DrBillingRecord billingRecord = new DrBillingRecord();
-            billingRecord.setUserId(parentUserId); // 实际扣费的是买家总账户
+            billingRecord.setUserId(parentUserId); // 实际扣费的是商家总账号
             billingRecord.setOperatorId(parentUserId); // 自动扣费
             billingRecord.setBillType(2); // 消费类型
             billingRecord.setBusinessType(priceConfig.getBusinessType());

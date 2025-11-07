@@ -67,7 +67,7 @@ public class DrBalanceController extends BaseController {
             return error("调账金额不能为空且不能为0");
         }
         if (!isBuyerMainAccount(request.getUserId())) {
-            return error("只能为买家总账户类型的用户调账");
+            return error("只能为商家总账号类型的用户调账");
         }
 
         DrBalanceAdjustResult result = balanceService.manualAdjustBalance(
@@ -96,13 +96,13 @@ public class DrBalanceController extends BaseController {
     @Log(title = "DR积分充值", businessType = BusinessType.UPDATE)
     @PostMapping("/balance/recharge")
     public Result<com.deepreach.web.dto.RechargeResult> recharge(@Validated @RequestBody DrBillingRecord request) {
-        // 验证用户是否为买家总账户类型
+        // 验证用户是否为商家总账号类型
         if (request.getUserId() == null || request.getDrAmount() == null
                 || request.getDrAmount().compareTo(BigDecimal.ZERO) <= 0) {
             return error("用户ID和充值金额不能为空且必须大于0");
         }
         if (!isBuyerMainAccount(request.getUserId())) {
-            return error("只能为买家总账户类型的用户充值");
+            return error("只能为商家总账号类型的用户充值");
         }
 
         var result = balanceService.recharge(request, getCurrentUserId());
@@ -112,14 +112,13 @@ public class DrBalanceController extends BaseController {
     /**
      * DR积分扣费
      *
-     * 支持买家子账户扣费：从买家子账户的父账户（买家总账户）中扣除费用
+     * 支持员工扣费：从员工的父账户（商家总账号）中扣除费用
      * 返回详细的扣费结果和用户余额信息
      */
     @Log(title = "DR积分扣费", businessType = BusinessType.UPDATE)
     @PostMapping("/balance/deduct")
     public Result<DeductResponse> deduct(@Validated @RequestBody DrBillingRecord record) {
         try {
-            // 1. 参数校验
             if (record.getUserId() == null) {
                 return Result.error(DeductResponse.error("用户ID不能为空").getMessage());
             }
@@ -127,59 +126,57 @@ public class DrBalanceController extends BaseController {
                 return Result.error(DeductResponse.error("扣费金额必须大于0").getMessage());
             }
 
-            // 2. 获取用户信息并判断是否为买家子账户用户
-            SysUser user = userService.selectUserWithDept(record.getUserId());
+            Long requestUserId = record.getUserId();
+            Long originalUserId = requestUserId;
+
+            SysUser user = userService.selectUserWithDept(requestUserId);
             if (user == null) {
                 return Result.error(DeductResponse.error("用户不存在").getMessage());
             }
 
-            // 检查是否为买家子账户（部门类型为4）
-            if (!user.isBuyerSubIdentity()) {
-                return Result.error(DeductResponse.error("只能从买家子账户用户进行扣费").getMessage());
+            Long chargeAccountId;
+            String defaultDescription;
+
+            if (user.isBuyerMainIdentity()) {
+                chargeAccountId = user.getUserId();
+                defaultDescription = "商家总账号[" + user.getUsername() + "]消费扣费";
+            } else if (user.isBuyerSubIdentity()) {
+                Long parentUserId = user.getParentUserId();
+                if (parentUserId == null) {
+                    return Result.error(DeductResponse.error("用户没有关联的商家总账号").getMessage());
+                }
+
+                SysUser parentUser = userService.selectUserWithDept(parentUserId);
+                if (parentUser == null || !parentUser.isBuyerMainIdentity()) {
+                    return Result.error(DeductResponse.error("关联的父用户不是有效的商家总账号").getMessage());
+                }
+
+                chargeAccountId = parentUserId;
+                defaultDescription = "员工[" + user.getUsername() + "]消费扣费";
+            } else {
+                return Result.error(DeductResponse.error("仅支持商家总账号或子账户进行扣费").getMessage());
             }
 
-            // 3. 获取父用户ID（买家总账户）
-            Long parentUserId = user.getParentUserId();
-            if (parentUserId == null) {
-                return Result.error(DeductResponse.error("用户没有关联的买家总账户").getMessage());
+            UserDrBalance chargeAccountBalance = balanceService.getByUserId(chargeAccountId);
+            if (chargeAccountBalance == null) {
+                return Result.error(DeductResponse.error("商家总账号余额账户不存在").getMessage());
             }
 
-            // 4. 验证父用户是否为买家总账户类型
-            SysUser parentUser = userService.selectUserWithDept(parentUserId);
-            if (parentUser == null) {
-                return Result.error(DeductResponse.error("关联的买家总账户用户不存在").getMessage());
+            if (chargeAccountBalance.getDrBalance().compareTo(record.getDrAmount()) < 0) {
+                return Result.error(DeductResponse.error("商家总账号余额不足，当前余额：" + chargeAccountBalance.getDrBalance()).getMessage());
             }
 
-            if (!parentUser.isBuyerMainIdentity()) {
-                return Result.error(DeductResponse.error("关联的父用户不是买家总账户类型").getMessage());
-            }
-
-            // 5. 检查买家总账户余额是否充足
-            UserDrBalance parentBalance = balanceService.getByUserId(parentUserId);
-            if (parentBalance == null) {
-                return Result.error(DeductResponse.error("买家总账户余额账户不存在").getMessage());
-            }
-
-            // 6. 买家总账户就余额不足也要扣成负数
-            if (parentBalance.getDrBalance().compareTo(record.getDrAmount()) < 0) {
-                return Result.error(DeductResponse.error("买家总账户余额不足，当前余额：" + parentBalance.getDrBalance()).getMessage());
-            }
-
-            // 6. 设置扣费记录的相关信息
-            record.setUserId(parentUserId); // 实际扣费的是买家总账户
-            record.setOperatorId(record.getUserId()); // 由于是公开接口，设置为被扣费用户自身
-            record.setBillType(2); // 消费类型
-            record.setBillingType(1); // 秒结秒扣
+            record.setUserId(chargeAccountId);
+            record.setOperatorId(originalUserId);
+            record.setBillType(2);
+            record.setBillingType(1);
             record.setBusinessType(record.getBusinessType() != null ? record.getBusinessType() : "CONSUME");
-            record.setDescription(record.getDescription() != null ?
-                record.getDescription() :
-                "买家子账户[" + user.getUsername() + "]消费扣费");
+            record.setDescription(record.getDescription() != null ? record.getDescription() : defaultDescription);
 
-            // 7. 执行扣费操作并获取详细信息
-            DeductResponse result = balanceService.deductWithDetails(record, record.getUserId());
+            DeductResponse result = balanceService.deductWithDetails(record, originalUserId);
 
             if (result.isSuccess()) {
-                return Result.success("扣费成功，已从买家总账户扣除", result);
+                return Result.success("扣费成功", result);
             } else {
                 return Result.error(result.getMessage());
             }
@@ -306,9 +303,9 @@ public class DrBalanceController extends BaseController {
     @Log(title = "营销实例预扣费", businessType = BusinessType.UPDATE)
     @PostMapping("/pre-deduct")
     public Result<Object> preDeductForInstance(@Validated @RequestBody PreDeductRequest request) {
-        // 验证用户是否为买家总账户类型
+        // 验证用户是否为商家总账号类型
         if (!isBuyerMainAccount(request.getUserId())) {
-            return error("只能为买家总账户类型的用户预扣费");
+            return error("只能为商家总账号类型的用户预扣费");
         }
 
         boolean result = balanceService.preDeductForInstance(
@@ -342,7 +339,7 @@ public class DrBalanceController extends BaseController {
     }
 
     /**
-     * 检查用户是否为买家总账户类型
+     * 检查用户是否为商家总账号类型
      */
     private boolean isBuyerMainAccount(Long userId) {
         if (userId == null) {

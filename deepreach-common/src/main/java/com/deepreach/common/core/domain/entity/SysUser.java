@@ -152,19 +152,19 @@ public class SysUser extends BaseEntity {
      * 用户类型由部门类型自动决定：
      * - dept_type = 1: 系统部门 → 后台用户
      * - dept_type = 2: 代理部门 → 后台用户
-     * - dept_type = 3: 买家总账户 → 后台用户
-     * - dept_type = 4: 买家子账户 → 客户端用户
+     * - dept_type = 3: 商家总账号 → 后台用户
+     * - dept_type = 4: 员工 → 客户端用户
      *
      * 注意：此字段为必填项，用户必须属于某个部门
      */
     private Long deptId;
 
     /**
-     * 父用户ID（用于买家子账户）
+     * 父用户ID（用于员工）
      *
-     * 仅当用户所在部门类型为买家子账户(dept_type=4)时有效
-     * 用于建立买家总账户与子账户的父子关系
-     * 买家子账户的父用户必须是买家总账户类型的用户
+     * 仅当用户所在部门类型为员工(dept_type=4)时有效
+     * 用于建立商家总账号与子账户的父子关系
+     * 员工的父用户必须是商家总账号类型的用户
      */
     private Long parentUserId;
 
@@ -261,14 +261,14 @@ public class SysUser extends BaseEntity {
     }
 
     /**
-     * 判断是否为买家总账户身份。
+     * 判断是否为商家总账号身份。
      */
     public boolean isBuyerMainIdentity() {
         return hasIdentity(UserIdentity.BUYER_MAIN);
     }
 
     /**
-     * 判断是否为买家子账户身份。
+     * 判断是否为员工身份。
      */
     public boolean isBuyerSubIdentity() {
         return hasIdentity(UserIdentity.BUYER_SUB);
@@ -423,12 +423,12 @@ public class SysUser extends BaseEntity {
     }
 
     /**
-     * 判断用户是否为买家总账户用户
+     * 判断用户是否为商家总账号用户
      *
      * 根据用户所属部门类型判断
-     * 买家总账户用户可以创建和管理子账户
+     * 商家总账号用户可以创建和管理子账户
      *
-     * @return true如果是买家总账户用户，false否则
+     * @return true如果是商家总账号用户，false否则
      */
     /**
      * @deprecated 使用 {@link #isBuyerMainIdentity()}。
@@ -439,12 +439,12 @@ public class SysUser extends BaseEntity {
     }
 
     /**
-     * 判断用户是否为买家子账户用户
+     * 判断用户是否为员工用户
      *
      * 根据用户所属部门类型判断
-     * 买家子账户用户只能访问自己的数据
+     * 员工用户只能访问自己的数据
      *
-     * @return true如果是买家子账户用户，false否则
+     * @return true如果是员工用户，false否则
      */
     /**
      * @deprecated 使用 {@link #isBuyerSubIdentity()}。
@@ -657,14 +657,14 @@ public class SysUser extends BaseEntity {
     }
 
     /**
-     * 创建买家子账户用户对象
+     * 创建员工用户对象
      *
      * @param username 用户名
      * @param password 密码（明文，需要后续加密）
      * @param nickname 昵称
      * @param email 邮箱
-     * @param deptId 买家子账户部门ID
-     * @param parentUserId 父用户ID（买家总账户用户ID）
+     * @param deptId 员工部门ID
+     * @param parentUserId 父用户ID（商家总账号用户ID）
      * @return 用户对象
      */
     public static SysUser createBuyerSubUser(String username, String password, String nickname, String email, Long deptId, Long parentUserId) {

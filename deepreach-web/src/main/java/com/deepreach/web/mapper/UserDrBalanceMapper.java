@@ -160,7 +160,7 @@ public interface UserDrBalanceMapper {
     /**
      * 消耗一次AI人设免费创建次数
      *
-     * @param userId 买家总账户ID
+     * @param userId 商家总账号ID
      * @return 影响行数
      */
     int consumeAiCharacterFreeTimes(@Param("userId") Long userId);

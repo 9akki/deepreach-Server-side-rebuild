@@ -49,7 +49,7 @@ public class Instance extends BaseEntity {
      *
      * 关联sys_user表的外键
      * 实例的所有者用户ID
-     * 只有买家总账户和买家子账户可以创建实例
+     * 只有商家总账号和员工可以创建实例
      */
     private Long userId;
 

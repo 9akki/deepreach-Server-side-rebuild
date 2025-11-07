@@ -16,8 +16,8 @@ public interface AgentCommissionService {
     /**
      * 处理充值佣金分发
      *
-     * @param buyerUserId 买家总账户用户ID
-     * @param buyerDeptId 买家总账户部门ID
+     * @param buyerUserId 商家总账号用户ID
+     * @param buyerDeptId 商家总账号部门ID
      * @param rechargeAmount 充值金额
      * @param operatorId 操作人
      * @param billingId 充值账单ID

@@ -359,7 +359,7 @@ public class SysUserController extends BaseController {
      * 将身份标识解析为部门类型编码
      *
      * @param identity 身份标识
-     * @return 部门类型编码（1-系统、2-代理、3-买家总账户、4-买家子账户），无法解析返回null
+     * @return 部门类型编码（1-系统、2-代理、3-商家总账号、4-员工），无法解析返回null
      */
     private String resolveDeptType(String identity) {
         String trimmed = StringUtils.trimToNull(identity);
@@ -387,8 +387,7 @@ public class SysUserController extends BaseController {
             case "buyer main":
             case "buyer-main-user":
             case "buyer_main_user":
-            case "买家总账户":
-            case "买家总账号":
+            case "商家总账号":
                 return "3";
             case "4":
             case "buyer_sub":
@@ -397,8 +396,7 @@ public class SysUserController extends BaseController {
             case "buyer_sub_user":
             case "buyer-sub-user":
             case "buyer_subaccount":
-            case "买家子账户":
-            case "买家子账号":
+            case "员工":
                 return "4";
             default:
                 return null;
