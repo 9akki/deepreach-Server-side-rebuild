@@ -1,6 +1,6 @@
 package com.deepreach.web.mapper;
 
-import com.deepreach.web.entity.UserDrBalance;
+import com.deepreach.common.core.domain.entity.UserDrBalance;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 

@@ -1,6 +1,6 @@
 package com.deepreach.web.mapper;
 
-import com.deepreach.web.entity.DrBillingRecord;
+import com.deepreach.common.core.domain.entity.DrBillingRecord;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 

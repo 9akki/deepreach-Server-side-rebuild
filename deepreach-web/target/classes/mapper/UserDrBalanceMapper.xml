@@ -3,7 +3,7 @@
 <mapper namespace="com.deepreach.web.mapper.UserDrBalanceMapper">
 
     <!-- 通用结果映射 -->
-    <resultMap id="BaseResultMap" type="com.deepreach.web.entity.UserDrBalance">
+    <resultMap id="BaseResultMap" type="com.deepreach.common.core.domain.entity.UserDrBalance">
         <id column="balance_id" property="balanceId" />
         <result column="user_id" property="userId" />
         <result column="dr_balance" property="drBalance" />
@@ -36,7 +36,7 @@
     </select>
 
     <!-- 分页查询余额列表 -->
-    <select id="selectBalancePage" parameterType="com.deepreach.web.entity.UserDrBalance" resultMap="BaseResultMap">
+    <select id="selectBalancePage" parameterType="com.deepreach.common.core.domain.entity.UserDrBalance" resultMap="BaseResultMap">
         select <include refid="Base_Column_List" />
         from user_dr_balance
         <where>
@@ -60,7 +60,7 @@
     </select>
 
     <!-- 插入余额记录 -->
-    <insert id="insert" parameterType="com.deepreach.web.entity.UserDrBalance" useGeneratedKeys="true" keyProperty="balanceId">
+    <insert id="insert" parameterType="com.deepreach.common.core.domain.entity.UserDrBalance" useGeneratedKeys="true" keyProperty="balanceId">
         insert into user_dr_balance (
             user_id, dr_balance, pre_deducted_balance, total_recharge, total_consume,
             total_refund, frozen_amount, version, status, ai_character_free_times, create_by, create_time, remark
@@ -71,7 +71,7 @@
     </insert>
 
     <!-- 更新余额信息 -->
-    <update id="update" parameterType="com.deepreach.web.entity.UserDrBalance">
+    <update id="update" parameterType="com.deepreach.common.core.domain.entity.UserDrBalance">
         update user_dr_balance
         <set>
             <if test="drBalance != null">

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.deepreach.message.mapper.SmsHistoryMapper">
+
+    <resultMap id="SmsHistoryResult" type="com.deepreach.message.entity.SmsHistory">
+        <id column="id" property="id"/>
+        <result column="task_id" property="taskId"/>
+        <result column="target_number" property="targetNumber"/>
+        <result column="message_content" property="messageContent"/>
+        <result column="media_urls" property="mediaUrls"/>
+        <result column="message_to" property="messageTo"/>
+        <result column="message_from" property="messageFrom"/>
+        <result column="sent_at" property="sentAt"/>
+        <result column="status" property="status"/>
+        <result column="read" property="read"/>
+    </resultMap>
+
+    <insert id="insertHistory" parameterType="com.deepreach.message.entity.SmsHistory" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sms_history (task_id, target_number, message_content, media_urls, message_to, message_from, sent_at, status, read)
+        VALUES (#{taskId}, #{targetNumber}, #{messageContent}, #{mediaUrls}, #{messageTo}, #{messageFrom}, #{sentAt}, #{status}, #{read})
+    </insert>
+
+    <select id="listByTask" resultMap="SmsHistoryResult">
+        SELECT * FROM sms_history
+        WHERE task_id = #{taskId}
+        ORDER BY sent_at DESC
+    </select>
+
+    <update id="updateReadFlag">
+        UPDATE sms_history
+        SET read = #{read}
+        WHERE task_id = #{taskId}
+          AND target_number = #{targetNumber}
+    </update>
+
+    <select id="findTaskIdByFromAndTo" resultType="java.lang.Long">
+        SELECT task_id
+        FROM sms_history
+        WHERE message_from = #{messageTo}
+          AND message_to = #{messageFrom}
+          AND target_number = #{messageFrom}
+        ORDER BY sent_at DESC
+        LIMIT 1
+    </select>
+
+    <select id="countUnreadByTask" resultType="int">
+        SELECT COUNT(1)
+        FROM sms_history
+        WHERE task_id = #{taskId}
+          AND read = 0
+    </select>
+
+    <select id="listContactsWithLatestMessagePaged" resultType="com.deepreach.message.dto.SmsContactSummary">
+        SELECT sh.target_number AS targetNumber,
+               sh.message_content AS latestMessage,
+               DATE_FORMAT(sh.sent_at, '%Y-%m-%d %H:%i:%s') AS latestTime,
+               COALESCE(unread.unread_count, 0) AS unreadCount
+        FROM sms_history sh
+        INNER JOIN (
+            SELECT target_number, MAX(sent_at) AS latest_time
+            FROM sms_history
+            WHERE task_id = #{taskId}
+            GROUP BY target_number
+        ) latest ON sh.target_number = latest.target_number AND sh.sent_at = latest.latest_time
+        LEFT JOIN (
+            SELECT target_number, COUNT(1) AS unread_count
+            FROM sms_history
+            WHERE task_id = #{taskId} AND read = 0
+            GROUP BY target_number
+        ) unread ON unread.target_number = sh.target_number
+        WHERE sh.task_id = #{taskId}
+        ORDER BY sh.sent_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="listMessagesByContactPaged" resultType="com.deepreach.message.dto.SmsMessageRecord">
+        SELECT id AS messageId,
+               message_content AS messageContent,
+               media_urls AS mediaUrls,
+               message_to AS messageTo,
+               message_from AS messageFrom,
+               DATE_FORMAT(sent_at, '%Y-%m-%d %H:%i:%s') AS sendAt,
+               status
+        FROM sms_history
+        WHERE task_id = #{taskId}
+          AND target_number = #{targetNumber}
+        ORDER BY sent_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+</mapper>

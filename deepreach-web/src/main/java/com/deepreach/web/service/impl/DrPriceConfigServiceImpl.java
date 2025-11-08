@@ -2,9 +2,9 @@ package com.deepreach.web.service.impl;
 
 import com.deepreach.common.core.service.impl.BaseServiceImpl;
 import com.deepreach.common.exception.ServiceException;
-import com.deepreach.web.entity.DrPriceConfig;
+import com.deepreach.common.core.domain.entity.DrPriceConfig;
 import com.deepreach.web.mapper.DrPriceConfigMapper;
-import com.deepreach.web.service.DrPriceConfigService;
+import com.deepreach.common.core.service.DrPriceConfigService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

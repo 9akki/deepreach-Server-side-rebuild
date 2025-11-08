@@ -1,7 +1,7 @@
 package com.deepreach.web.service.impl;
 
 import com.deepreach.web.dto.DrTransactionQuery;
-import com.deepreach.web.entity.DrBillingRecord;
+import com.deepreach.common.core.domain.entity.DrBillingRecord;
 import com.deepreach.web.mapper.DrBillingRecordMapper;
 import com.deepreach.web.service.DrBillingRecordService;
 import lombok.RequiredArgsConstructor;

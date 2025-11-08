@@ -3,7 +3,7 @@
 <mapper namespace="com.deepreach.web.mapper.DrBillingRecordMapper">
 
     <!-- 通用结果映射 -->
-    <resultMap id="BaseResultMap" type="com.deepreach.web.entity.DrBillingRecord">
+    <resultMap id="BaseResultMap" type="com.deepreach.common.core.domain.entity.DrBillingRecord">
         <id column="bill_id" property="billId" />
         <result column="bill_no" property="billNo" />
         <result column="user_id" property="userId" />
@@ -45,7 +45,7 @@
     </select>
 
     <!-- 分页查询账单记录列表 -->
-    <select id="selectRecordPage" parameterType="com.deepreach.web.entity.DrBillingRecord" resultMap="BaseResultMap">
+    <select id="selectRecordPage" parameterType="com.deepreach.common.core.domain.entity.DrBillingRecord" resultMap="BaseResultMap">
         select
             br.bill_id,
             br.bill_no,
@@ -122,7 +122,7 @@
 
     
     <!-- 插入账单记录 -->
-    <insert id="insert" parameterType="com.deepreach.web.entity.DrBillingRecord" useGeneratedKeys="true" keyProperty="billId">
+    <insert id="insert" parameterType="com.deepreach.common.core.domain.entity.DrBillingRecord" useGeneratedKeys="true" keyProperty="billId">
         insert into dr_billing_record (
             bill_no, user_id, operator_id, bill_type, billing_type, business_type,
             business_id, dr_amount, balance_before, balance_after, description, remark,
@@ -135,7 +135,7 @@
     </insert>
 
     <!-- 更新账单记录 -->
-    <update id="update" parameterType="com.deepreach.web.entity.DrBillingRecord">
+    <update id="update" parameterType="com.deepreach.common.core.domain.entity.DrBillingRecord">
         update dr_billing_record
         <set>
             <if test="billNo != null and billNo != ''">

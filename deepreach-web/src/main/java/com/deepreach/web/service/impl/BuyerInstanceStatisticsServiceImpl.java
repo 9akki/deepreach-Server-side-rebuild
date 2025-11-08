@@ -6,7 +6,7 @@ import com.deepreach.common.core.service.SysUserService;
 import com.deepreach.common.security.UserRoleUtils;
 import com.deepreach.common.security.enums.UserIdentity;
 import com.deepreach.web.entity.AiInstance;
-import com.deepreach.web.entity.UserDrBalance;
+import com.deepreach.common.core.domain.entity.UserDrBalance;
 import com.deepreach.web.entity.dto.AiCharacterStatistics;
 import com.deepreach.web.mapper.AiCharacterMapper;
 import com.deepreach.web.mapper.AiInstanceMapper;

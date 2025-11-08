@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.deepreach.translate.mapper.TranslatedMessageMapper">
+
+    <resultMap id="TranslatedMessageResult" type="com.deepreach.translate.entity.TranslatedMessage">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="originalText" column="original_text"/>
+        <result property="sentText" column="sent_text"/>
+        <result property="selfLanguageCode" column="self_language_code"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.deepreach.translate.entity.TranslatedMessage" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO translated_messages (user_id, original_text, sent_text, self_language_code)
+        VALUES (#{userId}, #{originalText}, #{sentText}, #{selfLanguageCode})
+    </insert>
+
+    <select id="selectLatestBySentText" resultMap="TranslatedMessageResult">
+        SELECT id, user_id, original_text, sent_text, self_language_code
+        FROM translated_messages
+        WHERE user_id = #{userId}
+          AND self_language_code = #{selfLanguageCode}
+          AND sent_text = #{sentText}
+        ORDER BY id DESC
+        LIMIT 1
+    </select>
+</mapper>

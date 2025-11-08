@@ -1,7 +1,7 @@
 package com.deepreach.web.mapper;
 
 import com.deepreach.common.core.mapper.BaseMapper;
-import com.deepreach.web.entity.DrPriceConfig;
+import com.deepreach.common.core.domain.entity.DrPriceConfig;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;

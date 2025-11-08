@@ -21,10 +21,8 @@
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/config/PrimaryDataSourceConfig.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/controller/BuyerInstanceStatisticsController.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/service/CloudComputerService.java
-/Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/service/UserDrBalanceService.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/dto/DrBalanceAdjustRequest.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/dto/AgentCommissionSummaryResponse.java
-/Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/dto/DeductResponse.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/config/CloudComputerDataSourceConfig.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/mapper/UserComputerMapper.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/controller/AiInstanceController.java
@@ -45,10 +43,8 @@
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/mapper/UserDrBalanceMapper.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/service/BuyerInstanceStatisticsService.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/service/impl/AliyunEcdConfigServiceImpl.java
-/Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/entity/DrBillingRecord.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/entity/AgentCommissionAccount.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/mapper/AiCharacterMapper.java
-/Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/entity/DrPriceConfig.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/entity/dto/CharacterUsageStatistics.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/service/impl/AiInstanceServiceImpl.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/dto/AgentCommissionAccountDTO.java
@@ -58,9 +54,7 @@
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/entity/AiCharacter.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/dto/AgentCommissionRecordDTO.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/config/WebMvcConfig.java
-/Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/service/DrPriceConfigService.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/mapper/ComputerMapper.java
-/Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/dto/RechargeResult.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/service/AliyunEcdConfigService.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/DeepReachApplication.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/mapper/CloudUserMapper.java
@@ -69,7 +63,6 @@
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/dto/CommissionSettlementApplyRequest.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/controller/DrPriceConfigController.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/service/impl/AiCharacterServiceImpl.java
-/Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/dto/DrBalanceAdjustResult.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/controller/AiCharacterController.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/domain/dto/BatchDeleteResultDTO.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/dto/DrTransactionQuery.java
@@ -88,7 +81,6 @@
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/service/impl/AliyunCloudComputerServiceImpl.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/service/impl/DrBillingRecordServiceImpl.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/initializer/UserHierarchyCacheInitializer.java
-/Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/entity/UserDrBalance.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/domain/dto/CloudComputerData.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/mapper/AgentCommissionSettlementRecordMapper.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/dto/AgentCommissionOverviewRequest.java

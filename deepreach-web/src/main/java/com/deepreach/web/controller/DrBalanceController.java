@@ -2,18 +2,20 @@ package com.deepreach.web.controller;
 
 import com.deepreach.common.annotation.Log;
 import com.deepreach.common.core.domain.entity.SysUser;
+import com.deepreach.common.core.domain.entity.DrPriceConfig;
 import com.deepreach.common.core.service.SysUserService;
 import com.deepreach.common.web.BaseController;
 import com.deepreach.common.web.Result;
 import com.deepreach.common.web.page.TableDataInfo;
 import com.deepreach.common.enums.BusinessType;
 import com.deepreach.web.dto.DrBalanceAdjustRequest;
-import com.deepreach.web.dto.DrBalanceAdjustResult;
-import com.deepreach.web.entity.UserDrBalance;
-import com.deepreach.web.entity.DrBillingRecord;
-import com.deepreach.web.service.UserDrBalanceService;
+import com.deepreach.common.core.dto.DrBalanceAdjustResult;
+import com.deepreach.common.core.domain.entity.UserDrBalance;
+import com.deepreach.common.core.domain.entity.DrBillingRecord;
+import com.deepreach.common.core.service.UserDrBalanceService;
+import com.deepreach.common.core.service.DrPriceConfigService;
 import com.deepreach.web.service.DrBillingRecordService;
-import com.deepreach.web.dto.DeductResponse;
+import com.deepreach.common.core.dto.DeductResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +45,19 @@ public class DrBalanceController extends BaseController {
 
     private final UserDrBalanceService balanceService;
     private final DrBillingRecordService billingRecordService;
+    private final DrPriceConfigService drPriceConfigService;
+
+    @GetMapping("/balance/pricing-mode")
+    public Result<Map<String, Object>> getPricingMode() {
+        DrPriceConfig tokenConfig = drPriceConfigService.selectDrPriceConfigByBusinessType(DrPriceConfig.BUSINESS_TYPE_TOKEN);
+        DrPriceConfig byTimesConfig = drPriceConfigService.selectDrPriceConfigByBusinessType(DrPriceConfig.BUSINESS_TYPE_BY_TIMES);
+        Map<String, Object> body = Map.of(
+            "mode", resolvePricingMode(tokenConfig, byTimesConfig),
+            "tokenPrice", tokenConfig != null ? tokenConfig.getDrPrice() : null,
+            "byTimesPrice", byTimesConfig != null ? byTimesConfig.getDrPrice() : null
+        );
+        return success(body);
+    }
 
     /**
      * 查询DR积分余额列表
@@ -95,7 +110,7 @@ public class DrBalanceController extends BaseController {
     // @PreAuthorize("@ss.hasPermi('system:dr:recharge')")
     @Log(title = "DR积分充值", businessType = BusinessType.UPDATE)
     @PostMapping("/balance/recharge")
-    public Result<com.deepreach.web.dto.RechargeResult> recharge(@Validated @RequestBody DrBillingRecord request) {
+    public Result<com.deepreach.common.core.dto.RechargeResult> recharge(@Validated @RequestBody DrBillingRecord request) {
         // 验证用户是否为商家总账号类型
         if (request.getUserId() == null || request.getDrAmount() == null
                 || request.getDrAmount().compareTo(BigDecimal.ZERO) <= 0) {
@@ -122,6 +137,12 @@ public class DrBalanceController extends BaseController {
             if (record.getUserId() == null) {
                 return Result.error(DeductResponse.error("用户ID不能为空").getMessage());
             }
+
+            String pricingError = applyPricingStrategy(record);
+            if (pricingError != null) {
+                return Result.error(pricingError);
+            }
+
             if (record.getDrAmount() == null || record.getDrAmount().compareTo(BigDecimal.ZERO) <= 0) {
                 return Result.error(DeductResponse.error("扣费金额必须大于0").getMessage());
             }
@@ -185,6 +206,54 @@ public class DrBalanceController extends BaseController {
             log.error("扣费操作失败：用户ID={}, 扣费金额={}", record.getUserId(), record.getDrAmount(), e);
             return Result.error("扣费操作异常：" + e.getMessage());
         }
+    }
+
+    /**
+     * 按配置决定本次扣费应使用的计费方式与金额。
+     * 当 TOKEN 与 BY_TIMES 同时启用时优先走 TOKEN；TOKEN 未启用时若 BY_TIMES 启用，则按次计费，每次扣除配置单价。
+     * 其余场景沿用请求中的金额/业务类型。
+     */
+    private String applyPricingStrategy(DrBillingRecord record) {
+        DrPriceConfig tokenConfig = drPriceConfigService.selectDrPriceConfigByBusinessType(DrPriceConfig.BUSINESS_TYPE_TOKEN);
+        DrPriceConfig byTimesConfig = drPriceConfigService.selectDrPriceConfigByBusinessType(DrPriceConfig.BUSINESS_TYPE_BY_TIMES);
+
+        boolean tokenActive = tokenConfig != null && tokenConfig.isActive();
+        boolean byTimesActive = byTimesConfig != null && byTimesConfig.isActive();
+
+        if (tokenActive) {
+            record.setBusinessType(DrBillingRecord.BUSINESS_TYPE_TOKEN);
+            if (record.getDrAmount() == null || record.getDrAmount().compareTo(BigDecimal.ZERO) <= 0) {
+                return "TOKEN 计价模式下，drAmount必须为已按token折算后的正数金额";
+            }
+            return null;
+        }
+
+        if (byTimesActive) {
+            if (byTimesConfig.getDrPrice() == null || byTimesConfig.getDrPrice().compareTo(BigDecimal.ZERO) <= 0) {
+                return "按次计价配置缺失或金额非法";
+            }
+            record.setBusinessType(DrBillingRecord.BUSINESS_TYPE_BY_TIMES);
+            record.setDrAmount(byTimesConfig.getDrPrice());
+            return null;
+        }
+
+        // 没有启用 TOKEN/BY_TIMES 时沿用请求入参
+        if (record.getBusinessType() == null) {
+            record.setBusinessType("CONSUME");
+        }
+        return null;
+    }
+
+    private String resolvePricingMode(DrPriceConfig tokenConfig, DrPriceConfig byTimesConfig) {
+        boolean tokenActive = tokenConfig != null && tokenConfig.isActive();
+        if (tokenActive) {
+            return DrPriceConfig.BUSINESS_TYPE_TOKEN;
+        }
+        boolean byTimesActive = byTimesConfig != null && byTimesConfig.isActive();
+        if (byTimesActive) {
+            return DrPriceConfig.BUSINESS_TYPE_BY_TIMES;
+        }
+        return "CONSUME";
     }
 
     /**

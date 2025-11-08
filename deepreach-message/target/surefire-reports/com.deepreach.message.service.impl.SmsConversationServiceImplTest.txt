@@ -1,0 +1,11 @@
+-------------------------------------------------------------------------------
+Test set: com.deepreach.message.service.impl.SmsConversationServiceImplTest
+-------------------------------------------------------------------------------
+Tests run: 1, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 0.450 s <<< FAILURE! -- in com.deepreach.message.service.impl.SmsConversationServiceImplTest
+com.deepreach.message.service.impl.SmsConversationServiceImplTest.sendMessageShouldRecordHistoryAndDeductBalance -- Time elapsed: 0.438 s <<< ERROR!
+java.lang.NoSuchMethodError: 'void com.deepreach.message.service.impl.SmsConversationServiceImpl.<init>(com.deepreach.message.service.SmsGatewayClient, com.deepreach.message.mapper.SmsTaskMapper, com.deepreach.message.mapper.SmsHistoryMapper, com.deepreach.common.core.service.UserDrBalanceService, com.deepreach.common.core.service.DrPriceConfigService, com.deepreach.message.config.MessageSmsProperties)'
+	at com.deepreach.message.service.impl.SmsConversationServiceImplTest.setUp(SmsConversationServiceImplTest.java:48)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1511)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1511)
+

@@ -6,7 +6,7 @@ import com.deepreach.common.web.Result;
 import com.deepreach.common.web.page.TableDataInfo;
 import com.deepreach.common.enums.BusinessType;
 import com.deepreach.web.dto.DrTransactionQuery;
-import com.deepreach.web.entity.DrBillingRecord;
+import com.deepreach.common.core.domain.entity.DrBillingRecord;
 import com.deepreach.web.service.DrBillingRecordService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

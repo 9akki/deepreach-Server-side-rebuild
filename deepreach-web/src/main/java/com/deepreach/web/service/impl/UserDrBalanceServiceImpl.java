@@ -2,15 +2,15 @@ package com.deepreach.web.service.impl;
 
 import com.deepreach.common.core.domain.entity.SysUser;
 import com.deepreach.common.core.service.SysUserService;
-import com.deepreach.web.dto.DrBalanceAdjustResult;
-import com.deepreach.web.dto.RechargeResult;
-import com.deepreach.web.entity.UserDrBalance;
-import com.deepreach.web.entity.DrBillingRecord;
+import com.deepreach.common.core.dto.DrBalanceAdjustResult;
+import com.deepreach.common.core.dto.RechargeResult;
+import com.deepreach.common.core.domain.entity.UserDrBalance;
+import com.deepreach.common.core.domain.entity.DrBillingRecord;
 import com.deepreach.web.mapper.UserDrBalanceMapper;
 import com.deepreach.web.service.AgentCommissionService;
-import com.deepreach.web.service.UserDrBalanceService;
+import com.deepreach.common.core.service.UserDrBalanceService;
 import com.deepreach.web.service.DrBillingRecordService;
-import com.deepreach.web.dto.DeductResponse;
+import com.deepreach.common.core.dto.DeductResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -196,9 +196,10 @@ public class UserDrBalanceServiceImpl implements UserDrBalanceService {
             throw new RuntimeException("调账失败，请稍后重试");
         }
 
+        Long actualOperatorId = operatorId != null ? operatorId : userId;
         DrBillingRecord record = new DrBillingRecord();
         record.setUserId(userId);
-        record.setOperatorId(operatorId);
+        record.setOperatorId(actualOperatorId);
         record.setBillNo(generateBillNo());
         record.setBillType(isIncrease ? 1 : 2);
         record.setBillingType(1);
@@ -210,9 +211,9 @@ public class UserDrBalanceServiceImpl implements UserDrBalanceService {
             ? remark.trim()
             : (isIncrease ? "手动调增DR余额" : "手动调减DR余额"));
         record.setStatus(1);
-        record.setCreateBy(operatorId == null ? "system" : operatorId.toString());
+        record.setCreateBy(actualOperatorId == null ? "system" : actualOperatorId.toString());
         record.setCreateTime(LocalDateTime.now());
-        record.setConsumer(resolveConsumerUsername(operatorId, userId));
+        record.setConsumer(resolveConsumerUsername(actualOperatorId, userId));
         DrBillingRecord persistedRecord = billingRecordService.createRecord(record);
 
         UserDrBalance updatedBalance = balanceMapper.selectByUserId(userId);
@@ -540,10 +541,13 @@ public class UserDrBalanceServiceImpl implements UserDrBalanceService {
     @Transactional(rollbackFor = Exception.class)
     public DeductResponse deductWithDetails(DrBillingRecord record, Long originalUserId) {
         try {
-            // 1. 获取用户余额信息
-            UserDrBalance userBalance = balanceMapper.selectByUserId(record.getUserId());
+            // 1. 获取用户余额信息（若不存在则自动创建）
+            UserDrBalance userBalance = getByUserId(record.getUserId());
             if (userBalance == null) {
                 return DeductResponse.error("用户余额账户不存在");
+            }
+            if (!userBalance.isNormal()) {
+                return DeductResponse.error("用户余额账户状态异常，无法扣费");
             }
 
             // 2. 检查总可用余额（预扣费余额 + 基本余额），允许余额为负数但记录警告
@@ -639,10 +643,13 @@ public class UserDrBalanceServiceImpl implements UserDrBalanceService {
     @Override
     public String deduct(DrBillingRecord record) {
         try {
-            // 1. 获取用户余额信息
-            UserDrBalance userBalance = balanceMapper.selectByUserId(record.getUserId());
+            // 1. 获取用户余额信息（若不存在则自动创建）
+            UserDrBalance userBalance = getByUserId(record.getUserId());
             if (userBalance == null) {
                 return "用户余额账户不存在";
+            }
+            if (!userBalance.isNormal()) {
+                return "用户余额账户状态异常，无法扣费";
             }
 
             // 2. 检查总可用余额（预扣费余额 + 基本余额），允许余额为负数但记录警告

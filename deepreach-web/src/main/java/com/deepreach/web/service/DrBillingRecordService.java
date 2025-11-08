@@ -1,6 +1,6 @@
 package com.deepreach.web.service;
 
-import com.deepreach.web.entity.DrBillingRecord;
+import com.deepreach.common.core.domain.entity.DrBillingRecord;
 import com.deepreach.web.dto.DrTransactionQuery;
 
 import java.util.List;

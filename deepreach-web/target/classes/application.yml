@@ -134,6 +134,22 @@ translate:
   baidu:
     app-id: your-baidu-app-id
     secret: your-baidu-secret
+  llm:
+    openai-api-key: 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
+    openai-base-url: https://api.openai.com/v1/
+    qwen-api-key: sk-a9a6a4eb0c9245fca44796deb6fa6b41
+    qwen-base-url: https://dashscope.aliyuncs.com/compatible-mode/v1/
+    timeout-ms: 10000
+
+message:
+  sms:
+    base-url: http://47.82.1.178:8000
+    account-id: 49336626
+    api-key: 4b3e71d9-badf-4767-85ea-90cbb5ef0944
+    sender-number: 17707695953
+    send-path: /sms-api/v1/49336626/send-sms/4b3e71d9-badf-4767-85ea-90cbb5ef0944/
+    rate-limit-ms: 0
+    timeout-ms: 10000
 
 # 日志配置
 logging:
