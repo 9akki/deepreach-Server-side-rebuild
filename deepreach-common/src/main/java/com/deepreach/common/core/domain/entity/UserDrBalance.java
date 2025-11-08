@@ -22,6 +22,7 @@ public class UserDrBalance extends BaseEntity {
     private BigDecimal totalConsume;
     private BigDecimal totalRefund;
     private BigDecimal frozenAmount;
+    private BigDecimal dailyConsume;
     private Integer version;
     private String status;
     private Integer aiCharacterFreeTimes;
@@ -84,9 +85,14 @@ public class UserDrBalance extends BaseEntity {
         balance.setTotalConsume(BigDecimal.ZERO);
         balance.setTotalRefund(BigDecimal.ZERO);
         balance.setFrozenAmount(BigDecimal.ZERO);
+        balance.setDailyConsume(BigDecimal.ZERO);
         balance.setVersion(0);
         balance.setStatus("0");
         balance.setAiCharacterFreeTimes(1);
         return balance;
+    }
+
+    public BigDecimal getDailyConsume() {
+        return dailyConsume != null ? dailyConsume : BigDecimal.ZERO;
     }
 }

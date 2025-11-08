@@ -185,6 +185,12 @@ public interface UserDrBalanceService {
     DeductResponse deductWithDetails(DrBillingRecord record, Long originalUserId);
 
     /**
+     * DR每日汇总扣费：实时扣余额，账单改为日结
+     */
+    @Transactional(rollbackFor = Exception.class)
+    DeductResponse deductWithDailyAggregation(DrBillingRecord record, Long originalUserId);
+
+    /**
      * DR积分扣费（兼容旧版本）
      *
      * 使用事务管理确保数据一致性
@@ -207,4 +213,13 @@ public interface UserDrBalanceService {
     @Transactional(rollbackFor = Exception.class)
     DrBalanceAdjustResult manualAdjustBalance(Long userId, BigDecimal amount, Long operatorId, String remark);
 
+    /**
+     * 查询存在日累计消费的账户
+     */
+    List<UserDrBalance> listUsersWithDailyConsume();
+
+    /**
+     * 扣减指定用户的日累计消费金额
+     */
+    boolean subtractDailyConsume(Long userId, BigDecimal amount);
 }

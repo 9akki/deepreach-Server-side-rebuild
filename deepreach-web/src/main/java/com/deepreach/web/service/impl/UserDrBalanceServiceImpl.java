@@ -97,6 +97,7 @@ public class UserDrBalanceServiceImpl implements UserDrBalanceService {
             balance.getTotalConsume(),
             balance.getTotalRefund(),
             balance.getFrozenAmount(),
+            balance.getDailyConsume(),
             balance.getVersion()
         );
 
@@ -190,6 +191,7 @@ public class UserDrBalanceServiceImpl implements UserDrBalanceService {
             newTotalConsume,
             totalRefund,
             frozenAmount,
+            balance.getDailyConsume(),
             balance.getVersion()
         );
         if (updated <= 0) {
@@ -254,6 +256,7 @@ public class UserDrBalanceServiceImpl implements UserDrBalanceService {
             balance.getTotalConsume(),
             balance.getTotalRefund(),
             balance.getFrozenAmount(),
+            balance.getDailyConsume(),
             balance.getVersion()
         );
 
@@ -328,6 +331,7 @@ public class UserDrBalanceServiceImpl implements UserDrBalanceService {
             newTotalConsume,
             balance.getTotalRefund(),
             balance.getFrozenAmount(),
+            balance.getDailyConsume(),
             balance.getVersion()
         );
 
@@ -378,6 +382,7 @@ public class UserDrBalanceServiceImpl implements UserDrBalanceService {
             balance.getTotalConsume(),
             totalRefundAfter,
             balance.getFrozenAmount(),
+            balance.getDailyConsume(),
             balance.getVersion()
         );
 
@@ -441,6 +446,7 @@ public class UserDrBalanceServiceImpl implements UserDrBalanceService {
             balance.getTotalConsume(),
             balance.getTotalRefund(),
             newFrozenAmount,
+            balance.getDailyConsume(),
             balance.getVersion()
         );
 
@@ -470,6 +476,7 @@ public class UserDrBalanceServiceImpl implements UserDrBalanceService {
             balance.getTotalConsume(),
             balance.getTotalRefund(),
             newFrozenAmount,
+            balance.getDailyConsume(),
             balance.getVersion()
         );
 
@@ -515,6 +522,20 @@ public class UserDrBalanceServiceImpl implements UserDrBalanceService {
         }
 
         return balance;
+    }
+
+    @Override
+    public List<UserDrBalance> listUsersWithDailyConsume() {
+        return balanceMapper.selectWithDailyConsume();
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean subtractDailyConsume(Long userId, BigDecimal amount) {
+        if (userId == null || amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            return true;
+        }
+        return balanceMapper.subtractDailyConsume(userId, amount) > 0;
     }
 
     @Override
@@ -602,6 +623,7 @@ public class UserDrBalanceServiceImpl implements UserDrBalanceService {
                 newTotalConsume,
                 userBalance.getTotalRefund(),
                 userBalance.getFrozenAmount(),
+                userBalance.getDailyConsume(),
                 userBalance.getVersion()
             );
 
@@ -636,6 +658,84 @@ public class UserDrBalanceServiceImpl implements UserDrBalanceService {
 
         } catch (Exception e) {
             log.error("扣费操作异常：用户ID={}, 扣费金额={}", record.getUserId(), record.getDrAmount(), e);
+            return DeductResponse.error("扣费失败：" + e.getMessage());
+        }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public DeductResponse deductWithDailyAggregation(DrBillingRecord record, Long originalUserId) {
+        try {
+            UserDrBalance userBalance = getByUserId(record.getUserId());
+            if (userBalance == null) {
+                return DeductResponse.error("用户余额账户不存在");
+            }
+            if (!userBalance.isNormal()) {
+                return DeductResponse.error("用户余额账户状态异常，无法扣费");
+            }
+
+            BigDecimal amount = record.getDrAmount();
+            if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+                return DeductResponse.error("扣费金额必须大于0");
+            }
+
+            boolean isTotalBalanceSufficient = userBalance.isTotalBalanceSufficient(amount);
+            if (!isTotalBalanceSufficient) {
+                log.warn("总余额不足但仍执行扣费，用户ID：{}，总余额：{}，需要扣除：{}",
+                    record.getUserId(), userBalance.getTotalAvailableBalance(), amount);
+            }
+
+            BigDecimal preDeductedBalance = userBalance.getPreDeductedBalance();
+            BigDecimal baseBalanceBefore = userBalance.getDrBalance();
+
+            BigDecimal deductFromPreDeducted = BigDecimal.ZERO;
+            BigDecimal deductFromBaseBalance = amount;
+
+            if (preDeductedBalance.compareTo(BigDecimal.ZERO) > 0) {
+                if (preDeductedBalance.compareTo(amount) >= 0) {
+                    deductFromPreDeducted = amount;
+                    deductFromBaseBalance = BigDecimal.ZERO;
+                } else {
+                    deductFromPreDeducted = preDeductedBalance;
+                    deductFromBaseBalance = amount.subtract(preDeductedBalance);
+                }
+            }
+
+            BigDecimal newPreDeductedBalance = preDeductedBalance.subtract(deductFromPreDeducted);
+            BigDecimal newBaseBalance = baseBalanceBefore.subtract(deductFromBaseBalance);
+            BigDecimal newTotalConsume = userBalance.getTotalConsume().add(amount);
+            BigDecimal newDailyConsume = userBalance.getDailyConsume().add(amount);
+
+            userBalance.setDrBalance(newBaseBalance);
+            userBalance.setPreDeductedBalance(newPreDeductedBalance);
+            userBalance.setTotalConsume(newTotalConsume);
+            userBalance.setDailyConsume(newDailyConsume);
+
+            int updateResult = balanceMapper.updateBalanceWithVersion(
+                record.getUserId(),
+                newBaseBalance,
+                newPreDeductedBalance,
+                userBalance.getTotalRecharge(),
+                newTotalConsume,
+                userBalance.getTotalRefund(),
+                userBalance.getFrozenAmount(),
+                newDailyConsume,
+                userBalance.getVersion()
+            );
+
+            if (updateResult <= 0) {
+                return DeductResponse.error("扣费失败，请稍后重试");
+            }
+
+            UserDrBalance updatedBalance = balanceMapper.selectByUserId(record.getUserId());
+            String message = isTotalBalanceSufficient
+                ? "扣费成功，已计入当日消费汇总"
+                : "扣费成功，但总余额不足，已计入当日消费汇总";
+
+            return DeductResponse.success(message, updatedBalance, null,
+                amount, baseBalanceBefore, record.getUserId(), originalUserId);
+        } catch (Exception e) {
+            log.error("日结扣费操作异常：用户ID={}, 扣费金额={}", record.getUserId(), record.getDrAmount(), e);
             return DeductResponse.error("扣费失败：" + e.getMessage());
         }
     }
@@ -703,6 +803,7 @@ public class UserDrBalanceServiceImpl implements UserDrBalanceService {
                 newTotalConsume,
                 userBalance.getTotalRefund(),
                 userBalance.getFrozenAmount(),
+                userBalance.getDailyConsume(),
                 userBalance.getVersion()
             );
 

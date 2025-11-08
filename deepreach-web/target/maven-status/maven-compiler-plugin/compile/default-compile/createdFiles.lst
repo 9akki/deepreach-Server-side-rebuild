@@ -6,6 +6,7 @@ com/deepreach/web/domain/dto/BatchDeleteResultDTO$DeleteFailureInfo.class
 com/deepreach/web/domain/dto/CloudComputerData.class
 com/deepreach/web/service/impl/FileStorageServiceImpl.class
 com/deepreach/web/mapper/AiCharacterMapper.class
+com/deepreach/web/task/DailyConsumeSettlementTask.class
 com/deepreach/web/entity/dto/InstanceTypeStatistics.class
 com/deepreach/web/mapper/AliyunEcdConfigMapper.class
 com/deepreach/web/domain/dto/ProxyTestDTO$ProxyTestDTOBuilder.class

@@ -69,6 +69,7 @@ public interface UserDrBalanceMapper {
                                 @Param("totalConsume") BigDecimal totalConsume,
                                 @Param("totalRefund") BigDecimal totalRefund,
                                 @Param("frozenAmount") BigDecimal frozenAmount,
+                                @Param("dailyConsume") BigDecimal dailyConsume,
                                 @Param("version") Integer version);
 
     /**
@@ -164,4 +165,8 @@ public interface UserDrBalanceMapper {
      * @return 影响行数
      */
     int consumeAiCharacterFreeTimes(@Param("userId") Long userId);
+
+    List<UserDrBalance> selectWithDailyConsume();
+
+    int subtractDailyConsume(@Param("userId") Long userId, @Param("amount") BigDecimal amount);
 }

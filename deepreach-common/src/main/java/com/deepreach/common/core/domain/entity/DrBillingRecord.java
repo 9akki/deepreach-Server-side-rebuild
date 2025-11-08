@@ -47,6 +47,7 @@ public class DrBillingRecord extends BaseEntity {
     public static final String BUSINESS_TYPE_TOKEN = "TOKEN";
     public static final String BUSINESS_TYPE_AI_CHARACTER = "AI_CHARACTER";
     public static final String BUSINESS_TYPE_MANUAL_ADJUST = "MANUAL_ADJUST";
+    public static final String BUSINESS_TYPE_DAILY_CONSUME = "DAILY_CONSUME";
     public static final String BUSINESS_TYPE_BY_TIMES = "BY_TIMES";
 
     public Map<String, BigDecimal> getAgentLevelCommission() {
@@ -124,6 +125,8 @@ public class DrBillingRecord extends BaseEntity {
                 return "按次扣费";
             case BUSINESS_TYPE_MANUAL_ADJUST:
                 return "手动调账";
+            case BUSINESS_TYPE_DAILY_CONSUME:
+                return "日结消费";
             default:
                 return "未知";
         }

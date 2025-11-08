@@ -12,6 +12,7 @@
         <result column="total_consume" property="totalConsume" />
         <result column="total_refund" property="totalRefund" />
         <result column="frozen_amount" property="frozenAmount" />
+        <result column="daily_consume" property="dailyConsume" />
         <result column="version" property="version" />
         <result column="status" property="status" />
         <result column="ai_character_free_times" property="aiCharacterFreeTimes" />
@@ -25,7 +26,7 @@
     <!-- 通用列名 -->
     <sql id="Base_Column_List">
         balance_id, user_id, dr_balance, pre_deducted_balance, total_recharge, total_consume,
-        total_refund, frozen_amount, version, status, ai_character_free_times, create_by, create_time, update_by, update_time, remark
+        total_refund, frozen_amount, daily_consume, version, status, ai_character_free_times, create_by, create_time, update_by, update_time, remark
     </sql>
 
     <!-- 根据用户ID查询余额信息 -->
@@ -63,10 +64,10 @@
     <insert id="insert" parameterType="com.deepreach.common.core.domain.entity.UserDrBalance" useGeneratedKeys="true" keyProperty="balanceId">
         insert into user_dr_balance (
             user_id, dr_balance, pre_deducted_balance, total_recharge, total_consume,
-            total_refund, frozen_amount, version, status, ai_character_free_times, create_by, create_time, remark
+            total_refund, frozen_amount, daily_consume, version, status, ai_character_free_times, create_by, create_time, remark
         ) values (
             #{userId}, #{drBalance}, #{preDeductedBalance}, #{totalRecharge}, #{totalConsume},
-            #{totalRefund}, #{frozenAmount}, #{version}, #{status}, #{aiCharacterFreeTimes}, #{createBy}, #{createTime}, #{remark}
+            #{totalRefund}, #{frozenAmount}, #{dailyConsume}, #{version}, #{status}, #{aiCharacterFreeTimes}, #{createBy}, #{createTime}, #{remark}
         )
     </insert>
 
@@ -91,6 +92,9 @@
             </if>
             <if test="frozenAmount != null">
                 frozen_amount = #{frozenAmount},
+            </if>
+            <if test="dailyConsume != null">
+                daily_consume = #{dailyConsume},
             </if>
             <if test="version != null">
                 version = #{version} + 1,
@@ -118,6 +122,7 @@
             total_consume = #{totalConsume},
             total_refund = #{totalRefund},
             frozen_amount = #{frozenAmount},
+            daily_consume = #{dailyConsume},
             version = version + 1,
             update_time = now()
         where user_id = #{userId}
@@ -175,6 +180,7 @@
             total_consume as totalConsume,
             total_refund as totalRefund,
             frozen_amount as frozenAmount,
+            daily_consume as dailyConsume,
             status as status,
             (dr_balance - frozen_amount) as availableBalance,
             (dr_balance + pre_deducted_balance - frozen_amount) as totalAvailableBalance
@@ -197,6 +203,7 @@
         update user_dr_balance
         set dr_balance = #{drBalance},
             total_consume = #{totalConsume},
+            daily_consume = #{dailyConsume},
             version = version + 1,
             update_time = now()
         where user_id = #{userId}
@@ -208,6 +215,20 @@
             update_time = now()
         where user_id = #{userId}
           and ai_character_free_times &gt; 0
+    </update>
+
+    <select id="selectWithDailyConsume" resultMap="BaseResultMap">
+        select <include refid="Base_Column_List" />
+        from user_dr_balance
+        where daily_consume &gt; 0
+    </select>
+
+    <update id="subtractDailyConsume">
+        update user_dr_balance
+        set daily_consume = daily_consume - #{amount},
+            update_time = now()
+        where user_id = #{userId}
+          and daily_consume &gt;= #{amount}
     </update>
 
     <!-- 删除余额记录 -->

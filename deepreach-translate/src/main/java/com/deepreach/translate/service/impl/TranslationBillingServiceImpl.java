@@ -56,7 +56,7 @@ public class TranslationBillingServiceImpl implements TranslationBillingService 
         record.setDescription("翻译扣费");
         record.setRemark("Translate");
 
-        DeductResponse response = userDrBalanceService.deductWithDetails(record, account.getOperatorUserId());
+        DeductResponse response = userDrBalanceService.deductWithDailyAggregation(record, account.getOperatorUserId());
         if (response == null || !response.isSuccess()) {
             String message = response != null ? response.getMessage() : "扣费响应为空";
             throw new ServiceException("翻译扣费失败: " + message);
