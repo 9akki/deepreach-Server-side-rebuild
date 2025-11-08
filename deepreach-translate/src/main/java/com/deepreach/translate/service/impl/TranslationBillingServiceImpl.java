@@ -19,6 +19,12 @@ public class TranslationBillingServiceImpl implements TranslationBillingService 
     private static final Logger log = LoggerFactory.getLogger(TranslationBillingServiceImpl.class);
     private static final BigDecimal DEFAULT_UNIT_PRICE = new BigDecimal("0.0001");
 
+    private enum PricingMode {
+        TOKEN,
+        BY_TIMES,
+        NONE
+    }
+
     private final DrPriceConfigService drPriceConfigService;
     private final UserDrBalanceService userDrBalanceService;
     private final ChargeAccountResolver chargeAccountResolver;
@@ -34,6 +40,11 @@ public class TranslationBillingServiceImpl implements TranslationBillingService 
     @Override
     public BigDecimal deduct(Long userId, long totalTokens) {
         if (totalTokens <= 0) {
+            return BigDecimal.ZERO;
+        }
+        PricingMode pricingMode = resolvePricingMode();
+        if (pricingMode == PricingMode.BY_TIMES) {
+            log.info("Translation billing skipped due to BY_TIMES pricing mode, userId={}, tokens={}", userId, totalTokens);
             return BigDecimal.ZERO;
         }
         BigDecimal unitPrice = resolveUnitPrice();
@@ -78,5 +89,17 @@ public class TranslationBillingServiceImpl implements TranslationBillingService 
             return DEFAULT_UNIT_PRICE;
         }
         return config.getDrPrice();
+    }
+
+    private PricingMode resolvePricingMode() {
+        DrPriceConfig tokenConfig = drPriceConfigService.selectDrPriceConfigByBusinessType(DrPriceConfig.BUSINESS_TYPE_TOKEN);
+        if (tokenConfig != null && tokenConfig.isActive()) {
+            return PricingMode.TOKEN;
+        }
+        DrPriceConfig byTimesConfig = drPriceConfigService.selectDrPriceConfigByBusinessType(DrPriceConfig.BUSINESS_TYPE_BY_TIMES);
+        if (byTimesConfig != null && byTimesConfig.isActive()) {
+            return PricingMode.BY_TIMES;
+        }
+        return PricingMode.NONE;
     }
 }

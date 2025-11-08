@@ -1,4 +1,5 @@
 com/deepreach/translate/dto/OriginalTextResponse.class
+com/deepreach/translate/service/impl/TranslationBillingServiceImpl$PricingMode.class
 com/deepreach/translate/dto/OriginalTextRequest.class
 com/deepreach/translate/client/DashScopeChatClient.class
 com/deepreach/translate/service/TranslationBillingService.class

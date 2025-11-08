@@ -1294,3 +1294,36 @@ Caused by: java.io.EOFException: Can not read response from server. Expected to 
 2025-11-08 23:00:49 [main] DEBUG c.d.c.c.m.S.selectAllUserHierarchyRelations - <==      Total: 70
 2025-11-08 23:00:49 [main] INFO  c.d.c.c.s.impl.SysUserServiceImpl - 用户层级树缓存刷新成功：记录总数=70, 根节点数量=1
 2025-11-08 23:00:49 [main] INFO  c.d.w.i.UserHierarchyCacheInitializer - 用户层级树缓存构建完成
+2025-11-08 23:20:10 [SpringApplicationShutdownHook] INFO  c.alibaba.druid.pool.DruidDataSource - {dataSource-1} closing ...
+2025-11-08 23:20:10 [SpringApplicationShutdownHook] INFO  c.alibaba.druid.pool.DruidDataSource - {dataSource-1} closed
+2025-11-08 23:20:12 [main] INFO  c.deepreach.web.DeepReachApplication - Starting DeepReachApplication using Java 17.0.12 with PID 77181 (/Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/target/classes started by gak1 in /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild)
+2025-11-08 23:20:12 [main] DEBUG c.deepreach.web.DeepReachApplication - Running with Spring Boot v3.2.0, Spring v6.1.1
+2025-11-08 23:20:12 [main] INFO  c.deepreach.web.DeepReachApplication - The following 1 profile is active: "dev"
+2025-11-08 23:20:13 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode
+2025-11-08 23:20:13 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+2025-11-08 23:20:13 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 6 ms. Found 0 Redis repository interfaces.
+2025-11-08 23:20:13 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-08 23:20:13 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-08 23:20:13 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.16]
+2025-11-08 23:20:13 [main] INFO  o.a.c.c.C.[.[localhost].[/api] - Initializing Spring embedded WebApplicationContext
+2025-11-08 23:20:13 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 784 ms
+2025-11-08 23:20:13 [main] DEBUG c.d.c.s.JwtAuthenticationFilter - Filter 'jwtAuthenticationFilter' configured for use
+2025-11-08 23:20:13 [main] ERROR i.n.r.d.DnsServerAddressStreamProviders - Unable to load io.netty.resolver.dns.macos.MacOSDnsServerAddressStreamProvider, fallback to system defaults. This may result in incorrect DNS resolutions on MacOS. Check whether you have a dependency on 'io.netty:netty-resolver-dns-native-macos'. Use DEBUG level to see the full stack: java.lang.UnsatisfiedLinkError: failed to load the required native library
+2025-11-08 23:20:14 [main] INFO  c.d.w.s.impl.FileStorageServiceImpl - 文件上传目录: /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/uploads
+2025-11-08 23:20:14 [main] INFO  c.d.message.worker.SmsSendWorker - SmsSendWorker started
+2025-11-08 23:20:14 [main] INFO  c.deepreach.web.config.WebMvcConfig - 静态资源映射配置：/uploads/** -> file:/Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/uploads
+2025-11-08 23:20:14 [main] INFO  o.s.s.web.DefaultSecurityFilterChain - Will secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@7612f385, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@330d16af, org.springframework.security.web.context.SecurityContextHolderFilter@2a317af7, org.springframework.security.web.header.HeaderWriterFilter@13bf5fd, org.springframework.web.filter.CorsFilter@16f15a4, org.springframework.security.web.authentication.logout.LogoutFilter@781bd9dd, com.deepreach.common.security.JwtAuthenticationFilter@2328ec73, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@54f4734e, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@6a26eee6, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@548c5127, org.springframework.security.web.session.SessionManagementFilter@2dbf8cfc, org.springframework.security.web.access.ExceptionTranslationFilter@4a7ac98b, org.springframework.security.web.access.intercept.AuthorizationFilter@20a46227]
+2025-11-08 23:20:14 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/api'
+2025-11-08 23:20:14 [main] INFO  c.deepreach.web.DeepReachApplication - Started DeepReachApplication in 2.4 seconds (process running for 2.647)
+2025-11-08 23:20:14 [main] INFO  c.d.web.config.DataSourceHealthCheck - 开始检查数据源配置...
+2025-11-08 23:20:26 [main] INFO  c.alibaba.druid.pool.DruidDataSource - {dataSource-1} inited
+2025-11-08 23:20:26 [main] INFO  c.d.web.config.DataSourceHealthCheck - 主数据源连接成功: PRIMARY_OK
+2025-11-08 23:20:29 [main] INFO  c.d.web.config.DataSourceHealthCheck - 云电脑数据源连接成功: CLOUD_COMPUTER_OK
+2025-11-08 23:20:31 [main] INFO  c.d.web.config.DataSourceHealthCheck - 云电脑数据库中admin用户记录数: 0
+2025-11-08 23:20:31 [main] INFO  c.d.web.config.DataSourceHealthCheck - 数据源检查完成
+2025-11-08 23:20:31 [main] INFO  c.d.w.i.UserHierarchyCacheInitializer - 开始构建用户层级树缓存...
+2025-11-08 23:20:31 [main] DEBUG c.d.c.c.m.S.selectAllUserHierarchyRelations - ==>  Preparing: SELECT u.user_id AS userId, u.parent_user_id AS parentUserId FROM sys_user u WHERE u.status = '0'
+2025-11-08 23:20:31 [main] DEBUG c.d.c.c.m.S.selectAllUserHierarchyRelations - ==> Parameters: 
+2025-11-08 23:20:31 [main] DEBUG c.d.c.c.m.S.selectAllUserHierarchyRelations - <==      Total: 70
+2025-11-08 23:20:31 [main] INFO  c.d.c.c.s.impl.SysUserServiceImpl - 用户层级树缓存刷新成功：记录总数=70, 根节点数量=1
+2025-11-08 23:20:31 [main] INFO  c.d.w.i.UserHierarchyCacheInitializer - 用户层级树缓存构建完成
