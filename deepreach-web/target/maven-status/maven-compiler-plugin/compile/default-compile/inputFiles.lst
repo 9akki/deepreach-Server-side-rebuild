@@ -22,6 +22,7 @@
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/controller/BuyerInstanceStatisticsController.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/service/CloudComputerService.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/dto/DrBalanceAdjustRequest.java
+/Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/dto/AiProduceDeductRequest.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/dto/AgentCommissionSummaryResponse.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/config/CloudComputerDataSourceConfig.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/mapper/UserComputerMapper.java

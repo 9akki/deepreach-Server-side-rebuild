@@ -70,6 +70,7 @@ com/deepreach/web/dto/DrTransactionQuery.class
 com/deepreach/web/mapper/AgentCommissionAccountMapper.class
 com/deepreach/web/service/impl/BuyerInstanceStatisticsServiceImpl.class
 com/deepreach/web/domain/vo/ProxyVO$ProxyVOBuilder.class
+com/deepreach/web/dto/AiProduceDeductRequest.class
 com/deepreach/web/dto/AgentCommissionAccountDTO.class
 com/deepreach/web/service/FileStorageService.class
 com/deepreach/web/controller/CloudComputerController.class

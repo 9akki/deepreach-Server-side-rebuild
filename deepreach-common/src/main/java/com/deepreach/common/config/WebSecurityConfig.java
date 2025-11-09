@@ -86,9 +86,11 @@ public class WebSecurityConfig {
                     "/auth/token/validate",
                     "/auth/password/forgot",
                     "/dr/balance/deduct",
+                    "/dr/balance/deduct/ai",
                     "/dr/balance/pricing-mode",
                     "/files/template/**",
                     "/dr/price/{priceId}",
+                    "/dr/price/config/business/*",
                     "/uploads/**",  // 公开文件访问 - 不需要认证
                     "/swagger-ui/**",
                     "/v3/api-docs/**",

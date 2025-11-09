@@ -18,7 +18,7 @@
     </resultMap>
 
     <insert id="insertHistory" parameterType="com.deepreach.message.entity.SmsHistory" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO sms_history (task_id, target_number, message_content, media_urls, message_to, message_from, sent_at, status, read)
+        INSERT INTO sms_history (task_id, target_number, message_content, media_urls, message_to, message_from, sent_at, status, `read`)
         VALUES (#{taskId}, #{targetNumber}, #{messageContent}, #{mediaUrls}, #{messageTo}, #{messageFrom}, #{sentAt}, #{status}, #{read})
     </insert>
 
@@ -30,7 +30,7 @@
 
     <update id="updateReadFlag">
         UPDATE sms_history
-        SET read = #{read}
+        SET `read` = #{read}
         WHERE task_id = #{taskId}
           AND target_number = #{targetNumber}
     </update>
@@ -49,7 +49,7 @@
         SELECT COUNT(1)
         FROM sms_history
         WHERE task_id = #{taskId}
-          AND read = 0
+          AND `read` = 0
     </select>
 
     <select id="listContactsWithLatestMessagePaged" resultType="com.deepreach.message.dto.SmsContactSummary">

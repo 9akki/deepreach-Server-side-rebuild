@@ -8,6 +8,7 @@ import com.deepreach.common.web.BaseController;
 import com.deepreach.common.web.Result;
 import com.deepreach.common.web.page.TableDataInfo;
 import com.deepreach.common.enums.BusinessType;
+import com.deepreach.web.dto.AiProduceDeductRequest;
 import com.deepreach.web.dto.DrBalanceAdjustRequest;
 import com.deepreach.common.core.dto.DrBalanceAdjustResult;
 import com.deepreach.common.core.domain.entity.UserDrBalance;
@@ -25,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Set;
 import java.util.Map;
 
 /**
@@ -46,6 +48,12 @@ public class DrBalanceController extends BaseController {
     private final UserDrBalanceService balanceService;
     private final DrBillingRecordService billingRecordService;
     private final DrPriceConfigService drPriceConfigService;
+
+    private static final Set<String> AI_BUSINESS_TYPES = Set.of(
+        "AI_PRODUCE_PICTURE",
+        "AI_PRODUCE_NORMAL_VIDEO",
+        "AI_PRODUCE_LONG_VIDEO"
+    );
 
     @GetMapping("/balance/pricing-mode")
     public Result<Map<String, Object>> getPricingMode() {
@@ -193,18 +201,90 @@ public class DrBalanceController extends BaseController {
             record.setBillingType(1);
             record.setBusinessType(record.getBusinessType() != null ? record.getBusinessType() : "CONSUME");
             record.setDescription(record.getDescription() != null ? record.getDescription() : defaultDescription);
-
-            DeductResponse result = balanceService.deductWithDetails(record, originalUserId);
-
-            if (result.isSuccess()) {
-                return Result.success("扣费成功", result);
-            } else {
-                return Result.error(result.getMessage());
-            }
-
+            return performDeduct(record, user, originalUserId);
         } catch (Exception e) {
             log.error("扣费操作失败：用户ID={}, 扣费金额={}", record.getUserId(), record.getDrAmount(), e);
             return Result.error("扣费操作异常：" + e.getMessage());
+        }
+    }
+
+    @PostMapping("/balance/deduct/ai")
+    public Result<DeductResponse> deductForAiProduce(@Validated @RequestBody AiProduceDeductRequest request) {
+        try {
+            if (!AI_BUSINESS_TYPES.contains(request.getBusinessType())) {
+                return Result.error("不支持的业务类型");
+            }
+            DrPriceConfig config = drPriceConfigService.selectDrPriceConfigByBusinessType(request.getBusinessType());
+            if (config == null || config.getDrPrice() == null || !config.isActive()) {
+                return Result.error("业务类型未配置单价或未启用");
+            }
+            SysUser user = userService.selectUserWithDept(request.getUserId());
+            if (user == null) {
+                return Result.error("用户不存在");
+            }
+            DrBillingRecord record = new DrBillingRecord();
+            record.setUserId(request.getUserId());
+            record.setOperatorId(request.getUserId());
+            record.setBillType(2);
+            record.setBillingType(1);
+            record.setBusinessType(request.getBusinessType());
+            record.setDrAmount(config.getDrPrice());
+            record.setDescription(org.springframework.util.StringUtils.hasText(request.getDescription())
+                ? request.getDescription()
+                : ("AI生成扣费-" + request.getBusinessType()));
+            record.setRemark("AiProduce");
+            return performDeduct(record, user, request.getUserId());
+        } catch (Exception ex) {
+            log.error("AI扣费失败 userId={} businessType={}", request.getUserId(), request.getBusinessType(), ex);
+            return Result.error("扣费操作异常：" + ex.getMessage());
+        }
+    }
+
+    private Result<DeductResponse> performDeduct(DrBillingRecord record, SysUser user, Long originalUserId) {
+        Long requestUserId = record.getUserId();
+        if (user == null) {
+            return Result.error(DeductResponse.error("用户不存在").getMessage());
+        }
+
+        Long chargeAccountId;
+        if (user.isBuyerMainIdentity()) {
+            chargeAccountId = user.getUserId();
+        } else if (user.isBuyerSubIdentity()) {
+            Long parentUserId = user.getParentUserId();
+            if (parentUserId == null) {
+                return Result.error(DeductResponse.error("用户没有关联的商家总账号").getMessage());
+            }
+            SysUser parentUser = userService.selectUserWithDept(parentUserId);
+            if (parentUser == null || !parentUser.isBuyerMainIdentity()) {
+                return Result.error(DeductResponse.error("关联的父用户不是有效的商家总账号").getMessage());
+            }
+            chargeAccountId = parentUserId;
+        } else {
+            return Result.error(DeductResponse.error("仅支持商家总账号或子账户进行扣费").getMessage());
+        }
+
+        UserDrBalance chargeAccountBalance = balanceService.getByUserId(chargeAccountId);
+        if (chargeAccountBalance == null) {
+            return Result.error(DeductResponse.error("商家总账号余额账户不存在").getMessage());
+        }
+
+        if (record.getDrAmount() == null || record.getDrAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            return Result.error("扣费金额必须大于0");
+        }
+
+        if (chargeAccountBalance.getDrBalance().compareTo(record.getDrAmount()) < 0) {
+            return Result.error(DeductResponse.error("商家总账号余额不足，当前余额：" + chargeAccountBalance.getDrBalance()).getMessage());
+        }
+
+        record.setUserId(chargeAccountId);
+        record.setOperatorId(originalUserId);
+
+        DeductResponse result = balanceService.deductWithDetails(record, originalUserId);
+
+        if (result.isSuccess()) {
+            return Result.success("扣费成功", result);
+        } else {
+            return Result.error(result.getMessage());
         }
     }
 
