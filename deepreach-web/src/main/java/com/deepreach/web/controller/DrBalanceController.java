@@ -194,7 +194,7 @@ public class DrBalanceController extends BaseController {
             record.setBusinessType(record.getBusinessType() != null ? record.getBusinessType() : "CONSUME");
             record.setDescription(record.getDescription() != null ? record.getDescription() : defaultDescription);
 
-            DeductResponse result = balanceService.deductWithDailyAggregation(record, originalUserId);
+            DeductResponse result = balanceService.deductWithDetails(record, originalUserId);
 
             if (result.isSuccess()) {
                 return Result.success("扣费成功", result);

@@ -5,7 +5,14 @@ import com.deepreach.web.dto.FileUploadResponse;
 import com.deepreach.web.service.FileStorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -33,6 +40,20 @@ public class FileController {
             log.error("文件上传失败", ex);
             return Result.error("文件上传失败: " + ex.getMessage());
         }
+    }
+
+    @GetMapping("/template/sms-import")
+    public ResponseEntity<Resource> downloadSmsImportTemplate() throws IOException {
+        Path filePath = fileStorageService.getUploadPath()
+            .resolve("8bf34c966b2d4758856c90450e49081d.xlsx")
+            .normalize();
+        byte[] data = Files.readAllBytes(filePath);
+        ByteArrayResource resource = new ByteArrayResource(data);
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"sms_import_template-1.xlsx\"")
+            .contentLength(data.length)
+            .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+            .body(resource);
     }
 
     @DeleteMapping
