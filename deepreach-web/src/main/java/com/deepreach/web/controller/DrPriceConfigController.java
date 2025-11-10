@@ -1,12 +1,15 @@
 package com.deepreach.web.controller;
 
 import com.deepreach.common.annotation.Log;
-import com.deepreach.common.web.page.TableDataInfo;
+import com.deepreach.common.core.domain.entity.DrPriceConfig;
+import com.deepreach.common.core.page.TableSupport;
+import com.deepreach.common.core.page.TableSupport;
+import com.deepreach.common.core.service.DrPriceConfigService;
 import com.deepreach.common.enums.BusinessType;
+import com.deepreach.common.utils.PageUtils;
 import com.deepreach.common.web.BaseController;
 import com.deepreach.common.web.Result;
-import com.deepreach.common.core.domain.entity.DrPriceConfig;
-import com.deepreach.common.core.service.DrPriceConfigService;
+import com.deepreach.common.web.page.TableDataInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -35,9 +38,40 @@ public class DrPriceConfigController extends BaseController {
     // @PreAuthorize("@ss.hasPermi('dr:price:list')")
     @GetMapping("/list")
     public TableDataInfo<DrPriceConfig> list(DrPriceConfig drPriceConfig) {
-        startPage(drPriceConfig);
-        List<DrPriceConfig> list = drPriceConfigService.selectDrPriceConfigPage(drPriceConfig);
-        return getDataTable(list);
+        PageUtils.clearPage();
+        var pageDomain = TableSupport.buildPageRequest();
+        int pageNum = pageDomain.getPageNum() != null && pageDomain.getPageNum() > 0 ? pageDomain.getPageNum() : 1;
+        int pageSize = pageDomain.getPageSize() != null && pageDomain.getPageSize() > 0 ? pageDomain.getPageSize() : 10;
+
+        Integer originalPageNum = drPriceConfig != null ? drPriceConfig.getPageNum() : null;
+        Integer originalPageSize = drPriceConfig != null ? drPriceConfig.getPageSize() : null;
+        String originalOrderBy = drPriceConfig != null ? drPriceConfig.getOrderByColumn() : null;
+        String originalIsAsc = drPriceConfig != null ? drPriceConfig.getIsAsc() : null;
+        Boolean originalReasonable = drPriceConfig != null ? drPriceConfig.getReasonable() : null;
+
+        if (drPriceConfig != null) {
+            drPriceConfig.setPageNum(null);
+            drPriceConfig.setPageSize(null);
+            drPriceConfig.setOrderByColumn(null);
+            drPriceConfig.setIsAsc(null);
+            drPriceConfig.setReasonable(null);
+        }
+
+        List<DrPriceConfig> all = drPriceConfigService.selectDrPriceConfigList(drPriceConfig);
+
+        if (drPriceConfig != null) {
+            drPriceConfig.setPageNum(originalPageNum);
+            drPriceConfig.setPageSize(originalPageSize);
+            drPriceConfig.setOrderByColumn(originalOrderBy);
+            drPriceConfig.setIsAsc(originalIsAsc);
+            drPriceConfig.setReasonable(originalReasonable);
+        }
+
+        List<DrPriceConfig> rows = PageUtils.manualPage(all, pageNum, pageSize);
+        PageUtils.PageState state = PageUtils.getCurrentPageState();
+        long total = state != null ? state.getTotal() : all.size();
+        PageUtils.clearManualPage();
+        return TableDataInfo.success(rows, total, pageNum, pageSize);
     }
 
     /**
