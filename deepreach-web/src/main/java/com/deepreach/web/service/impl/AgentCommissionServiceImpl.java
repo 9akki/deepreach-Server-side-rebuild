@@ -216,9 +216,17 @@ public class AgentCommissionServiceImpl implements AgentCommissionService {
     public AgentCommissionSettlement applySettlement(Long agentUserId,
                                                      BigDecimal amount,
                                                      Long operatorId,
-                                                     String remark) {
+                                                     String remark,
+                                                     String network,
+                                                     String address) {
         if (agentUserId == null || amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("结算申请参数不完整");
+        }
+        if (network == null || network.trim().isEmpty()) {
+            throw new IllegalArgumentException("network不能为空");
+        }
+        if (address == null || address.trim().isEmpty()) {
+            throw new IllegalArgumentException("address不能为空");
         }
         AgentCommissionAccount account = getOrCreateAccount(agentUserId);
         BigDecimal available = account.getAvailableCommission();
@@ -243,6 +251,8 @@ public class AgentCommissionServiceImpl implements AgentCommissionService {
         settlement.setApprovedAmount(BigDecimal.ZERO);
         settlement.setStatus(AgentCommissionSettlement.STATUS_PENDING);
         settlement.setRemark(remark);
+        settlement.setNetwork(network);
+        settlement.setAddress(address);
         settlement.setCreateBy(operatorId == null ? String.valueOf(agentUserId) : String.valueOf(operatorId));
         LocalDateTime now = LocalDateTime.now();
         settlement.setCreateTime(now);

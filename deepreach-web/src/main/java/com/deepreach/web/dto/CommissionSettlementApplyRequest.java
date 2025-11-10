@@ -1,6 +1,7 @@
 package com.deepreach.web.dto;
 
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
@@ -14,4 +15,10 @@ public class CommissionSettlementApplyRequest {
     private BigDecimal amount;
 
     private String remark;
+
+    @NotBlank(message = "network不能为空")
+    private String network;
+
+    @NotBlank(message = "address不能为空")
+    private String address;
 }

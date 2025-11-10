@@ -1,5 +1,6 @@
 package com.deepreach.common.core.page;
 
+import com.deepreach.common.core.domain.BaseEntity;
 import com.deepreach.common.utils.ServletUtils;
 
 /**
@@ -48,5 +49,30 @@ public class TableSupport {
 
     public static PageDomain buildPageRequest() {
         return getPageDomain();
+    }
+
+    /**
+     * 根据实体中的分页参数构建分页对象
+     */
+    public static PageDomain buildPageRequest(BaseEntity entity) {
+        PageDomain pageDomain = getPageDomain();
+        if (entity != null) {
+            if (entity.getPageNum() != null) {
+                pageDomain.setPageNum(entity.getPageNum());
+            }
+            if (entity.getPageSize() != null) {
+                pageDomain.setPageSize(entity.getPageSize());
+            }
+            if (entity.getOrderByColumn() != null && !entity.getOrderByColumn().isEmpty()) {
+                pageDomain.setOrderByColumn(entity.getOrderByColumn());
+            }
+            if (entity.getIsAsc() != null && !entity.getIsAsc().isEmpty()) {
+                pageDomain.setIsAsc(entity.getIsAsc());
+            }
+            if (entity.getReasonable() != null) {
+                pageDomain.setReasonable(entity.getReasonable());
+            }
+        }
+        return pageDomain;
     }
 }

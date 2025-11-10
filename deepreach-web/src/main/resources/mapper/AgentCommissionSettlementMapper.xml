@@ -14,6 +14,8 @@
         <result column="approval_time" property="approvalTime"/>
         <result column="remark" property="remark"/>
         <result column="extra_data" property="extraData"/>
+        <result column="network" property="network"/>
+        <result column="address" property="address"/>
         <result column="create_by" property="createBy"/>
         <result column="create_time" property="createTime"/>
         <result column="update_by" property="updateBy"/>
@@ -21,18 +23,33 @@
     </resultMap>
 
     <sql id="BaseColumns">
-        settlement_id, agent_user_id, request_amount, approved_amount, status,
-        approval_user_id, approval_time, remark, extra_data, create_by, create_time, update_by, update_time
+        settlement_id,
+        agent_user_id,
+        request_amount,
+        approved_amount,
+        status,
+        approval_user_id,
+        approval_time,
+        remark,
+        extra_data,
+        network,
+        address,
+        create_by,
+        create_time,
+        update_by,
+        update_time
     </sql>
 
     <insert id="insert" parameterType="com.deepreach.web.entity.AgentCommissionSettlement" useGeneratedKeys="true" keyProperty="settlementId">
         insert into dr_agent_commission_settlement (
             agent_user_id, request_amount, approved_amount, status,
             approval_user_id, approval_time, remark, extra_data,
+            network, address,
             create_by, create_time, update_by, update_time
         ) values (
             #{agentUserId}, #{requestAmount}, #{approvedAmount}, #{status},
             #{approvalUserId}, #{approvalTime}, #{remark}, #{extraData},
+            #{network}, #{address},
             #{createBy}, #{createTime}, #{updateBy}, #{updateTime}
         )
     </insert>
@@ -47,6 +64,8 @@
             <if test="approvalTime != null">approval_time = #{approvalTime},</if>
             <if test="remark != null">remark = #{remark},</if>
             <if test="extraData != null">extra_data = #{extraData},</if>
+            <if test="network != null">network = #{network},</if>
+            <if test="address != null">address = #{address},</if>
             <if test="updateBy != null">update_by = #{updateBy},</if>
             update_time = NOW()
         </set>
@@ -79,6 +98,8 @@
             s.approval_time,
             s.remark,
             s.extra_data,
+            s.network,
+            s.address,
             s.create_by,
             s.create_time,
             s.update_by,
@@ -117,6 +138,8 @@
             s.approval_time,
             s.remark,
             s.extra_data,
+            s.network,
+            s.address,
             s.create_by,
             s.create_time,
             s.update_by,

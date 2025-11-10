@@ -47,8 +47,27 @@ public class DrBillingRecordServiceImpl implements DrBillingRecordService {
         DrBillingRecord query = record != null ? record : new DrBillingRecord();
         query.setBillType(1);
         query.setBusinessType(DrBillingRecord.BUSINESS_TYPE_RECHARGE);
-        List<DrBillingRecord> records = billingRecordMapper.selectRecordPage(query);
-        return records;
+        // PageHelper 会根据参数对象中的 pageNum/pageSize 自动触发分页，
+        // 手动分页场景需要暂时移除这些字段，避免提前被数据库限制数量。
+        Integer originalPageNum = query.getPageNum();
+        Integer originalPageSize = query.getPageSize();
+        String originalOrderBy = query.getOrderByColumn();
+        String originalIsAsc = query.getIsAsc();
+        Boolean originalReasonable = query.getReasonable();
+        try {
+            query.setPageNum(null);
+            query.setPageSize(null);
+            query.setOrderByColumn(null);
+            query.setIsAsc(null);
+            query.setReasonable(null);
+            return billingRecordMapper.selectRecordPage(query);
+        } finally {
+            query.setPageNum(originalPageNum);
+            query.setPageSize(originalPageSize);
+            query.setOrderByColumn(originalOrderBy);
+            query.setIsAsc(originalIsAsc);
+            query.setReasonable(originalReasonable);
+        }
     }
 
     @Override

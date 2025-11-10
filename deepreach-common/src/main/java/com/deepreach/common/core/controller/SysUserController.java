@@ -28,6 +28,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletResponse;
 
+import java.security.SecureRandom;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -58,6 +59,10 @@ public class SysUserController extends BaseController {
 
     @Autowired
     private SysUserService userService;
+
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static final String RANDOM_PASSWORD_CHARSET = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+    private static final int DEFAULT_RANDOM_PASSWORD_LENGTH = 8;
 
     // ==================== 查询接口 ====================
 
@@ -682,6 +687,31 @@ public class SysUserController extends BaseController {
     }
 
     /**
+     * 随机生成并重置用户密码（返回明文）
+     */
+    @PostMapping("/{userId}/reset-password/random")
+    @Log(title = "随机重置密码", businessType = BusinessType.UPDATE)
+    public Result<Map<String, Object>> resetPasswordWithRandom(@PathVariable("userId") Long userId) {
+        try {
+            if (!hasUserDataPermission(userId)) {
+                return Result.error("无权限重置该用户密码");
+            }
+            String newPassword = generateRandomPassword(DEFAULT_RANDOM_PASSWORD_LENGTH);
+            boolean success = userService.resetPassword(userId, newPassword);
+            if (!success) {
+                return Result.error("重置密码失败");
+            }
+            Map<String, Object> body = new HashMap<>();
+            body.put("userId", userId);
+            body.put("plainPassword", newPassword);
+            return Result.success("重置密码成功", body);
+        } catch (Exception e) {
+            log.error("随机重置用户密码失败：用户ID={}", userId, e);
+            return Result.error("重置密码失败：" + e.getMessage());
+        }
+    }
+
+    /**
      * 修改密码
      *
      * 用户自己修改密码接口
@@ -709,6 +739,16 @@ public class SysUserController extends BaseController {
             log.error("修改密码失败", e);
             return Result.error("修改密码失败：" + e.getMessage());
         }
+    }
+
+    private String generateRandomPassword(int length) {
+        int effectiveLength = (length > 0 ? length : DEFAULT_RANDOM_PASSWORD_LENGTH);
+        StringBuilder builder = new StringBuilder(effectiveLength);
+        for (int i = 0; i < effectiveLength; i++) {
+            int index = SECURE_RANDOM.nextInt(RANDOM_PASSWORD_CHARSET.length());
+            builder.append(RANDOM_PASSWORD_CHARSET.charAt(index));
+        }
+        return builder.toString();
     }
 
     // ==================== 状态管理接口 ====================

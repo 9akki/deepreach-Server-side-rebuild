@@ -1,5 +1,6 @@
 package com.deepreach.common.web;
 
+import com.deepreach.common.core.domain.BaseEntity;
 import com.deepreach.common.core.page.PageDomain;
 import com.deepreach.common.core.page.TableSupport;
 import com.deepreach.common.security.SecurityUtils;
@@ -36,6 +37,17 @@ public abstract class BaseController {
      */
     protected void startPage() {
         PageUtils.startPage();
+    }
+
+    /**
+     * 基于请求体中的分页参数设置分页
+     */
+    protected void startPage(BaseEntity entity) {
+        if (entity != null) {
+            PageUtils.startPage(TableSupport.buildPageRequest(entity));
+        } else {
+            PageUtils.startPage(TableSupport.buildPageRequest());
+        }
     }
 
     /**

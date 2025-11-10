@@ -116,7 +116,7 @@ pagehelper:
 # JWT配置
 jwt:
   secret: deepreach2024secretkeyforjsonwebtoken
-  expiration: 21600  # 6小时（单位：秒，6*60*60=21600）
+  expiration: 518400  # 144小时（单位：秒，144*60*60=518400）
   refresh-expiration: 604800  # 7天（单位：秒）
 
 # AI配置
@@ -135,7 +135,7 @@ translate:
     app-id: your-baidu-app-id
     secret: your-baidu-secret
   llm:
-    openai-api-key: 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
+    openai-api-key: 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
     openai-base-url: https://api.openai.com/v1/
     qwen-api-key: sk-a9a6a4eb0c9245fca44796deb6fa6b41
     qwen-base-url: https://dashscope.aliyuncs.com/compatible-mode/v1/

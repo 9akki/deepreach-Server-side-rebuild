@@ -565,20 +565,31 @@ public class SysUserServiceImpl implements SysUserService {
             throw new RuntimeException("无权限修改该用户信息");
         }
 
+        String rawPassword = user.getPassword();
+        boolean needUpdatePassword = rawPassword != null && !rawPassword.trim().isEmpty();
+        String encryptedPassword = null;
+        if (needUpdatePassword) {
+            validatePasswordStrength(rawPassword);
+            encryptedPassword = passwordEncoder.encode(rawPassword);
+        }
+
         try {
             // 清除敏感字段
             user.setPassword(null);
             user.setUsername(null); // 用户名通常不允许修改
 
             int result = userMapper.updateUser(user);
-            if (result > 0) {
-                log.info("更新用户成功：用户ID={}, 更新者={}", user.getUserId(), user.getUpdateBy());
+            boolean passwordResult = false;
+            if (needUpdatePassword && encryptedPassword != null) {
+                passwordResult = userMapper.updateUserPassword(user.getUserId(), encryptedPassword) > 0;
+            }
+            if (result > 0 || passwordResult) {
+                log.info("更新用户成功：用户ID={}, 更新者={}, 更新密码={}", user.getUserId(), user.getUpdateBy(), needUpdatePassword);
                 refreshUserHierarchyCacheSilently();
                 return true;
-            } else {
-                log.warn("更新用户失败：用户不存在或无变更 - {}", user.getUserId());
-                return false;
             }
+            log.warn("更新用户失败：用户不存在或无变更 - {}", user.getUserId());
+            return false;
         } catch (Exception e) {
             log.error("更新用户异常：用户ID={}", user.getUserId(), e);
             throw new RuntimeException("更新用户失败：" + e.getMessage(), e);

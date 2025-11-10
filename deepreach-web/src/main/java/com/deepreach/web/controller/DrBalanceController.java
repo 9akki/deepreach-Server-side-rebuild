@@ -1,22 +1,26 @@
 package com.deepreach.web.controller;
 
 import com.deepreach.common.annotation.Log;
-import com.deepreach.common.core.domain.entity.SysUser;
+import com.deepreach.common.core.domain.BaseEntity;
+import com.deepreach.common.core.domain.entity.DrBillingRecord;
 import com.deepreach.common.core.domain.entity.DrPriceConfig;
+import com.deepreach.common.core.domain.entity.SysUser;
+import com.deepreach.common.core.domain.entity.UserDrBalance;
+import com.deepreach.common.core.dto.DeductResponse;
+import com.deepreach.common.core.dto.DrBalanceAdjustResult;
+import com.deepreach.common.core.page.PageDomain;
+import com.deepreach.common.core.page.TableSupport;
+import com.deepreach.common.core.service.DrPriceConfigService;
 import com.deepreach.common.core.service.SysUserService;
+import com.deepreach.common.core.service.UserDrBalanceService;
+import com.deepreach.common.enums.BusinessType;
+import com.deepreach.common.utils.PageUtils;
 import com.deepreach.common.web.BaseController;
 import com.deepreach.common.web.Result;
 import com.deepreach.common.web.page.TableDataInfo;
-import com.deepreach.common.enums.BusinessType;
 import com.deepreach.web.dto.AiProduceDeductRequest;
 import com.deepreach.web.dto.DrBalanceAdjustRequest;
-import com.deepreach.common.core.dto.DrBalanceAdjustResult;
-import com.deepreach.common.core.domain.entity.UserDrBalance;
-import com.deepreach.common.core.domain.entity.DrBillingRecord;
-import com.deepreach.common.core.service.UserDrBalanceService;
-import com.deepreach.common.core.service.DrPriceConfigService;
 import com.deepreach.web.service.DrBillingRecordService;
-import com.deepreach.common.core.dto.DeductResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -73,7 +77,8 @@ public class DrBalanceController extends BaseController {
     // @PreAuthorize("@ss.hasPermi('system:dr:list')")
     @GetMapping("/balance/list")
     public TableDataInfo<UserDrBalance> balanceList(UserDrBalance balance) {
-        startPage();
+        PageDomain pageDomain = TableSupport.buildPageRequest(balance);
+        PageUtils.startPage(pageDomain);
         List<UserDrBalance> list = balanceService.selectBalancePage(balance);
         return getDataTable(list);
     }
@@ -342,10 +347,10 @@ public class DrBalanceController extends BaseController {
     // @PreAuthorize("@ss.hasPermi('system:dr:bill:list')")
     @PostMapping("/bill/list")
     public TableDataInfo<DrBillingRecord> billingList(@RequestBody(required = false) DrBillingRecord record) {
-        startPage();
         DrBillingRecord query = record != null ? record : new DrBillingRecord();
+        PageUtils.clearPage();
         List<DrBillingRecord> list = billingRecordService.selectRecordPage(query);
-        return getDataTable(list);
+        return buildPagedResponse(list, query);
     }
 
     /**
@@ -354,16 +359,15 @@ public class DrBalanceController extends BaseController {
     
     @GetMapping("/bill/list")
     public TableDataInfo<DrBillingRecord> billingListGet(DrBillingRecord record) {
-        startPage();
+        PageUtils.clearPage();
         List<DrBillingRecord> list = billingRecordService.selectRecordPage(record);
-        return getDataTable(list);
+        return buildPagedResponse(list, record);
     }
 
     @PostMapping("/bill/recharge")
     public TableDataInfo<DrBillingRecord> rechargeOrders(
         @RequestParam(value = "userId", required = false) Long userId,
         @RequestBody(required = false) DrBillingRecord record) {
-        startPage();
         DrBillingRecord query = record != null ? record : new DrBillingRecord();
         query.setBillType(1);
         query.setBusinessType(DrBillingRecord.BUSINESS_TYPE_RECHARGE);
@@ -371,15 +375,15 @@ public class DrBalanceController extends BaseController {
         if (effectiveUserId != null) {
             query.setUserId(effectiveUserId);
         }
+        PageUtils.clearPage();
         List<DrBillingRecord> list = billingRecordService.selectRechargeOrders(query);
-        return getDataTable(list);
+        return buildPagedResponse(list, query);
     }
 
     @GetMapping("/bill/recharge")
     public TableDataInfo<DrBillingRecord> rechargeOrdersGet(
         @RequestParam(value = "userId", required = false) Long userId,
         DrBillingRecord record) {
-        startPage();
         DrBillingRecord query = record != null ? record : new DrBillingRecord();
         query.setBillType(1);
         query.setBusinessType(DrBillingRecord.BUSINESS_TYPE_RECHARGE);
@@ -387,8 +391,9 @@ public class DrBalanceController extends BaseController {
         if (effectiveUserId != null) {
             query.setUserId(effectiveUserId);
         }
+        PageUtils.clearPage();
         List<DrBillingRecord> list = billingRecordService.selectRechargeOrders(query);
-        return getDataTable(list);
+        return buildPagedResponse(list, record);
     }
 
     private Long resolveUserId(Long userIdParam, DrBillingRecord record) {
@@ -411,6 +416,43 @@ public class DrBalanceController extends BaseController {
             }
         }
         return null;
+    }
+
+    private <T> TableDataInfo<T> buildPagedResponse(List<T> allRows, BaseEntity entity) {
+        Integer entityPageNum = entity != null ? entity.getPageNum() : null;
+        Integer entityPageSize = entity != null ? entity.getPageSize() : null;
+        PageDomain requestDomain = TableSupport.buildPageRequest();
+        int pageNum = entityPageNum != null && entityPageNum > 0
+            ? entityPageNum
+            : (requestDomain.getPageNum() != null ? requestDomain.getPageNum() : 1);
+        int pageSize = entityPageSize != null && entityPageSize > 0
+            ? entityPageSize
+            : (requestDomain.getPageSize() != null ? requestDomain.getPageSize() : 10);
+        List<T> rows = PageUtils.manualPage(allRows, pageNum, pageSize);
+        PageUtils.PageState state = PageUtils.getCurrentPageState();
+        long total = state != null ? state.getTotal() : (allRows == null ? 0 : allRows.size());
+        int respPageNum = state != null ? state.getPageNum() : pageNum;
+        int respPageSize = state != null ? state.getPageSize() : pageSize;
+        PageUtils.clearManualPage();
+        return TableDataInfo.success(rows, total, respPageNum, respPageSize);
+    }
+
+    private <T> TableDataInfo<T> buildPagedResponse(List<T> allRows, Object sourceEntity) {
+        PageDomain pageDomain = null;
+        if (sourceEntity instanceof com.deepreach.common.core.domain.BaseEntity baseEntity) {
+            pageDomain = TableSupport.buildPageRequest(baseEntity);
+        } else {
+            pageDomain = TableSupport.buildPageRequest();
+        }
+        int pageNum = pageDomain.getPageNum() != null && pageDomain.getPageNum() > 0 ? pageDomain.getPageNum() : 1;
+        int pageSize = pageDomain.getPageSize() != null && pageDomain.getPageSize() > 0 ? pageDomain.getPageSize() : 10;
+        List<T> rows = PageUtils.manualPage(allRows, pageNum, pageSize);
+        PageUtils.PageState state = PageUtils.getCurrentPageState();
+        long total = state != null ? state.getTotal() : (allRows == null ? 0 : allRows.size());
+        int respPageNum = state != null ? state.getPageNum() : pageNum;
+        int respPageSize = state != null ? state.getPageSize() : pageSize;
+        PageUtils.clearManualPage();
+        return TableDataInfo.success(rows, total, respPageNum, respPageSize);
     }
 
     /**

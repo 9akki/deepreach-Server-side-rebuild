@@ -56,7 +56,9 @@ public interface AgentCommissionService {
     AgentCommissionSettlement applySettlement(Long agentUserId,
                                               BigDecimal amount,
                                               Long operatorId,
-                                              String remark);
+                                              String remark,
+                                              String network,
+                                              String address);
 
     /**
      * 审批结算申请 - 通过

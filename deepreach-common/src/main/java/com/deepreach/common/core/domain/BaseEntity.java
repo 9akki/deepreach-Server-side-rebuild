@@ -29,6 +29,15 @@ public class BaseEntity implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
+     * 分页参数
+     */
+    private Integer pageNum;
+    private Integer pageSize;
+    private String orderByColumn;
+    private String isAsc = "asc";
+    private Boolean reasonable = Boolean.TRUE;
+
+    /**
      * 搜索值
      */
     private String searchValue;
@@ -158,6 +167,14 @@ public class BaseEntity implements Serializable {
         if (this.params != null) {
             this.params.clear();
         }
+    }
+
+    public Boolean getReasonable() {
+        return reasonable;
+    }
+
+    public void setReasonable(Boolean reasonable) {
+        this.reasonable = reasonable;
     }
 
     /**

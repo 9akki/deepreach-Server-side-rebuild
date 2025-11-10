@@ -46,7 +46,9 @@ public class AgentCommissionController extends BaseController {
                 currentUserId,
                 request.getAmount(),
                 currentUserId,
-                request.getRemark()
+                request.getRemark(),
+                request.getNetwork(),
+                request.getAddress()
             );
             return success(settlement);
         } catch (IllegalArgumentException | IllegalStateException ex) {
@@ -117,7 +119,34 @@ public class AgentCommissionController extends BaseController {
     @PostMapping("/settlement/admin/list")
     public TableDataInfo<AgentCommissionSettlement> listSettlementsForAdmin(
         @RequestBody(required = false) AdminSettlementQueryRequest request) {
+        return buildAdminSettlementPage(request, null);
+    }
+
+    @GetMapping("/settlement/admin/list")
+    public TableDataInfo<AgentCommissionSettlement> listSettlementsForAdminGet(
+        AdminSettlementQueryRequest request,
+        @RequestParam(value = "userId", required = false) Long queryUserId,
+        @RequestParam(value = "pageNum", required = false) Integer pageNum,
+        @RequestParam(value = "pageSize", required = false) Integer pageSize) {
+        if (request == null) {
+            request = new AdminSettlementQueryRequest();
+        }
+        if (pageNum != null) {
+            request.setPageNum(pageNum);
+        }
+        if (pageSize != null) {
+            request.setPageSize(pageSize);
+        }
+        return buildAdminSettlementPage(request, queryUserId);
+    }
+
+    private TableDataInfo<AgentCommissionSettlement> buildAdminSettlementPage(
+        AdminSettlementQueryRequest request,
+        Long queryUserId) {
         AdminSettlementQueryRequest effective = request != null ? request : new AdminSettlementQueryRequest();
+        if (queryUserId != null && effective.getUserId() == null) {
+            effective.setUserId(queryUserId);
+        }
         Long currentUserId = getCurrentUserId();
         if (currentUserId == null) {
             return TableDataInfo.error("用户未登录");

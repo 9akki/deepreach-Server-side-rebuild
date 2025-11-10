@@ -42,6 +42,10 @@ public class AgentCommissionSettlement extends BaseEntity {
 
     private String extraData;
 
+    private String network;
+
+    private String address;
+
     @JsonIgnore
     private String agentRoleKeys;
 

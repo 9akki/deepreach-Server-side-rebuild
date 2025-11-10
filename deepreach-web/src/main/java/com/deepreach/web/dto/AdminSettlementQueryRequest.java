@@ -1,5 +1,6 @@
 package com.deepreach.web.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import lombok.Data;
 
 /**
@@ -7,6 +8,7 @@ import lombok.Data;
  */
 @Data
 public class AdminSettlementQueryRequest {
+    @JsonAlias("agentUserId")
     private Long userId;
     private String username;
     private Long settlementId;
@@ -15,4 +17,3 @@ public class AdminSettlementQueryRequest {
     private Integer pageNum;
     private Integer pageSize;
 }
-

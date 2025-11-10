@@ -64,7 +64,13 @@ public class PageUtils {
      * 设置请求分页数据
      */
     public static void startPage() {
-        PageDomain pageDomain = TableSupport.buildPageRequest();
+        startPage(TableSupport.buildPageRequest());
+    }
+
+    public static void startPage(PageDomain pageDomain) {
+        if (pageDomain == null) {
+            return;
+        }
         Integer pageNum = pageDomain.getPageNum();
         Integer pageSize = pageDomain.getPageSize();
         String orderBy = pageDomain.getOrderBy();
