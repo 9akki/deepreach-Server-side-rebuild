@@ -29,7 +29,7 @@ public class HierarchyStatisticsServiceImpl implements HierarchyStatisticsServic
     private static final BigDecimal LEVEL1_COMMISSION_RATE = new BigDecimal("0.30");
     private static final BigDecimal LEVEL2_COMMISSION_RATE = new BigDecimal("0.20");
     private static final BigDecimal LEVEL3_COMMISSION_RATE = new BigDecimal("0.10");
-    private static final int MONEY_SCALE = 2;
+    private static final int MONEY_SCALE = 6;
     private static final Set<String> MARKETING_PLATFORM_TYPES =
         Collections.unmodifiableSet(new HashSet<>(Collections.singletonList("marketing")));
     private static final Set<String> PROSPECTING_PLATFORM_TYPES =

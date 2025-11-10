@@ -24,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -1263,7 +1264,7 @@ public class AiInstanceServiceImpl implements AiInstanceService {
             // 计算当天费用
             BigDecimal dailyPrice = priceConfig.getDrPrice();
             BigDecimal todayFee = dailyPrice.multiply(BigDecimal.valueOf(feeRatio))
-                                         .setScale(2, BigDecimal.ROUND_HALF_UP);
+                .setScale(6, RoundingMode.HALF_UP);
 
             log.info("实例 {} 当天扣费：{} DR，剩余时间比例：{}",
                 instance.getInstanceName(), todayFee, feeRatio);

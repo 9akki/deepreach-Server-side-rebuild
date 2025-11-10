@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -43,6 +44,7 @@ public class UserDrBalanceServiceImpl implements UserDrBalanceService {
 
     private static final BigDecimal INSTANCE_PRE_DEDUCT_AMOUNT = new BigDecimal("100.00");
     private static final BigDecimal INSTANCE_CREATION_RATIO = new BigDecimal("100.00");
+    private static final int AMOUNT_SCALE = 6;
 
     @Override
     public UserDrBalance getByUserId(Long userId) {
@@ -571,11 +573,17 @@ public class UserDrBalanceServiceImpl implements UserDrBalanceService {
                 return DeductResponse.error("用户余额账户状态异常，无法扣费");
             }
 
+            BigDecimal amount = normalizeAmount(record.getDrAmount());
+            if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+                return DeductResponse.error("扣费金额必须大于0");
+            }
+            record.setDrAmount(amount);
+
             // 2. 检查总可用余额（预扣费余额 + 基本余额），允许余额为负数但记录警告
-            boolean isTotalBalanceSufficient = userBalance.isTotalBalanceSufficient(record.getDrAmount());
+            boolean isTotalBalanceSufficient = userBalance.isTotalBalanceSufficient(amount);
             if (!isTotalBalanceSufficient) {
                 log.warn("总余额不足但仍执行扣费，用户ID：{}，总余额：{}，需要扣除：{}",
-                    record.getUserId(), userBalance.getTotalAvailableBalance(), record.getDrAmount());
+                    record.getUserId(), userBalance.getTotalAvailableBalance(), amount);
             }
 
             // 3. 生成账单编号
@@ -583,7 +591,6 @@ public class UserDrBalanceServiceImpl implements UserDrBalanceService {
             record.setConsumer(resolveConsumerUsername(record.getOperatorId(), originalUserId));
 
             // 4. 计算扣费策略：优先使用预扣费余额
-            BigDecimal amount = record.getDrAmount();
             BigDecimal preDeductedBalance = userBalance.getPreDeductedBalance();
             BigDecimal baseBalanceBefore = userBalance.getDrBalance();
             BigDecimal totalBalanceBefore = baseBalanceBefore.add(preDeductedBalance);
@@ -674,10 +681,11 @@ public class UserDrBalanceServiceImpl implements UserDrBalanceService {
                 return DeductResponse.error("用户余额账户状态异常，无法扣费");
             }
 
-            BigDecimal amount = record.getDrAmount();
+            BigDecimal amount = normalizeAmount(record.getDrAmount());
             if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
                 return DeductResponse.error("扣费金额必须大于0");
             }
+            record.setDrAmount(amount);
 
             boolean isTotalBalanceSufficient = userBalance.isTotalBalanceSufficient(amount);
             if (!isTotalBalanceSufficient) {
@@ -753,17 +761,22 @@ public class UserDrBalanceServiceImpl implements UserDrBalanceService {
             }
 
             // 2. 检查总可用余额（预扣费余额 + 基本余额），允许余额为负数但记录警告
-            boolean isTotalBalanceSufficient = userBalance.isTotalBalanceSufficient(record.getDrAmount());
+            BigDecimal amount = normalizeAmount(record.getDrAmount());
+            if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+                return "扣费金额必须大于0";
+            }
+            record.setDrAmount(amount);
+
+            boolean isTotalBalanceSufficient = userBalance.isTotalBalanceSufficient(amount);
             if (!isTotalBalanceSufficient) {
                 log.warn("总余额不足但仍执行扣费，用户ID：{}，总余额：{}，需要扣除：{}",
-                    record.getUserId(), userBalance.getTotalAvailableBalance(), record.getDrAmount());
+                    record.getUserId(), userBalance.getTotalAvailableBalance(), amount);
             }
 
             // 3. 生成账单编号
             record.setBillNo(generateBillNo());
 
             // 4. 计算扣费策略：优先使用预扣费余额
-            BigDecimal amount = record.getDrAmount();
             BigDecimal preDeductedBalance = userBalance.getPreDeductedBalance();
             BigDecimal baseBalanceBefore = userBalance.getDrBalance();
             BigDecimal totalBalanceBefore = baseBalanceBefore.add(preDeductedBalance);
@@ -861,5 +874,12 @@ public class UserDrBalanceServiceImpl implements UserDrBalanceService {
             log.warn("获取用户用户名失败：userId={}", targetUserId, e);
         }
         return null;
+    }
+
+    private BigDecimal normalizeAmount(BigDecimal amount) {
+        if (amount == null) {
+            return null;
+        }
+        return amount.setScale(AMOUNT_SCALE, RoundingMode.HALF_UP);
     }
 }

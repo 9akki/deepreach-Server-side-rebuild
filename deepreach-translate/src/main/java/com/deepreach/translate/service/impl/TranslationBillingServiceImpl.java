@@ -9,6 +9,7 @@ import com.deepreach.common.core.support.ChargeAccountResolver;
 import com.deepreach.common.exception.ServiceException;
 import com.deepreach.translate.service.TranslationBillingService;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,7 @@ public class TranslationBillingServiceImpl implements TranslationBillingService 
 
     private static final Logger log = LoggerFactory.getLogger(TranslationBillingServiceImpl.class);
     private static final BigDecimal DEFAULT_UNIT_PRICE = new BigDecimal("0.0001");
+    private static final int PRICE_SCALE = 6;
 
     private enum PricingMode {
         TOKEN,
@@ -48,7 +50,9 @@ public class TranslationBillingServiceImpl implements TranslationBillingService 
             return BigDecimal.ZERO;
         }
         BigDecimal unitPrice = resolveUnitPrice();
-        BigDecimal amount = unitPrice.multiply(BigDecimal.valueOf(totalTokens));
+        BigDecimal amount = unitPrice
+            .multiply(BigDecimal.valueOf(totalTokens))
+            .setScale(PRICE_SCALE, RoundingMode.HALF_UP);
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
             return BigDecimal.ZERO;
         }
@@ -83,12 +87,12 @@ public class TranslationBillingServiceImpl implements TranslationBillingService 
 
     @Override
     public BigDecimal resolveUnitPrice() {
-        DrPriceConfig config = drPriceConfigService.selectDrPriceConfigByBusinessType(DrPriceConfig.BUSINESS_TYPE_TRANSLATE);
+        DrPriceConfig config = drPriceConfigService.selectDrPriceConfigByBusinessType(DrPriceConfig.BUSINESS_TYPE_TOKEN);
         if (config == null || config.getDrPrice() == null) {
-            log.warn("Translation price config missing, fallback to default {}", DEFAULT_UNIT_PRICE);
-            return DEFAULT_UNIT_PRICE;
+            log.warn("Translation price config missing (TOKEN), fallback to default {}", DEFAULT_UNIT_PRICE);
+            return DEFAULT_UNIT_PRICE.setScale(PRICE_SCALE, RoundingMode.HALF_UP);
         }
-        return config.getDrPrice();
+        return config.getDrPrice().setScale(PRICE_SCALE, RoundingMode.HALF_UP);
     }
 
     private PricingMode resolvePricingMode() {

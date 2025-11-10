@@ -27,6 +27,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -453,7 +454,7 @@ public class AiInstanceController {
             // 计算当天费用
             BigDecimal dailyPrice = priceConfig.getDrPrice();
             BigDecimal todayFee = dailyPrice.multiply(BigDecimal.valueOf(feeRatio))
-                                         .setScale(2, BigDecimal.ROUND_HALF_UP);
+                .setScale(6, RoundingMode.HALF_UP);
 
             log.info("实例 {} 当天扣费：{} DR，剩余时间比例：{}",
                 instance.getInstanceName(), todayFee, feeRatio);
