@@ -322,11 +322,11 @@ public class AiInstanceController {
             // 让全局异常处理器处理，返回403状态码
             throw e;
         } catch (IllegalArgumentException e) {
-            return Result.error(e.getMessage());
+            return Result.error(400, e.getMessage());
         } catch (Exception e) {
             log.error("创建实例失败：名称={}", instance.getInstanceName(), e);
-            // 事务会自动回滚，抛出运行时异常
-            throw new RuntimeException("创建实例失败：" + e.getMessage(), e);
+            String message = e.getMessage() != null ? e.getMessage() : "创建实例失败";
+            return Result.error(400, message);
         }
     }
 

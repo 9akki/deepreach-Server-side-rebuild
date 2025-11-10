@@ -552,8 +552,8 @@ public class AiInstanceServiceImpl implements AiInstanceService {
             return false;
         }
         try {
-            int count = instanceMapper.checkInstanceNameUnique(instanceName, userId, instanceId);
-            return count == 0;
+            Integer exists = instanceMapper.checkInstanceNameUnique(instanceName, userId, instanceId);
+            return exists == null;
         } catch (Exception e) {
             log.error("检查实例名称唯一性失败：名称={}, 用户ID={}", instanceName, userId, e);
             return false;

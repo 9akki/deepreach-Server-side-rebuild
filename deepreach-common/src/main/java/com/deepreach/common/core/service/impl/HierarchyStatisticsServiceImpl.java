@@ -1,8 +1,10 @@
 package com.deepreach.common.core.service.impl;
 
+import com.deepreach.common.core.domain.entity.DrPriceConfig;
 import com.deepreach.common.core.domain.entity.SysUser;
 import com.deepreach.common.core.mapper.AgentCommissionAccountStatMapper;
 import com.deepreach.common.core.mapper.SysUserMapper;
+import com.deepreach.common.core.service.DrPriceConfigService;
 import com.deepreach.common.core.service.HierarchyStatisticsService;
 import com.deepreach.common.core.service.UserHierarchyService;
 import com.deepreach.common.security.UserRoleUtils;
@@ -48,6 +50,9 @@ public class HierarchyStatisticsServiceImpl implements HierarchyStatisticsServic
 
     @Autowired
     private AgentCommissionAccountStatMapper agentCommissionAccountMapper;
+
+    @Autowired
+    private DrPriceConfigService drPriceConfigService;
 
     @Autowired(required = false)
     private UserHierarchyService hierarchyService;
@@ -689,6 +694,10 @@ public class HierarchyStatisticsServiceImpl implements HierarchyStatisticsServic
             prospectingOverview.put("total", prospectingPlatforms.values().stream().mapToLong(Long::longValue).sum());
             prospectingOverview.put("platforms", prospectingPlatforms);
 
+            long marketingCount = safeLongValue(marketingOverview.get("total"));
+            long prospectingCount = safeLongValue(prospectingOverview.get("total"));
+            BigDecimal expectedDailyDeduct = computeExpectedInstanceDailyDeduct(marketingCount, prospectingCount);
+
             snapshot.put("buyerId", buyerUserId);
             snapshot.put("buyerUsername", Objects.toString(buyer.getUsername(), ""));
             snapshot.put("buyerNickname", Objects.toString(buyer.getNickname(), ""));
@@ -697,6 +706,7 @@ public class HierarchyStatisticsServiceImpl implements HierarchyStatisticsServic
             snapshot.put("aiCharacterCounts", aiCharacterCounts);
             snapshot.put("marketingInstances", marketingOverview);
             snapshot.put("prospectingInstances", prospectingOverview);
+            snapshot.put("expectedInstanceDailyDeductAmount", expectedDailyDeduct);
         } catch (Exception e) {
             log.error("Failed to build buyer operational statistics: buyerUserId={}", buyerUserId, e);
             snapshot.put("error", e.getMessage());
@@ -743,6 +753,25 @@ public class HierarchyStatisticsServiceImpl implements HierarchyStatisticsServic
             overview.put("error", e.getMessage());
         }
         return overview;
+    }
+
+    private BigDecimal computeExpectedInstanceDailyDeduct(long marketingCount, long prospectingCount) {
+        BigDecimal marketingPrice = resolveActivePrice(DrPriceConfig.BUSINESS_TYPE_INSTANCE_MARKETING);
+        BigDecimal prospectingPrice = resolveActivePrice(DrPriceConfig.BUSINESS_TYPE_INSTANCE_PROSPECTING);
+        BigDecimal marketingAmount = marketingPrice.multiply(BigDecimal.valueOf(marketingCount));
+        BigDecimal prospectingAmount = prospectingPrice.multiply(BigDecimal.valueOf(prospectingCount));
+        return marketingAmount.add(prospectingAmount).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal resolveActivePrice(String businessType) {
+        if (drPriceConfigService == null) {
+            return BigDecimal.ZERO;
+        }
+        DrPriceConfig config = drPriceConfigService.selectDrPriceConfigByBusinessType(businessType);
+        if (config == null || !config.isActive() || config.getDrPrice() == null) {
+            return BigDecimal.ZERO;
+        }
+        return config.getDrPrice();
     }
 
     private Set<Long> collectManagedUserIds(Long rootUserId) {

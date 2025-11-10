@@ -218,9 +218,9 @@ public interface AiInstanceMapper {
      * @param instanceId 排除的实例ID（用于更新验证）
      * @return 存在相同名称的记录数，0表示唯一
      */
-    int checkInstanceNameUnique(@Param("instanceName") String instanceName,
-                                @Param("userId") Long userId,
-                                @Param("instanceId") Long instanceId);
+    Integer checkInstanceNameUnique(@Param("instanceName") String instanceName,
+                                    @Param("userId") Long userId,
+                                    @Param("instanceId") Long instanceId);
 
     /**
      * 检查用户是否可以删除实例

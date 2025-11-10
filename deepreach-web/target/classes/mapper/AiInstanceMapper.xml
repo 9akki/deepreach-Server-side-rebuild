@@ -316,12 +316,14 @@
 
     <!-- 检查实例名称是否唯一 -->
     <select id="checkInstanceNameUnique" resultType="int">
-        SELECT COUNT(1)
+        SELECT 1
         FROM ai_instance
-        WHERE instance_name = #{instanceName} AND user_id = #{userId}
+        WHERE user_id = #{userId}
+          AND instance_name = #{instanceName}
         <if test="instanceId != null">
             AND instance_id != #{instanceId}
         </if>
+        LIMIT 1
     </select>
 
     <!-- 检查用户是否可以删除实例 -->
