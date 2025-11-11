@@ -39,6 +39,10 @@
             <groupId>com.deepreach</groupId>
             <artifactId>deepreach-message</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.deepreach</groupId>
+            <artifactId>deepreach-mq</artifactId>
+        </dependency>
 
         <!-- HTTP 客户端用于调用阿里云API -->
         <dependency>

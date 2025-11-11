@@ -56,6 +56,7 @@
         <module>deepreach-translate</module>
         <module>deepreach-platform</module>
         <module>deepreach-message</module>
+        <module>deepreach-mq</module>
         <module>deepreach-web</module>
     </modules>
 
@@ -108,6 +109,11 @@
             <dependency>
                 <groupId>com.deepreach</groupId>
                 <artifactId>deepreach-message</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.deepreach</groupId>
+                <artifactId>deepreach-mq</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

@@ -39,6 +39,12 @@ public class DrBillingRecord extends BaseEntity {
     private String consumer;
     private Integer status;
 
+    public static final int BILL_TYPE_RECHARGE = 1;
+    public static final int BILL_TYPE_CONSUME = 2;
+    public static final int BILL_TYPE_REFUND = 3;
+    public static final int BILLING_TYPE_REALTIME = 1;
+    public static final int BILLING_TYPE_DAILY = 2;
+
     public static final String BUSINESS_TYPE_RECHARGE = "RECHARGE";
     public static final String BUSINESS_TYPE_INSTANCE_PRE_DEDUCT = "INSTANCE_PRE_DEDUCT";
     public static final String BUSINESS_TYPE_INSTANCE_MARKETING = "INSTANCE_MARKETING";

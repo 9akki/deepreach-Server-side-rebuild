@@ -73,7 +73,7 @@ security:
 
   # Kafka配置
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: 206.82.1.18:9092
     producer:
       retries: 3
       batch-size: 16384
@@ -85,6 +85,35 @@ security:
       auto-offset-reset: latest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+deepreach:
+  kafka:
+    bootstrap-servers:
+      - 206.82.1.18:9092
+    producer:
+      acks: all
+      retries: 3
+      batch-size: 16384
+      linger-ms: 10
+      buffer-memory: 33554432
+      compression-type: zstd
+    consumer:
+      group-id: deepreach-translation-v2
+      auto-offset-reset: latest
+      enable-auto-commit: false
+      poll-timeout: 3s
+    listener:
+      concurrency: 3
+      ack-mode: RECORD
+      idle-event-interval: 60s
+      max-retries: 3
+      backoff-interval: 5s
+    template:
+      request-timeout: 30s
+      transaction-timeout: 60s
+      transactional: true
+      default-topic: translation-charge
+      transaction-id-prefix: deepreach-translate-tx-
 
   # Jackson配置
   jackson:
@@ -140,6 +169,11 @@ translate:
     qwen-api-key: sk-a9a6a4eb0c9245fca44796deb6fa6b41
     qwen-base-url: https://dashscope.aliyuncs.com/compatible-mode/v1/
     timeout-ms: 10000
+  billing:
+    enabled: true
+    topic: translation-charge
+    dlq-topic: translation-charge-dlq
+    description: 翻译/第三方扣费
 
 message:
   sms:
