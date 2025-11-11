@@ -17,5 +17,6 @@
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-translate/src/main/java/com/deepreach/translate/dto/TranslateRequest.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-translate/src/main/java/com/deepreach/translate/config/TranslateLlmProperties.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-translate/src/main/java/com/deepreach/translate/config/TranslateMybatisConfig.java
+/Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-translate/src/main/java/com/deepreach/translate/mq/TranslationChargeProducer.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-translate/src/main/java/com/deepreach/translate/service/TranslationService.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-translate/src/main/java/com/deepreach/translate/entity/TranslatedMessage.java

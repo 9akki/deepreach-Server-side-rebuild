@@ -1,0 +1,196 @@
+{
+  "groups": [
+    {
+      "name": "deepreach.kafka",
+      "type": "com.deepreach.mq.autoconfig.DeepreachKafkaProperties",
+      "sourceType": "com.deepreach.mq.autoconfig.DeepreachKafkaProperties"
+    },
+    {
+      "name": "deepreach.kafka.consumer",
+      "type": "com.deepreach.mq.autoconfig.DeepreachKafkaProperties$Consumer",
+      "sourceType": "com.deepreach.mq.autoconfig.DeepreachKafkaProperties",
+      "sourceMethod": "getConsumer()"
+    },
+    {
+      "name": "deepreach.kafka.listener",
+      "type": "com.deepreach.mq.autoconfig.DeepreachKafkaProperties$Listener",
+      "sourceType": "com.deepreach.mq.autoconfig.DeepreachKafkaProperties",
+      "sourceMethod": "getListener()"
+    },
+    {
+      "name": "deepreach.kafka.producer",
+      "type": "com.deepreach.mq.autoconfig.DeepreachKafkaProperties$Producer",
+      "sourceType": "com.deepreach.mq.autoconfig.DeepreachKafkaProperties",
+      "sourceMethod": "getProducer()"
+    },
+    {
+      "name": "deepreach.kafka.template",
+      "type": "com.deepreach.mq.autoconfig.DeepreachKafkaProperties$Template",
+      "sourceType": "com.deepreach.mq.autoconfig.DeepreachKafkaProperties",
+      "sourceMethod": "getTemplate()"
+    }
+  ],
+  "properties": [
+    {
+      "name": "deepreach.kafka.bootstrap-servers",
+      "type": "java.util.List<java.lang.String>",
+      "description": "集群地址，支持多个",
+      "sourceType": "com.deepreach.mq.autoconfig.DeepreachKafkaProperties",
+      "defaultValue": "localhost:9092"
+    },
+    {
+      "name": "deepreach.kafka.consumer.auto-offset-reset",
+      "type": "java.lang.String",
+      "sourceType": "com.deepreach.mq.autoconfig.DeepreachKafkaProperties$Consumer",
+      "defaultValue": "latest"
+    },
+    {
+      "name": "deepreach.kafka.consumer.enable-auto-commit",
+      "type": "java.lang.Boolean",
+      "sourceType": "com.deepreach.mq.autoconfig.DeepreachKafkaProperties$Consumer",
+      "defaultValue": false
+    },
+    {
+      "name": "deepreach.kafka.consumer.group-id",
+      "type": "java.lang.String",
+      "sourceType": "com.deepreach.mq.autoconfig.DeepreachKafkaProperties$Consumer",
+      "defaultValue": "deepreach-consumer"
+    },
+    {
+      "name": "deepreach.kafka.consumer.key-deserializer",
+      "type": "java.lang.Class<?>",
+      "sourceType": "com.deepreach.mq.autoconfig.DeepreachKafkaProperties$Consumer"
+    },
+    {
+      "name": "deepreach.kafka.consumer.poll-timeout",
+      "type": "java.time.Duration",
+      "sourceType": "com.deepreach.mq.autoconfig.DeepreachKafkaProperties$Consumer",
+      "defaultValue": "3s"
+    },
+    {
+      "name": "deepreach.kafka.consumer.value-deserializer",
+      "type": "java.lang.Class<?>",
+      "sourceType": "com.deepreach.mq.autoconfig.DeepreachKafkaProperties$Consumer"
+    },
+    {
+      "name": "deepreach.kafka.consumer.value-type",
+      "type": "java.lang.String",
+      "description": "默认反序列化类型",
+      "sourceType": "com.deepreach.mq.autoconfig.DeepreachKafkaProperties$Consumer",
+      "defaultValue": "com.deepreach.common.core.mq.event.TranslationChargeEvent"
+    },
+    {
+      "name": "deepreach.kafka.enabled",
+      "type": "java.lang.Boolean",
+      "description": "是否启用Kafka自动配置",
+      "sourceType": "com.deepreach.mq.autoconfig.DeepreachKafkaProperties",
+      "defaultValue": true
+    },
+    {
+      "name": "deepreach.kafka.listener.ack-mode",
+      "type": "java.lang.String",
+      "sourceType": "com.deepreach.mq.autoconfig.DeepreachKafkaProperties$Listener",
+      "defaultValue": "manual"
+    },
+    {
+      "name": "deepreach.kafka.listener.backoff-interval",
+      "type": "java.time.Duration",
+      "sourceType": "com.deepreach.mq.autoconfig.DeepreachKafkaProperties$Listener",
+      "defaultValue": "5s"
+    },
+    {
+      "name": "deepreach.kafka.listener.concurrency",
+      "type": "java.lang.Integer",
+      "sourceType": "com.deepreach.mq.autoconfig.DeepreachKafkaProperties$Listener",
+      "defaultValue": 3
+    },
+    {
+      "name": "deepreach.kafka.listener.idle-event-interval",
+      "type": "java.time.Duration",
+      "sourceType": "com.deepreach.mq.autoconfig.DeepreachKafkaProperties$Listener",
+      "defaultValue": "1m"
+    },
+    {
+      "name": "deepreach.kafka.listener.max-retries",
+      "type": "java.lang.Integer",
+      "sourceType": "com.deepreach.mq.autoconfig.DeepreachKafkaProperties$Listener",
+      "defaultValue": 3
+    },
+    {
+      "name": "deepreach.kafka.producer.acks",
+      "type": "java.lang.String",
+      "sourceType": "com.deepreach.mq.autoconfig.DeepreachKafkaProperties$Producer",
+      "defaultValue": "all"
+    },
+    {
+      "name": "deepreach.kafka.producer.batch-size",
+      "type": "java.lang.Integer",
+      "sourceType": "com.deepreach.mq.autoconfig.DeepreachKafkaProperties$Producer",
+      "defaultValue": 16384
+    },
+    {
+      "name": "deepreach.kafka.producer.buffer-memory",
+      "type": "java.lang.Long",
+      "sourceType": "com.deepreach.mq.autoconfig.DeepreachKafkaProperties$Producer",
+      "defaultValue": 33554432
+    },
+    {
+      "name": "deepreach.kafka.producer.compression-type",
+      "type": "java.lang.String",
+      "sourceType": "com.deepreach.mq.autoconfig.DeepreachKafkaProperties$Producer",
+      "defaultValue": "zstd"
+    },
+    {
+      "name": "deepreach.kafka.producer.key-serializer",
+      "type": "java.lang.Class<?>",
+      "sourceType": "com.deepreach.mq.autoconfig.DeepreachKafkaProperties$Producer"
+    },
+    {
+      "name": "deepreach.kafka.producer.linger-ms",
+      "type": "java.lang.Integer",
+      "sourceType": "com.deepreach.mq.autoconfig.DeepreachKafkaProperties$Producer",
+      "defaultValue": 10
+    },
+    {
+      "name": "deepreach.kafka.producer.retries",
+      "type": "java.lang.Integer",
+      "sourceType": "com.deepreach.mq.autoconfig.DeepreachKafkaProperties$Producer",
+      "defaultValue": 3
+    },
+    {
+      "name": "deepreach.kafka.producer.value-serializer",
+      "type": "java.lang.Class<?>",
+      "sourceType": "com.deepreach.mq.autoconfig.DeepreachKafkaProperties$Producer"
+    },
+    {
+      "name": "deepreach.kafka.template.default-topic",
+      "type": "java.lang.String",
+      "sourceType": "com.deepreach.mq.autoconfig.DeepreachKafkaProperties$Template"
+    },
+    {
+      "name": "deepreach.kafka.template.request-timeout",
+      "type": "java.time.Duration",
+      "sourceType": "com.deepreach.mq.autoconfig.DeepreachKafkaProperties$Template",
+      "defaultValue": "30s"
+    },
+    {
+      "name": "deepreach.kafka.template.transaction-id-prefix",
+      "type": "java.lang.String",
+      "sourceType": "com.deepreach.mq.autoconfig.DeepreachKafkaProperties$Template",
+      "defaultValue": "deepreach-tx-"
+    },
+    {
+      "name": "deepreach.kafka.template.transaction-timeout",
+      "type": "java.time.Duration",
+      "sourceType": "com.deepreach.mq.autoconfig.DeepreachKafkaProperties$Template",
+      "defaultValue": "60s"
+    },
+    {
+      "name": "deepreach.kafka.template.transactional",
+      "type": "java.lang.Boolean",
+      "sourceType": "com.deepreach.mq.autoconfig.DeepreachKafkaProperties$Template",
+      "defaultValue": false
+    }
+  ],
+  "hints": []
+}

@@ -1,0 +1,7 @@
+com/deepreach/mq/autoconfig/DeepreachKafkaProperties$Consumer.class
+com/deepreach/mq/autoconfig/DeepreachKafkaProperties$Template.class
+com/deepreach/mq/autoconfig/DeepreachKafkaProperties$Producer.class
+com/deepreach/mq/autoconfig/DeepreachKafkaProperties.class
+META-INF/spring-configuration-metadata.json
+com/deepreach/mq/autoconfig/DeepreachKafkaAutoConfiguration.class
+com/deepreach/mq/autoconfig/DeepreachKafkaProperties$Listener.class

@@ -47,8 +47,8 @@ public class TranslationChargeConsumer {
         DrBillingRecord record = new DrBillingRecord();
         record.setUserId(event.getChargeUserId());
         record.setOperatorId(event.getOperatorUserId());
-        record.setBillType(event.getBillType() != null ? event.getBillType() : DrBillingRecord.BILL_TYPE_CONSUME);
-        record.setBillingType(event.getBillingType() != null ? event.getBillingType() : DrBillingRecord.BILLING_TYPE_REALTIME);
+        record.setBillType(event.getBillType() != null ? Integer.valueOf(event.getBillType()) : DrBillingRecord.BILL_TYPE_CONSUME);
+        record.setBillingType(event.getBillingType() != null ? Integer.valueOf(event.getBillingType()) : DrBillingRecord.BILLING_TYPE_REALTIME);
         record.setBusinessType(StringUtils.hasText(event.getBusinessType()) ? event.getBusinessType() : DrBillingRecord.BUSINESS_TYPE_TOKEN);
         record.setDrAmount(event.getAmount());
         record.setDescription(resolveDescription(event));

@@ -1,4 +1,5 @@
 com/deepreach/common/web/Result.class
+com/deepreach/common/core/mq/event/TranslationChargeEvent.class
 com/deepreach/common/core/mapper/SysRoleMapper.class
 com/deepreach/common/core/domain/model/UserInfo.class
 com/deepreach/common/enums/OperatorType.class
@@ -24,6 +25,7 @@ com/deepreach/common/core/mapper/AgentCommissionAccountStatMapper.class
 com/deepreach/common/security/CacheStats$CacheStatsBuilder.class
 com/deepreach/common/security/JwtAuthenticationFilter.class
 com/deepreach/common/core/domain/entity/UserDrBalance.class
+com/deepreach/common/core/config/TranslateBillingProperties.class
 com/deepreach/common/core/service/impl/SysOperLogServiceImpl.class
 com/deepreach/common/security/UserDetailsServiceImpl.class
 com/deepreach/common/core/service/SysRoleService.class
@@ -69,6 +71,7 @@ com/deepreach/common/core/mapper/SysOperLogMapper.class
 com/deepreach/common/security/PermissionService.class
 com/deepreach/common/core/service/UserHierarchyService.class
 com/deepreach/common/core/mapper/BaseMapper.class
+com/deepreach/common/core/mq/event/TranslationChargeEvent$TranslationChargeEventBuilder.class
 com/deepreach/common/core/service/impl/BaseServiceImpl.class
 com/deepreach/common/core/domain/vo/UserVO$UserVOBuilder.class
 com/deepreach/common/security/JwtTokenUtil$TokenInfo$TokenInfoBuilder.class
@@ -107,4 +110,5 @@ com/deepreach/common/core/service/impl/HierarchyStatisticsServiceImpl$1.class
 com/deepreach/common/core/service/impl/SysUserServiceImpl$1.class
 com/deepreach/common/config/RedisConfig.class
 com/deepreach/common/core/domain/dto/UserHierarchyGroupDTO.class
+com/deepreach/common/core/config/AiSuggestionProperties.class
 com/deepreach/common/utils/StringUtils.class

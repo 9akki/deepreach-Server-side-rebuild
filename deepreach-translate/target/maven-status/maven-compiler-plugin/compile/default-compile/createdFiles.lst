@@ -20,3 +20,4 @@ com/deepreach/translate/mapper/TranslatedMessageMapper.class
 com/deepreach/translate/prompt/TranslatePromptProvider.class
 com/deepreach/translate/entity/TranslatedMessage.class
 com/deepreach/translate/client/LlmClient.class
+com/deepreach/translate/mq/TranslationChargeProducer.class
