@@ -44,4 +44,14 @@ public class Computer extends BaseEntity {
      */
     private String officeSiteId;
 
+    /**
+     * 云电脑访问域名
+     */
+    private String endpoint;
+
+    /**
+     * 云电脑所属区域
+     */
+    private String regionId;
+
 }

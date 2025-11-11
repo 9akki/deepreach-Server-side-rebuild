@@ -8,12 +8,14 @@
         <result property="bundleId"        column="bundle_id"         />
         <result property="policyGroupId"   column="policy_group_Id"    />
         <result property="officeSiteId"    column="office_siteId"      />
+        <result property="endpoint"        column="endpoint"           />
+        <result property="regionId"        column="region_id"          />
         <result property="createTime"      column="create_time"       />
         <result property="updateTime"      column="update_time"       />
     </resultMap>
 
     <sql id="selectComputerVo">
-        select id, computer_id, bundle_id, policy_group_Id, office_siteId, create_time, update_time
+        select id, computer_id, bundle_id, policy_group_Id, office_siteId, endpoint, region_id, create_time, update_time
         from t_computer
     </sql>
 
@@ -63,12 +65,16 @@
             <if test="bundleId != null and bundleId != ''">bundle_id,</if>
             <if test="policyGroupId != null and policyGroupId != ''">policy_group_Id,</if>
             <if test="officeSiteId != null and officeSiteId != ''">office_siteId,</if>
+            <if test="endpoint != null and endpoint != ''">endpoint,</if>
+            <if test="regionId != null and regionId != ''">region_id,</if>
             create_time
         )values(
             <if test="computerId != null and computerId != ''">#{computerId},</if>
             <if test="bundleId != null and bundleId != ''">#{bundleId},</if>
             <if test="policyGroupId != null and policyGroupId != ''">#{policyGroupId},</if>
             <if test="officeSiteId != null and officeSiteId != ''">#{officeSiteId},</if>
+            <if test="endpoint != null and endpoint != ''">#{endpoint},</if>
+            <if test="regionId != null and regionId != ''">#{regionId},</if>
             sysdate()
         )
     </insert>
@@ -80,6 +86,8 @@
             <if test="bundleId != null and bundleId != ''">bundle_id = #{bundleId},</if>
             <if test="policyGroupId != null and policyGroupId != ''">policy_group_Id = #{policyGroupId},</if>
             <if test="officeSiteId != null and officeSiteId != ''">office_siteId = #{officeSiteId},</if>
+            <if test="endpoint != null and endpoint != ''">endpoint = #{endpoint},</if>
+            <if test="regionId != null and regionId != ''">region_id = #{regionId},</if>
             update_time = sysdate()
         </set>
         where id = #{id}

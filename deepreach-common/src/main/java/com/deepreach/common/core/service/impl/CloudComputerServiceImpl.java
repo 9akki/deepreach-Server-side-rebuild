@@ -40,14 +40,6 @@ public class CloudComputerServiceImpl implements CloudComputerService {
     @Autowired
     private Environment environment;
 
-    private static final String DEFAULT_ACCESS_KEY_ID = "LTAI5tKDpAnhZr52ttZfyTp7";
-    private static final String DEFAULT_ACCESS_KEY_SECRET = "yPLYk8hkTCfCW0mZdbqyQ1SzAMEmAr";
-    private static final String DEFAULT_ENDPOINT = "https://ecd.us-west-1.aliyuncs.com";
-    private static final String DEFAULT_API_VERSION = "2020-10-02";
-    private static final String DEFAULT_ACTION = "GetLoginToken";
-    private static final String DEFAULT_REGION_ID = "us-west-1";
-    private static final String DEFAULT_OFFICE_SITE_ID = "us-west-1+dir-5588339126";
-
     @Override
     public CloudComputerParameterDTO getCloudComputerParameter(Long userId) {
         try {
@@ -110,16 +102,23 @@ public class CloudComputerServiceImpl implements CloudComputerService {
             }
             log.debug("computer_id：{}", computerId);
 
-            // 6. 获取office_site_id
-            String officeSiteId = fetchOfficeSiteId(computerId);
-            if (isBlank(officeSiteId)) {
-                log.error("未找到云电脑的office_site_id：computer_id={}", computerId);
+            // 6. 获取电脑配置信息
+            ComputerMetadata computerMetadata = fetchComputerMetadata(computerId);
+            if (computerMetadata == null) {
+                log.error("未找到computer配置：computer_id={}", computerId);
                 return CloudComputerParameterDTO.fail("未找到云电脑配置信息");
+            }
+
+            String officeSiteId = computerMetadata.getOfficeSiteId();
+            if (isBlank(officeSiteId)) {
+                log.error("云电脑缺少office_site_id：computer_id={}", computerId);
+                return CloudComputerParameterDTO.fail("云电脑办公站点未配置");
             }
             log.debug("office_site_id：{}", officeSiteId);
 
-            // 7. 解析登录区域
-            String loginRegionId = extractRegionFromOfficeSiteId(officeSiteId);
+            // 7. 解析登录区域（优先使用库字段，其次再回退到office_site_id）
+            String loginRegionId = hasText(computerMetadata.getRegionId()) ?
+                computerMetadata.getRegionId() : extractRegionFromOfficeSiteId(officeSiteId);
             log.debug("loginRegionId：{}", loginRegionId);
 
             // 8. 加载阿里云配置
@@ -129,6 +128,9 @@ public class CloudComputerServiceImpl implements CloudComputerService {
             String accessKeyId = resolveConfig(configMap, endUserId, "access.key.id");
             String accessKeySecret = resolveConfig(configMap, endUserId, "access.key.secret");
             String endpoint = resolveConfig(configMap, endUserId, "endpoint");
+            if (isBlank(endpoint)) {
+                endpoint = computerMetadata.getEndpoint();
+            }
             String apiVersion = resolveConfig(configMap, endUserId, "api.version");
             String action = resolveConfig(configMap, endUserId, "action");
             String regionId = resolveConfig(configMap, endUserId, "region.id");
@@ -150,6 +152,10 @@ public class CloudComputerServiceImpl implements CloudComputerService {
                 isBlank(action)) {
                 log.error("阿里云ECD基础配置不完整，用户: {}", endUserId);
                 return CloudComputerParameterDTO.fail("阿里云配置不完整");
+            }
+
+            if (isBlank(regionId)) {
+                regionId = computerMetadata.getRegionId();
             }
 
             if (isBlank(regionId)) {
@@ -417,10 +423,15 @@ public class CloudComputerServiceImpl implements CloudComputerService {
         }
     }
 
-    private String fetchOfficeSiteId(String computerId) {
+    private ComputerMetadata fetchComputerMetadata(String computerId) {
         try {
-            String sql = "SELECT office_siteId FROM t_computer WHERE computer_id = ?";
-            return jdbcTemplate.queryForObject(sql, String.class, computerId);
+            String sql = "SELECT computer_id, office_siteId, endpoint, region_id FROM t_computer WHERE computer_id = ? LIMIT 1";
+            return jdbcTemplate.queryForObject(sql, (rs, rowNum) -> new ComputerMetadata(
+                rs.getString("computer_id"),
+                rs.getString("office_siteId"),
+                rs.getString("endpoint"),
+                rs.getString("region_id")
+            ), computerId);
         } catch (EmptyResultDataAccessException e) {
             return null;
         }
@@ -450,9 +461,38 @@ public class CloudComputerServiceImpl implements CloudComputerService {
         return configMap;
     }
 
+    private static final class ComputerMetadata {
+        private final String computerId;
+        private final String officeSiteId;
+        private final String endpoint;
+        private final String regionId;
+
+        private ComputerMetadata(String computerId, String officeSiteId, String endpoint, String regionId) {
+            this.computerId = computerId;
+            this.officeSiteId = officeSiteId;
+            this.endpoint = endpoint;
+            this.regionId = regionId;
+        }
+
+        private String getComputerId() {
+            return computerId;
+        }
+
+        private String getOfficeSiteId() {
+            return officeSiteId;
+        }
+
+        private String getEndpoint() {
+            return endpoint;
+        }
+
+        private String getRegionId() {
+            return regionId;
+        }
+    }
+
     private void loadDefaultsFromProperties(Map<String, String> target) {
         if (environment == null) {
-            applyDefaultConstants(target);
             return;
         }
         addIfPresent(target, "access.key.id", environment.getProperty("aliyun.ecd.access-key-id"));
@@ -462,24 +502,12 @@ public class CloudComputerServiceImpl implements CloudComputerService {
         addIfPresent(target, "action", environment.getProperty("aliyun.ecd.action"));
         addIfPresent(target, "region.id", environment.getProperty("aliyun.ecd.region-id"));
         addIfPresent(target, "office.site.id", environment.getProperty("aliyun.ecd.office-site-id"));
-
-        applyDefaultConstants(target);
     }
 
     private void addIfPresent(Map<String, String> target, String key, String value) {
         if (hasText(value)) {
             target.put(key, value);
         }
-    }
-
-    private void applyDefaultConstants(Map<String, String> target) {
-        target.putIfAbsent("access.key.id", DEFAULT_ACCESS_KEY_ID);
-        target.putIfAbsent("access.key.secret", DEFAULT_ACCESS_KEY_SECRET);
-        target.putIfAbsent("endpoint", DEFAULT_ENDPOINT);
-        target.putIfAbsent("api.version", DEFAULT_API_VERSION);
-        target.putIfAbsent("action", DEFAULT_ACTION);
-        target.putIfAbsent("region.id", DEFAULT_REGION_ID);
-        target.putIfAbsent("office.site.id", DEFAULT_OFFICE_SITE_ID);
     }
 
     private String resolveConfig(Map<String, String> configMap, String endUserId, String key) {
