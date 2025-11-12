@@ -2,9 +2,7 @@ package com.deepreach.translate.mq;
 
 import com.deepreach.common.core.config.TranslateBillingProperties;
 import com.deepreach.common.core.mq.event.TranslationChargeEvent;
-import com.deepreach.common.exception.ServiceException;
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaOperations;
@@ -18,8 +16,6 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class TranslationChargeProducer {
-
-    private static final long SEND_TIMEOUT_SECONDS = 5;
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final TranslateBillingProperties billingProperties;
@@ -35,22 +31,19 @@ public class TranslationChargeProducer {
         }
         String topic = billingProperties.getTopic();
         String key = Objects.requireNonNullElse(event.getEventId(), event.getChargeUserId() + "");
-        if (kafkaTemplate.isTransactional()) {
-            kafkaTemplate.executeInTransaction(ops -> {
-                sendInternal(ops, topic, key, event);
-                return null;
-            });
-            return;
-        }
         sendInternal(kafkaTemplate, topic, key, event);
     }
 
     private void sendInternal(KafkaOperations<String, Object> operations, String topic, String key, TranslationChargeEvent event) {
-        try {
-            operations.send(topic, key, event).get(SEND_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            log.debug("Published translation charge event to topic={}, key={}, amount={}", topic, key, event.getAmount());
-        } catch (Exception ex) {
-            throw new ServiceException("翻译扣费事件发送失败，请稍后重试", ex);
-        }
+        operations.send(topic, key, event)
+            .whenComplete((result, throwable) -> {
+                if (throwable != null) {
+                    log.error("翻译扣费事件发送失败 topic={} key={} amount={}", topic, key, event.getAmount(), throwable);
+                } else {
+                    log.debug("Published translation charge event to topic={}, key={}, offset={}",
+                        topic, key, result != null && result.getRecordMetadata() != null
+                            ? result.getRecordMetadata().offset() : null);
+                }
+            });
     }
 }

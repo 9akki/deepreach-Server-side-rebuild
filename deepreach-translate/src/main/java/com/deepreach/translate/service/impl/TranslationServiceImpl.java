@@ -49,6 +49,7 @@ public class TranslationServiceImpl implements TranslationService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public TranslateResponse translate(TranslateRequest request) {
+        long begin = System.currentTimeMillis();
         validateRequest(request);
         Long requestUserId = request.getUserId();
         long normalizedUserId = (requestUserId != null && requestUserId > 0) ? requestUserId : 0L;
@@ -57,12 +58,15 @@ public class TranslationServiceImpl implements TranslationService {
                 translationBillingService.resolveUnitPrice(),
                 "翻译服务");
         }
+        long afterBalanceGuard = System.currentTimeMillis();
         String channel = request.getChannel().trim();
         String normalizedChannel = channel.toLowerCase(Locale.ROOT);
         String prompt = TranslatePromptProvider.build(request.getText(), request.getTargetLang(), request.getSourceLang());
         List<Message> messages = Collections.singletonList(new Message("user", prompt));
         LlmClient client = llmClientFactory.getClient(normalizedChannel);
+        long beforeLlm = System.currentTimeMillis();
         LlmResult llmResult = client.chat(messages, normalizedChannel);
+        long afterLlm = System.currentTimeMillis();
         String translation = parseTranslation(llmResult.getContent());
 
         TranslatedMessage entity = new TranslatedMessage();
@@ -71,6 +75,7 @@ public class TranslationServiceImpl implements TranslationService {
         entity.setSentText(translation);
         entity.setSelfLanguageCode(request.getTargetLang());
         translatedMessageMapper.insert(entity);
+        long afterPersistence = System.currentTimeMillis();
 
         if (requestUserId != null && requestUserId > 0) {
             translationBillingService.deduct(requestUserId, llmResult.getTotalTokens());
@@ -84,7 +89,16 @@ public class TranslationServiceImpl implements TranslationService {
         response.setTargetLang(request.getTargetLang());
         response.setChannel(normalizedChannel);
         response.setTotalTokens(llmResult.getTotalTokens());
-        log.info("Translation success userId={} channel={} tokens={}", request.getUserId(), normalizedChannel, llmResult.getTotalTokens());
+        long afterDeduct = System.currentTimeMillis();
+        log.info("Translation success userId={} channel={} tokens={} cost(ms): balance={}, llm={}, persistence={}, billing={}, total={}",
+            request.getUserId(),
+            normalizedChannel,
+            llmResult.getTotalTokens(),
+            afterBalanceGuard - begin,
+            afterLlm - beforeLlm,
+            afterPersistence - afterLlm,
+            afterDeduct - afterPersistence,
+            afterDeduct - begin);
         return response;
     }
 

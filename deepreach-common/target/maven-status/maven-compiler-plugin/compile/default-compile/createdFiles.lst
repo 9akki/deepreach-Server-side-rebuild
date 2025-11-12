@@ -37,9 +37,11 @@ com/deepreach/common/utils/PageUtils.class
 com/deepreach/common/security/SecurityCache.class
 com/deepreach/common/security/SecurityUtils$AuthenticatedOperation.class
 com/deepreach/common/core/PageResult.class
+com/deepreach/common/core/service/impl/CloudComputerServiceImpl$ComputerMetadata.class
 com/deepreach/common/core/domain/vo/UserVO.class
 com/deepreach/common/config/WebMvcConfig.class
 com/deepreach/common/core/domain/entity/Instance.class
+com/deepreach/common/core/support/ConsumptionBalanceGuard$UserBalanceSnapshot.class
 com/deepreach/common/core/domain/dto/UserHierarchyTreeDTO.class
 com/deepreach/common/security/enums/UserIdentity.class
 com/deepreach/common/security/JwtAuthenticationEntryPoint.class
@@ -95,6 +97,7 @@ com/deepreach/common/security/impl/RedisSecurityCache.class
 com/deepreach/common/security/SecurityCacheConfig.class
 com/deepreach/common/exception/GlobalExceptionHandler.class
 com/deepreach/common/security/JwtTokenUtil.class
+com/deepreach/common/core/support/ConsumptionBalanceGuard$CachedBalanceEntry.class
 com/deepreach/common/core/support/ConsumptionBalanceGuard.class
 com/deepreach/common/config/SecurityConfig.class
 com/deepreach/common/core/service/SysUserService.class
@@ -108,6 +111,7 @@ com/deepreach/common/security/DataScopeCalculator.class
 com/deepreach/common/config/WebSecurityConfig.class
 com/deepreach/common/core/service/impl/HierarchyStatisticsServiceImpl$1.class
 com/deepreach/common/core/service/impl/SysUserServiceImpl$1.class
+com/deepreach/common/core/support/ChargeAccountResolver$CachedChargeAccount.class
 com/deepreach/common/config/RedisConfig.class
 com/deepreach/common/core/domain/dto/UserHierarchyGroupDTO.class
 com/deepreach/common/core/config/AiSuggestionProperties.class

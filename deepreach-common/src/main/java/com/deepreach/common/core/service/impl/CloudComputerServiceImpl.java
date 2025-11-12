@@ -116,9 +116,9 @@ public class CloudComputerServiceImpl implements CloudComputerService {
             }
             log.debug("office_site_id：{}", officeSiteId);
 
-            // 7. 解析登录区域（优先使用库字段，其次再回退到office_site_id）
-            String loginRegionId = hasText(computerMetadata.getRegionId()) ?
-                computerMetadata.getRegionId() : extractRegionFromOfficeSiteId(officeSiteId);
+            // 7. 解析登录区域（优先使用数据库endpoint字段，其次再回退到office_site_id）
+            String loginRegionId = hasText(computerMetadata.getEndpoint()) ?
+                computerMetadata.getEndpoint() : extractRegionFromOfficeSiteId(officeSiteId);
             log.debug("loginRegionId：{}", loginRegionId);
 
             // 8. 加载阿里云配置
@@ -127,53 +127,53 @@ public class CloudComputerServiceImpl implements CloudComputerService {
             // 根据endUserId优先加载用户级配置，缺失时回退到全局配置
             String accessKeyId = resolveConfig(configMap, endUserId, "access.key.id");
             String accessKeySecret = resolveConfig(configMap, endUserId, "access.key.secret");
-            String endpoint = resolveConfig(configMap, endUserId, "endpoint");
-            if (isBlank(endpoint)) {
-                endpoint = computerMetadata.getEndpoint();
-            }
             String apiVersion = resolveConfig(configMap, endUserId, "api.version");
             String action = resolveConfig(configMap, endUserId, "action");
-            String regionId = resolveConfig(configMap, endUserId, "region.id");
-            String configuredOfficeSiteId = resolveConfig(configMap, endUserId, "office.site.id");
-            String signatureMethod = resolveConfig(configMap, endUserId, "signature.method");
-            String signatureVersion = resolveConfig(configMap, endUserId, "signature.version");
 
-            // 如果数据库中没有配置办公站点则使用云电脑表中的数据
-            String officeSiteIdForRequest = hasText(configuredOfficeSiteId) ?
-                configuredOfficeSiteId : officeSiteId;
-
-            if (isBlank(officeSiteIdForRequest)) {
+            if (isBlank(officeSiteId)) {
                 log.error("无法确定办公站点ID，用户: {}", endUserId);
                 return CloudComputerParameterDTO.fail("云电脑办公站点未配置");
             }
 
-            if (isBlank(accessKeyId) || isBlank(accessKeySecret) ||
-                isBlank(endpoint) || isBlank(apiVersion) ||
-                isBlank(action)) {
-                log.error("阿里云ECD基础配置不完整，用户: {}", endUserId);
-                return CloudComputerParameterDTO.fail("阿里云配置不完整");
+            String endpoint = computerMetadata.getRegionId();
+            if (isBlank(endpoint)) {
+                log.error("云电脑缺少region_id（服务地址）：computer_id={}", computerId);
+                return CloudComputerParameterDTO.fail("云电脑服务地址未配置");
             }
 
-            if (isBlank(regionId)) {
-                regionId = computerMetadata.getRegionId();
+            java.util.List<String> missingConfigs = new java.util.ArrayList<>();
+            if (isBlank(accessKeyId)) {
+                missingConfigs.add("access.key.id");
+            }
+            if (isBlank(accessKeySecret)) {
+                missingConfigs.add("access.key.secret");
+            }
+            if (isBlank(apiVersion)) {
+                missingConfigs.add("api.version");
+            }
+            if (isBlank(action)) {
+                missingConfigs.add("action");
             }
 
-            if (isBlank(regionId)) {
-                regionId = loginRegionId;
+            if (!missingConfigs.isEmpty()) {
+                log.error("阿里云ECD基础配置不完整，用户: {}，缺少: {}", endUserId, missingConfigs);
+                return CloudComputerParameterDTO.fail("阿里云配置不完整: 缺少 " + String.join(",", missingConfigs));
             }
 
+            String regionId = computerMetadata.getEndpoint();
             if (isBlank(regionId)) {
-                log.error("无法确定区域ID，用户: {}", endUserId);
+                log.error("云电脑缺少区域ID：computer_id={}", computerId);
                 return CloudComputerParameterDTO.fail("云电脑区域未配置");
             }
 
-            if (isBlank(signatureMethod)) {
-                signatureMethod = "HMAC-SHA1";
+            String serviceEndpoint = computerMetadata.getRegionId();
+            if (isBlank(serviceEndpoint)) {
+                log.error("云电脑缺少服务地址：computer_id={}", computerId);
+                return CloudComputerParameterDTO.fail("云电脑服务地址未配置");
             }
 
-            if (isBlank(signatureVersion)) {
-                signatureVersion = "1.0";
-            }
+            final String signatureMethod = "HMAC-SHA1";
+            final String signatureVersion = "1.0";
 
             String clientId = UUID.randomUUID().toString();
 
@@ -183,16 +183,20 @@ public class CloudComputerServiceImpl implements CloudComputerService {
                 return CloudComputerParameterDTO.fail("云电脑密码未配置");
             }
 
-            // 9. 获取loginToken
+            // 9. 打印即将使用的参数，便于排查
+            log.info("云电脑参数明细：endUserId={}, computerId={}, officeSiteId={}, regionId={}, serviceEndpoint={}, apiVersion={}, action={}, accessKeyId={}",
+                endUserId, computerId, officeSiteId, regionId, serviceEndpoint, apiVersion, action, maskAccessKey(accessKeyId));
+
+            // 10. 获取loginToken
             String loginToken = generateLoginToken(
                 accessKeyId,
                 accessKeySecret,
-                endpoint,
+                serviceEndpoint,
                 apiVersion,
                 action,
                 regionId,
                 clientId,
-                officeSiteIdForRequest,
+                officeSiteId,
                 endUserId,
                 userPassword,
                 signatureMethod,
@@ -495,13 +499,14 @@ public class CloudComputerServiceImpl implements CloudComputerService {
         if (environment == null) {
             return;
         }
+        log.debug("加载配置: aliyun.ecd.access-key-id={}", environment.getProperty("aliyun.ecd.access-key-id"));
+        log.debug("加载配置: aliyun.ecd.access-key-secret={}", environment.getProperty("aliyun.ecd.access-key-secret"));
+        log.debug("加载配置: aliyun.ecd.api-version={}", environment.getProperty("aliyun.ecd.api-version"));
+        log.debug("加载配置: aliyun.ecd.action={}", environment.getProperty("aliyun.ecd.action"));
         addIfPresent(target, "access.key.id", environment.getProperty("aliyun.ecd.access-key-id"));
         addIfPresent(target, "access.key.secret", environment.getProperty("aliyun.ecd.access-key-secret"));
-        addIfPresent(target, "endpoint", environment.getProperty("aliyun.ecd.endpoint"));
         addIfPresent(target, "api.version", environment.getProperty("aliyun.ecd.api-version"));
         addIfPresent(target, "action", environment.getProperty("aliyun.ecd.action"));
-        addIfPresent(target, "region.id", environment.getProperty("aliyun.ecd.region-id"));
-        addIfPresent(target, "office.site.id", environment.getProperty("aliyun.ecd.office-site-id"));
     }
 
     private void addIfPresent(Map<String, String> target, String key, String value) {
@@ -554,5 +559,12 @@ public class CloudComputerServiceImpl implements CloudComputerService {
 
     private boolean hasText(String value) {
         return !isBlank(value);
+    }
+
+    private String maskAccessKey(String key) {
+        if (isBlank(key) || key.length() <= 6) {
+            return key;
+        }
+        return key.substring(0, 3) + "****" + key.substring(key.length() - 3);
     }
 }

@@ -74,4 +74,9 @@ public class TranslationChargeEvent implements Serializable {
      * Timestamp when usage occurred.
      */
     private Instant occurredAt;
+
+    /**
+     * 已自动重试的次数（DLQ 补偿使用）
+     */
+    private Integer retryCount;
 }

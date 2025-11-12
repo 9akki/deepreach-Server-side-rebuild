@@ -110,10 +110,7 @@ deepreach:
       backoff-interval: 5s
     template:
       request-timeout: 30s
-      transaction-timeout: 60s
-      transactional: true
       default-topic: translation-charge
-      transaction-id-prefix: deepreach-translate-tx-
 
   # Jackson配置
   jackson:
@@ -178,6 +175,14 @@ translate:
     topic: translation-charge
     dlq-topic: translation-charge-dlq
     description: 翻译/第三方扣费
+
+# 阿里云ECD配置（所有环境通用默认值，若有需要可通过 profile 或数据库覆盖）
+aliyun:
+  ecd:
+    access-key-id: LTAI5tKDpAnhZr52ttZfyTp7
+    access-key-secret: yPLYk8hkTCfCW0mZdbqyQ1SzAMEmAr
+    api-version: 2020-10-02
+    action: GetLoginToken
 
 message:
   sms:
@@ -270,17 +275,6 @@ spring:
     activate:
       on-profile: prod
 
-file:
-  storage:
-    base-path: /home/uploads
-
----
-# 生产环境配置
-spring:
-  config:
-    activate:
-      on-profile: prod
-
   datasource:
     url: jdbc:mysql://localhost:3306/smspikenew?useUnicode=true&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
     username: smspikenew
@@ -304,20 +298,11 @@ spring:
       username: root
       password: 8n2MDPdMb4qpRHYR
       driver-class-name: com.mysql.cj.jdbc.Driver
+  file:
+    storage:
+      base-path: /home/uploads
 
-# 阿里云ECD配置
-aliyun:
-  ecd:
-    # 注意：这些配置仅作为默认值，实际配置将从数据库中读取
-    access-key-id: LTAI5tKDpAnhZr52ttZfyTp7
-    access-key-secret: yPLYk8hkTCfCW0mZdbqyQ1SzAMEmAr
-    endpoint: https://ecd.us-west-1.aliyuncs.com
-    api-version: 2020-10-02
-    action: GetLoginToken
-    region-id: us-west-1
-    client-id: 123456789000
-    office-site-id: us-west-1+dir-5588339126
-
+# 生产环境日志覆盖
 logging:
   level:
     com.deepreach: info

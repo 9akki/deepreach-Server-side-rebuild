@@ -13,6 +13,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
@@ -35,6 +36,9 @@ public class TranslationBillingServiceImpl implements TranslationBillingService 
     private final ChargeAccountResolver chargeAccountResolver;
     private final TranslateBillingProperties billingProperties;
     private final TranslationChargeProducer translationChargeProducer;
+    private final AtomicReference<CachedPrice> cachedTokenPrice = new AtomicReference<>();
+
+    private static final long PRICE_CACHE_TTL_MILLIS = 60_000;
 
     public TranslationBillingServiceImpl(DrPriceConfigService drPriceConfigService,
                                          ChargeAccountResolver chargeAccountResolver,
@@ -102,6 +106,23 @@ public class TranslationBillingServiceImpl implements TranslationBillingService 
 
     @Override
     public BigDecimal resolveUnitPrice() {
+        CachedPrice cached = cachedTokenPrice.get();
+        long now = System.currentTimeMillis();
+        if (cached != null && cached.expiresAt > now) {
+            return cached.price;
+        }
+        synchronized (this) {
+            cached = cachedTokenPrice.get();
+            if (cached != null && cached.expiresAt > now) {
+                return cached.price;
+            }
+            BigDecimal price = queryUnitPrice();
+            cachedTokenPrice.set(new CachedPrice(price, now + PRICE_CACHE_TTL_MILLIS));
+            return price;
+        }
+    }
+
+    private BigDecimal queryUnitPrice() {
         DrPriceConfig config = drPriceConfigService.selectDrPriceConfigByBusinessType(DrPriceConfig.BUSINESS_TYPE_TOKEN);
         if (config == null || config.getDrPrice() == null) {
             log.warn("Translation price config missing (TOKEN), fallback to default {}", DEFAULT_UNIT_PRICE);
@@ -127,5 +148,15 @@ public class TranslationBillingServiceImpl implements TranslationBillingService 
             return billingProperties.getDescription();
         }
         return "翻译扣费";
+    }
+
+    private static final class CachedPrice {
+        private final BigDecimal price;
+        private final long expiresAt;
+
+        private CachedPrice(BigDecimal price, long expiresAt) {
+            this.price = price;
+            this.expiresAt = expiresAt;
+        }
     }
 }

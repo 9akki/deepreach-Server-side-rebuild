@@ -6,6 +6,7 @@ com/deepreach/web/domain/dto/BatchDeleteResultDTO$DeleteFailureInfo.class
 com/deepreach/web/domain/dto/CloudComputerData.class
 com/deepreach/web/service/impl/FileStorageServiceImpl.class
 com/deepreach/web/mapper/AiCharacterMapper.class
+com/deepreach/web/service/impl/AiSuggestionServiceImpl.class
 com/deepreach/web/task/DailyConsumeSettlementTask.class
 com/deepreach/web/entity/dto/InstanceTypeStatistics.class
 com/deepreach/web/mapper/AliyunEcdConfigMapper.class
@@ -17,6 +18,7 @@ com/deepreach/web/service/ProxyService.class
 com/deepreach/web/dto/CommissionSettlementRejectRequest.class
 com/deepreach/web/entity/AgentCommissionSettlementRecord.class
 com/deepreach/web/domain/dto/BatchDeleteResultDTO.class
+com/deepreach/web/controller/AiSuggestionController.class
 com/deepreach/web/dto/AgentCommissionSummaryResponse.class
 com/deepreach/web/DeepReachApplication.class
 com/deepreach/web/dto/CommissionSettlementApplyRequest.class
@@ -31,9 +33,12 @@ com/deepreach/web/service/impl/BuyerInstanceStatisticsServiceImpl$BuyerHierarchy
 com/deepreach/web/controller/DrPriceConfigController.class
 com/deepreach/web/config/WebMvcConfig.class
 com/deepreach/web/service/impl/AgentCommissionServiceImpl.class
+com/deepreach/web/mq/TranslationChargeConsumer.class
 com/deepreach/web/entity/dto/AiCharacterStatistics.class
 com/deepreach/web/controller/AiCharacterController.class
+com/deepreach/web/config/TranslateBillingConfig.class
 com/deepreach/web/service/BuyerInstanceStatisticsService.class
+com/deepreach/web/config/AiSuggestionConfig.class
 com/deepreach/web/domain/vo/AiInstanceVO.class
 com/deepreach/web/dto/FileUploadResponse.class
 com/deepreach/web/config/CloudComputerDataSourceConfig.class
@@ -45,6 +50,7 @@ com/deepreach/web/mapper/DrBillingRecordMapper.class
 com/deepreach/web/mapper/AgentCommissionRecordMapper.class
 com/deepreach/web/controller/AiInstanceController.class
 com/deepreach/web/service/DrBillingRecordService.class
+com/deepreach/web/mq/TranslationChargeDlqConsumer.class
 com/deepreach/web/dto/DrBalanceAdjustRequest.class
 com/deepreach/web/entity/AiCharacter.class
 com/deepreach/web/mapper/UserDrBalanceMapper.class
@@ -64,6 +70,7 @@ com/deepreach/web/service/impl/AliyunEcdConfigServiceImpl.class
 com/deepreach/web/domain/dto/ProxyUpdateDTO$ProxyUpdateDTOBuilder.class
 com/deepreach/web/mapper/UserComputerMapper.class
 com/deepreach/web/config/PrimaryDataSourceConfig.class
+com/deepreach/web/mq/TranslationChargeProcessor.class
 com/deepreach/web/service/AiInstanceService.class
 com/deepreach/web/domain/dto/ProxyUpdateDTO.class
 com/deepreach/web/dto/DrTransactionQuery.class
@@ -72,6 +79,7 @@ com/deepreach/web/service/impl/BuyerInstanceStatisticsServiceImpl.class
 com/deepreach/web/domain/vo/ProxyVO$ProxyVOBuilder.class
 com/deepreach/web/dto/AiProduceDeductRequest.class
 com/deepreach/web/dto/AgentCommissionAccountDTO.class
+com/deepreach/web/domain/dto/AiSuggestionRequest.class
 com/deepreach/web/service/FileStorageService.class
 com/deepreach/web/controller/CloudComputerController.class
 com/deepreach/web/controller/AgentCommissionController.class
@@ -85,6 +93,7 @@ com/deepreach/web/domain/dto/ProxyCreateDTO$ProxyCreateDTOBuilder.class
 com/deepreach/web/mapper/DrPriceConfigMapper.class
 com/deepreach/web/mapper/InstanceMapper.class
 com/deepreach/web/entity/AgentCommissionRecord.class
+com/deepreach/web/service/AiSuggestionService.class
 com/deepreach/web/service/impl/UserDrBalanceServiceImpl.class
 com/deepreach/web/dto/AgentCommissionOverviewResponse.class
 com/deepreach/web/controller/FileController.class
@@ -94,4 +103,5 @@ com/deepreach/web/entity/dto/CharacterUsageStatistics.class
 com/deepreach/web/entity/Proxy.class
 com/deepreach/web/service/impl/DrBillingRecordServiceImpl.class
 com/deepreach/web/initializer/UserHierarchyCacheInitializer.class
+com/deepreach/web/domain/dto/AiSuggestionResult.class
 com/deepreach/web/config/AliyunEcdConfig.class

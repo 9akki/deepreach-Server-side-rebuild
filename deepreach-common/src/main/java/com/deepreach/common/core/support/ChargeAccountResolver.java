@@ -3,6 +3,8 @@ package com.deepreach.common.core.support;
 import com.deepreach.common.core.domain.entity.SysUser;
 import com.deepreach.common.core.service.SysUserService;
 import com.deepreach.common.exception.ServiceException;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -14,12 +16,40 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class ChargeAccountResolver {
 
+    private static final long CACHE_TTL_MILLIS = 5 * 60 * 1000;
+
     private final SysUserService sysUserService;
+    private final Map<Long, CachedChargeAccount> cache = new ConcurrentHashMap<>();
 
     public ChargeAccount resolve(Long requestUserId) {
         if (requestUserId == null || requestUserId <= 0) {
             throw new ServiceException("用户ID不能为空");
         }
+        ChargeAccount cached = getCachedAccount(requestUserId);
+        if (cached != null) {
+            return cached;
+        }
+        ChargeAccount computed = resolveInternal(requestUserId);
+        cache.put(requestUserId, new CachedChargeAccount(computed));
+        return computed;
+    }
+
+    public void evict(Long userId) {
+        if (userId != null) {
+            cache.remove(userId);
+        }
+    }
+
+    private ChargeAccount getCachedAccount(Long userId) {
+        CachedChargeAccount cached = cache.get(userId);
+        if (cached == null || cached.isExpired()) {
+            cache.remove(userId, cached);
+            return null;
+        }
+        return cached.account;
+    }
+
+    private ChargeAccount resolveInternal(Long requestUserId) {
         SysUser user = sysUserService.selectUserWithDept(requestUserId);
         if (user == null) {
             throw new ServiceException("用户不存在");
@@ -39,6 +69,20 @@ public class ChargeAccountResolver {
             return new ChargeAccount(parent.getUserId(), user.getUserId(), false);
         }
         throw new ServiceException("仅支持商家总账号或员工子账号进行扣费");
+    }
+
+    private static final class CachedChargeAccount {
+        private final ChargeAccount account;
+        private final long expiresAt;
+
+        private CachedChargeAccount(ChargeAccount account) {
+            this.account = account;
+            this.expiresAt = System.currentTimeMillis() + CACHE_TTL_MILLIS;
+        }
+
+        private boolean isExpired() {
+            return System.currentTimeMillis() > expiresAt;
+        }
     }
 
     @Getter
