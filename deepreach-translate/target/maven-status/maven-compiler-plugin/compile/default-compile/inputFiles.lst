@@ -1,6 +1,7 @@
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-translate/src/main/java/com/deepreach/translate/prompt/TranslatePromptProvider.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-translate/src/main/java/com/deepreach/translate/service/TranslationBillingService.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-translate/src/main/java/com/deepreach/translate/client/Message.java
+/Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-translate/src/main/java/com/deepreach/translate/client/AzureOpenAiChatClient.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-translate/src/main/java/com/deepreach/translate/client/LlmResult.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-translate/src/main/java/com/deepreach/translate/dto/OriginalTextResponse.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-translate/src/main/java/com/deepreach/translate/controller/TranslateController.java

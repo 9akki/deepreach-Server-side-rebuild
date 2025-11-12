@@ -1,3 +1,4 @@
+com/deepreach/translate/config/TranslateLlmProperties$AzureProperties.class
 com/deepreach/translate/client/DashScopeChatClient.class
 com/deepreach/translate/service/TranslationBillingService.class
 com/deepreach/translate/config/TranslateAutoConfig.class
@@ -15,6 +16,7 @@ com/deepreach/translate/service/impl/TranslationBillingServiceImpl$PricingMode.c
 com/deepreach/translate/dto/OriginalTextRequest.class
 com/deepreach/translate/service/impl/TranslationBillingServiceImpl$CachedPrice.class
 com/deepreach/translate/dto/TranslateResponse.class
+com/deepreach/translate/client/AzureOpenAiChatClient.class
 com/deepreach/translate/controller/TranslateController.class
 com/deepreach/translate/dto/TranslateRequest.class
 com/deepreach/translate/client/LlmClientFactory.class

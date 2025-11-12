@@ -170,6 +170,15 @@ translate:
     qwen-api-key: sk-a9a6a4eb0c9245fca44796deb6fa6b41
     qwen-base-url: https://dashscope.aliyuncs.com/compatible-mode/v1/
     timeout-ms: 10000
+    azure:
+      enabled: true
+      endpoint: https://cs-mhnqrz1z-eastus2.cognitiveservices.azure.com/
+      api-version: 2024-02-15-preview
+      deployments:
+        gpt-4o: gpt-4o
+        gpt-4o-mini: gpt-4o-mini
+        gpt-5-nano-2025-08-07: gpt-5-nano-2025-08-07
+        gpt-4.1-nano-2025-04-14: gpt-4.1-nano-2025-04-14
   billing:
     enabled: true
     topic: translation-charge
