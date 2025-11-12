@@ -117,6 +117,7 @@ public class SmsSendWorker {
             balanceGuard.ensureSufficientBalance(task.getUserId(), unitPrice, "短信任务发送");
         int numberSize = numbers.size();
         int contentSize = contents.size();
+        BigDecimal totalCharge = BigDecimal.ZERO;
         for (int i = 0; i < numberSize; i++) {
             String number = normalizeNumber(numbers.get(i));
             String content = contents.get(i % contentSize);
@@ -145,9 +146,12 @@ public class SmsSendWorker {
             smsTaskMapper.incrementTotalCount(taskId, 1);
             if (result.isSuccess()) {
                 smsTaskMapper.incrementSentCount(taskId, 1);
-                deductBalance(account, unitPrice, "短信任务扣费");
+                totalCharge = totalCharge.add(unitPrice);
             }
             sleepSafely(1000);
+        }
+        if (totalCharge.compareTo(BigDecimal.ZERO) > 0) {
+            deductBalance(account, totalCharge, "短信任务扣费");
         }
         smsTaskMapper.updateStatus(taskId, 1);
     }
@@ -163,11 +167,11 @@ public class SmsSendWorker {
         return normalized.replaceAll("\\s+", "");
     }
 
-    private void deductBalance(ChargeAccountResolver.ChargeAccount account, BigDecimal unitPrice, String description) {
-        if (account == null || unitPrice == null || unitPrice.compareTo(BigDecimal.ZERO) <= 0) {
+    private void deductBalance(ChargeAccountResolver.ChargeAccount account, BigDecimal amount, String description) {
+        if (account == null || amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             return;
         }
-        DrBillingRecord record = buildSmsBillingRecord(unitPrice, account, description);
+        DrBillingRecord record = buildSmsBillingRecord(amount, account, description);
         DeductResponse response = userDrBalanceService.deductWithDetails(record, account.getOperatorUserId());
         if (response == null || !response.isSuccess()) {
             String message = response != null ? response.getMessage() : "扣费响应为空";
