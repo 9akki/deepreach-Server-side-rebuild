@@ -8,7 +8,7 @@ public class MessageSmsProperties {
     private String baseUrl = "http://47.82.1.178:8000";
     private String accountId = "49336626";
     private String apiKey = "4b3e71d9-badf-4767-85ea-90cbb5ef0944";
-    private long rateLimitMs = 0;
+    private long rateLimitMs = 12000;
     private int timeoutMs = 10000;
     private String senderNumber = "17707695953";
     private String sendPath = "/sms-api/v1/49336626/send-sms/4b3e71d9-badf-4767-85ea-90cbb5ef0944/";

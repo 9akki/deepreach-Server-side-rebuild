@@ -1,6 +1,8 @@
 package com.deepreach.message.dto;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
+import java.util.ArrayList;
+import java.util.List;
 
 public class SmsWebhookPayload {
 
@@ -16,13 +18,15 @@ public class SmsWebhookPayload {
     @JsonAlias({"source"})
     private String source;
 
+    @JsonAlias({"accountid"})
+    private String accountId;
+
     private String targetNumber;
 
     @JsonAlias({"message", "body"})
     private String messageContent;
 
-    @JsonAlias({"mediaurls"})
-    private String mediaUrls;
+    private List<String> mediaUrls = new ArrayList<>();
 
     @JsonAlias({"receiveddatetime"})
     private String receivedDatetime;
@@ -59,6 +63,14 @@ public class SmsWebhookPayload {
         this.source = source;
     }
 
+    public String getAccountId() {
+        return accountId;
+    }
+
+    public void setAccountId(String accountId) {
+        this.accountId = accountId;
+    }
+
     public String getTargetNumber() {
         return targetNumber;
     }
@@ -75,12 +87,29 @@ public class SmsWebhookPayload {
         this.messageContent = messageContent;
     }
 
-    public String getMediaUrls() {
+    public List<String> getMediaUrls() {
         return mediaUrls;
     }
 
-    public void setMediaUrls(String mediaUrls) {
-        this.mediaUrls = mediaUrls;
+    public void setMediaUrls(List<String> mediaUrls) {
+        this.mediaUrls = mediaUrls != null ? mediaUrls : new ArrayList<>();
+    }
+
+    @JsonAlias({"mediaurls"})
+    public void setMediaUrlsRaw(String raw) {
+        if (raw == null || raw.isEmpty()) {
+            this.mediaUrls = new ArrayList<>();
+            return;
+        }
+        String[] parts = raw.split(";");
+        List<String> parsed = new ArrayList<>();
+        for (String part : parts) {
+            String trimmed = part.trim();
+            if (!trimmed.isEmpty()) {
+                parsed.add(trimmed);
+            }
+        }
+        this.mediaUrls = parsed;
     }
 
     public String getReceivedDatetime() {

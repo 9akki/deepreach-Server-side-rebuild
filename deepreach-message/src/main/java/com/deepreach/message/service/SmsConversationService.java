@@ -21,4 +21,6 @@ public interface SmsConversationService {
     List<SmsMessageRecord> listMessagesByContact(SmsMessageQueryRequest request);
 
     void setMessageRead(Long taskId, String targetNumber);
+
+    List<SmsContactSummary> searchMessages(Long taskId, String targetNumber, String messageContent);
 }

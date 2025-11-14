@@ -30,4 +30,8 @@ public interface SmsHistoryMapper {
                                                       @Param("targetNumber") String targetNumber,
                                                       @Param("limit") int limit,
                                                       @Param("offset") int offset);
+
+    List<SmsContactSummary> searchMessagesByTask(@Param("taskId") Long taskId,
+                                                 @Param("targetNumber") String targetNumber,
+                                                 @Param("messageContent") String messageContent);
 }

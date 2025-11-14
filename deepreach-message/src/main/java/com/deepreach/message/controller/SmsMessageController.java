@@ -16,9 +16,11 @@ import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @Validated
@@ -65,5 +67,17 @@ public class SmsMessageController {
     public Map<String, Object> listMessages(@Valid @RequestBody SmsMessageQueryRequest request) {
         List<SmsMessageRecord> records = smsConversationService.listMessagesByContact(request);
         return LegacyResponse.success(records);
+    }
+
+    @GetMapping("/messages/search")
+    public Map<String, Object> searchMessages(@RequestParam("taskId") Long taskId,
+                                              @RequestParam(value = "targetNumber", required = false) String targetNumber,
+                                              @RequestParam(value = "messageContent", required = false) String messageContent) {
+        try {
+            List<SmsContactSummary> results = smsConversationService.searchMessages(taskId, targetNumber, messageContent);
+            return LegacyResponse.success(results);
+        } catch (Exception ex) {
+            return LegacyResponse.error("搜索短信消息失败: " + ex.getMessage());
+        }
     }
 }

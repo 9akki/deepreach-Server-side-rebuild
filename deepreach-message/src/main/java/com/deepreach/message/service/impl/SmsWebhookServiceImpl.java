@@ -6,6 +6,8 @@ import com.deepreach.message.entity.SmsHistory;
 import com.deepreach.message.mapper.SmsHistoryMapper;
 import com.deepreach.message.mapper.SmsTaskMapper;
 import com.deepreach.message.service.SmsWebhookService;
+import java.util.ArrayList;
+import java.util.List;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
@@ -41,21 +43,7 @@ public class SmsWebhookServiceImpl implements SmsWebhookService {
             payload.setMessageTo(cleanNumber(payload.getMessageTo()));
         }
         payload.setTargetNumber(payload.getMessageFrom());
-        if (StringUtils.hasText(payload.getMediaUrls())) {
-            String[] parts = payload.getMediaUrls().split(";");
-            StringBuilder builder = new StringBuilder();
-            for (String part : parts) {
-                String trimmed = part.trim();
-                if (trimmed.isEmpty() || !trimmed.startsWith("http")) {
-                    continue;
-                }
-                if (builder.length() > 0) {
-                    builder.append(";");
-                }
-                builder.append(trimmed);
-            }
-            payload.setMediaUrls(builder.toString());
-        }
+        payload.setMediaUrls(sanitizeMediaUrls(payload.getMediaUrls()));
         return payload;
     }
 
@@ -71,7 +59,7 @@ public class SmsWebhookServiceImpl implements SmsWebhookService {
         history.setTaskId(taskId);
         history.setTargetNumber(normalized.getMessageFrom());
         history.setMessageContent(normalized.getMessageContent());
-        history.setMediaUrls(normalized.getMediaUrls());
+        history.setMediaUrls(joinMediaUrls(normalized.getMediaUrls()));
         history.setMessageTo(normalized.getMessageTo());
         history.setMessageFrom(normalized.getMessageFrom());
         history.setSentAt(parseTime(normalized.getReceivedDatetime()));
@@ -104,5 +92,30 @@ public class SmsWebhookServiceImpl implements SmsWebhookService {
             normalized = normalized.substring(1);
         }
         return normalized.replaceAll("\\s+", "");
+    }
+
+    private List<String> sanitizeMediaUrls(List<String> mediaUrls) {
+        if (mediaUrls == null || mediaUrls.isEmpty()) {
+            return new ArrayList<>();
+        }
+        List<String> sanitized = new ArrayList<>();
+        for (String mediaUrl : mediaUrls) {
+            if (!StringUtils.hasText(mediaUrl)) {
+                continue;
+            }
+            String trimmed = mediaUrl.trim();
+            if (!trimmed.startsWith("http")) {
+                continue;
+            }
+            sanitized.add(trimmed);
+        }
+        return sanitized;
+    }
+
+    private String joinMediaUrls(List<String> mediaUrls) {
+        if (mediaUrls == null || mediaUrls.isEmpty()) {
+            return null;
+        }
+        return String.join(";", mediaUrls);
     }
 }

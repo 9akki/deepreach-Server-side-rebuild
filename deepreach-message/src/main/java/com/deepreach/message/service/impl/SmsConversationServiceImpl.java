@@ -186,6 +186,16 @@ public class SmsConversationServiceImpl implements SmsConversationService {
         smsHistoryMapper.updateReadFlag(taskId, normalizeNumber(targetNumber), 1);
     }
 
+    @Override
+    public List<SmsContactSummary> searchMessages(Long taskId, String targetNumber, String messageContent) {
+        if (taskId == null) {
+            throw new ServiceException("任务ID不能为空");
+        }
+        String normalizedTarget = normalizeQueryTarget(targetNumber);
+        String keyword = StringUtils.hasText(messageContent) ? messageContent.trim() : null;
+        return smsHistoryMapper.searchMessagesByTask(taskId, normalizedTarget, keyword);
+    }
+
     private SmsTask loadTask(Long taskId) {
         SmsTask task = smsTaskMapper.selectById(taskId);
         if (task == null) {
@@ -272,5 +282,12 @@ public class SmsConversationServiceImpl implements SmsConversationService {
         }
         String[] parts = mediaUrls.split(";");
         return parts.length > 0 ? parts[0].trim() : null;
+    }
+
+    private String normalizeQueryTarget(String number) {
+        if (!StringUtils.hasText(number)) {
+            return null;
+        }
+        return normalizeNumber(number);
     }
 }
