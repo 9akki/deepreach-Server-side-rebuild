@@ -1,10 +1,9 @@
 package com.deepreach.web.domain.dto;
 
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -65,12 +64,12 @@ public class AiSuggestionRequest {
         /**
          * 图片地址，可为空。
          */
-        private String image;
+        private String images;
 
         /**
          * 引用的上一句文本，可为空。
          */
-        private String references;
+        private String referance;
 
         /**
          * 来源标记（可选）：history_splice 或 new_record。
@@ -89,8 +88,8 @@ public class AiSuggestionRequest {
         public Map<String, Object> toPayload() {
             Map<String, Object> map = new LinkedHashMap<>();
             map.put("timestamp", normalizeTimestamp(timestamp));
-            map.put("image", blankToNull(image));
-            map.put("references", blankToNull(references));
+            map.put("images", blankToNull(images));
+            map.put("referance", blankToNull(referance));
             map.put("source", blankToNull(source));
             map.put("role", role);
             map.put("content", content);
@@ -101,8 +100,8 @@ public class AiSuggestionRequest {
         public ChatRecord copy() {
             ChatRecord clone = new ChatRecord();
             clone.setTimestamp(this.timestamp);
-            clone.setImage(this.image);
-            clone.setReferences(this.references);
+            clone.setImages(this.images);
+            clone.setReferance(this.referance);
             clone.setSource(this.source);
             clone.setRole(this.role);
             clone.setContent(this.content);

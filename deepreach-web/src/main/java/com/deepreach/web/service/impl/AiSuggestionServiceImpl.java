@@ -240,4 +240,5 @@ public class AiSuggestionServiceImpl implements AiSuggestionService {
         }
         return contact;
     }
+
 }
