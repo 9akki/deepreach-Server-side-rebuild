@@ -10,7 +10,7 @@ public class ChatHistoryAiProperties {
     /**
      * 聊天排序兜底接口地址，例如 http://206.82.1.18:7809/chat_object/user_profile
      */
-    private String sortEndpoint = "http://206.82.1.18:7809/chat_object/user_profile";
+    private String sortEndpoint = "http://206.82.1.18:7809/chat_object/resort_chat_history";
 
     /**
      * 请求超时时间（毫秒）

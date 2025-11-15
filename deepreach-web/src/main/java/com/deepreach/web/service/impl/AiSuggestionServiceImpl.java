@@ -155,9 +155,8 @@ public class AiSuggestionServiceImpl implements AiSuggestionService {
         }
 
         payload.put("user_id", userId);
-        Object normalizedPortrait = normalizePortrait(chatPortrait);
-        if (normalizedPortrait != null) {
-            payload.put("chatPortrait", normalizedPortrait);
+        if (StringUtils.hasText(chatPortrait)) {
+            payload.put("user_profile", chatPortrait);
         }
 
         HttpHeaders headers = new HttpHeaders();
@@ -219,18 +218,6 @@ public class AiSuggestionServiceImpl implements AiSuggestionService {
         map.put("it", "Italiano");
         map.put("ms", "Bahasa Melayu");
         return Collections.unmodifiableMap(map);
-    }
-
-    private Object normalizePortrait(String portrait) {
-        if (!StringUtils.hasText(portrait)) {
-            return null;
-        }
-        try {
-            return objectMapper.readValue(portrait, Map.class);
-        } catch (Exception ex) {
-            log.warn("Failed to parse chatPortrait JSON, fallback to raw string", ex);
-            return portrait;
-        }
     }
 
     private String resolveContactUsername(List<AiSuggestionRequest.ChatRecord> history) {
