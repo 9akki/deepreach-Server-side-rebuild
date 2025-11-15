@@ -2,6 +2,7 @@ com/deepreach/web/mapper/AiInstanceMapper.class
 com/deepreach/web/service/CommunicateHistoryService$CommunicateHistorySnapshot.class
 com/deepreach/web/controller/ProxyController.class
 com/deepreach/web/entity/AgentCommissionSettlement.class
+com/deepreach/web/service/impl/CommunicateHistoryServiceImpl$SortRecord.class
 com/deepreach/web/domain/dto/ProxyCreateDTO.class
 com/deepreach/web/domain/dto/BatchDeleteResultDTO$DeleteFailureInfo.class
 com/deepreach/web/domain/dto/CloudComputerData.class
@@ -52,6 +53,7 @@ com/deepreach/web/entity/AliyunEcdConfig.class
 com/deepreach/web/controller/DrBalanceController.class
 com/deepreach/web/service/impl/AiInstanceServiceImpl.class
 com/deepreach/web/mapper/DrBillingRecordMapper.class
+com/deepreach/web/task/ChatPortraitRefreshTask$ProfileResponse.class
 com/deepreach/web/mapper/AgentCommissionRecordMapper.class
 com/deepreach/web/controller/AiInstanceController.class
 com/deepreach/web/service/DrBillingRecordService.class
@@ -74,6 +76,7 @@ com/deepreach/web/service/impl/AliyunCloudComputerServiceImpl.class
 com/deepreach/web/service/impl/AliyunEcdConfigServiceImpl.class
 com/deepreach/web/domain/dto/ProxyUpdateDTO$ProxyUpdateDTOBuilder.class
 com/deepreach/web/mapper/UserComputerMapper.class
+com/deepreach/web/config/ChatHistoryAsyncConfig.class
 com/deepreach/web/config/PrimaryDataSourceConfig.class
 com/deepreach/web/mq/TranslationChargeProcessor.class
 com/deepreach/web/service/AiInstanceService.class
@@ -81,6 +84,7 @@ com/deepreach/web/domain/dto/ProxyUpdateDTO.class
 com/deepreach/web/dto/DrTransactionQuery.class
 com/deepreach/web/mapper/AgentCommissionAccountMapper.class
 com/deepreach/web/service/impl/BuyerInstanceStatisticsServiceImpl.class
+com/deepreach/web/service/impl/CommunicateHistoryServiceImpl$SortResponse.class
 com/deepreach/web/domain/vo/ProxyVO$ProxyVOBuilder.class
 com/deepreach/web/service/CommunicateHistoryService.class
 com/deepreach/web/dto/AiProduceDeductRequest.class
@@ -90,6 +94,7 @@ com/deepreach/web/service/FileStorageService.class
 com/deepreach/web/controller/CloudComputerController.class
 com/deepreach/web/mapper/CommunicateHistoryMapper.class
 com/deepreach/web/controller/AgentCommissionController.class
+com/deepreach/web/task/ChatPortraitRefreshTask$1.class
 com/deepreach/web/dto/AdminSettlementQueryRequest.class
 com/deepreach/web/entity/AiInstance.class
 com/deepreach/web/config/DataSourceHealthCheck.class
@@ -108,7 +113,9 @@ com/deepreach/web/dto/AgentCommissionOverviewRequest.class
 com/deepreach/web/controller/DrBillingRecordController.class
 com/deepreach/web/entity/dto/CharacterUsageStatistics.class
 com/deepreach/web/entity/Proxy.class
+com/deepreach/web/task/ChatPortraitRefreshTask.class
 com/deepreach/web/service/impl/DrBillingRecordServiceImpl.class
 com/deepreach/web/initializer/UserHierarchyCacheInitializer.class
+com/deepreach/web/config/ChatHistoryConfig.class
 com/deepreach/web/domain/dto/AiSuggestionResult.class
 com/deepreach/web/config/AliyunEcdConfig.class

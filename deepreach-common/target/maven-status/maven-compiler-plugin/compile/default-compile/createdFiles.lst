@@ -1,5 +1,6 @@
 com/deepreach/common/web/Result.class
 com/deepreach/common/core/mq/event/TranslationChargeEvent.class
+com/deepreach/common/core/config/ChatHistoryAiProperties.class
 com/deepreach/common/core/mapper/SysRoleMapper.class
 com/deepreach/common/core/domain/model/UserInfo.class
 com/deepreach/common/enums/OperatorType.class

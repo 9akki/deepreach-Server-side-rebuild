@@ -88,8 +88,7 @@ security:
 
 deepreach:
   kafka:
-    bootstrap-servers:
-      - 206.82.1.18:9092
+    bootstrap-servers: 206.82.1.18:9092
     producer:
       acks: all
       retries: 3
@@ -177,8 +176,8 @@ translate:
       deployments:
         gpt-4o: gpt-4o
         gpt-4o-mini: gpt-4o-mini
-        gpt-5-nano-2025-08-07: gpt-5-nano-2025-08-07
-        gpt-4.1-nano-2025-04-14: gpt-4.1-nano-2025-04-14
+        gpt-5-nano: gpt-5-nano
+        #gpt-4.1-nano-2025-04-14: gpt-4.1-nano-2025-04-14
   billing:
     enabled: true
     topic: translation-charge

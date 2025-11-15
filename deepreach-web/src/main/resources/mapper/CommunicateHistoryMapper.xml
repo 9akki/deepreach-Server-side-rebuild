@@ -46,19 +46,22 @@
             version = version + 1
     </insert>
 
-    <update id="insertPortrait">
-        INSERT INTO communicate_history (
-            user_id, contact_username, platform_id,
-            chat_portrait, portrait_update_time, version
-        ) VALUES (
-            #{userId}, #{contactUsername}, #{platformId},
-            #{chatPortrait}, #{portraitUpdateTime}, 1
-        )
-        ON DUPLICATE KEY UPDATE
-            chat_portrait = VALUES(chat_portrait),
-            portrait_update_time = VALUES(portrait_update_time),
-            version = version + 1
-    </update>
+    <select id="selectNeedPortraitUpdate" resultMap="CommunicateHistoryResult">
+        SELECT user_id,
+               contact_username,
+               platform_id,
+               history_splice,
+               chat_portrait,
+               splice_update_time,
+               portrait_update_time,
+               version
+        FROM communicate_history
+        WHERE history_splice IS NOT NULL
+          AND splice_update_time IS NOT NULL
+          AND (portrait_update_time IS NULL OR splice_update_time > portrait_update_time)
+        ORDER BY splice_update_time DESC
+        LIMIT #{limit}
+    </select>
 
     <update id="updatePortrait">
         UPDATE communicate_history

@@ -20,6 +20,7 @@
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-common/src/main/java/com/deepreach/common/security/JwtAuthenticationFilter.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-common/src/main/java/com/deepreach/common/core/domain/dto/UserHierarchyNodeDTO.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-common/src/main/java/com/deepreach/common/core/page/TableSupport.java
+/Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-common/src/main/java/com/deepreach/common/core/config/ChatHistoryAiProperties.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-common/src/main/java/com/deepreach/common/web/page/TableDataInfo.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-common/src/main/java/com/deepreach/common/security/CacheStats.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-common/src/main/java/com/deepreach/common/core/mapper/SysRoleMapper.java

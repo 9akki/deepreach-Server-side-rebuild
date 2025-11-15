@@ -8,9 +8,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class ChatHistoryAiProperties {
 
     /**
-     * 聊天排序兜底接口地址，例如 http://206.82.1.18:7808/chat_object/user_profile
+     * 聊天排序兜底接口地址，例如 http://206.82.1.18:7809/chat_object/user_profile
      */
-    private String sortEndpoint;
+    private String sortEndpoint = "http://206.82.1.18:7809/chat_object/user_profile";
 
     /**
      * 请求超时时间（毫秒）
@@ -27,4 +27,34 @@ public class ChatHistoryAiProperties {
      * 排序场景的人设描述
      */
     private String sortCharacter = "你是一个擅长整理聊天记录的系统助手。";
+
+    /**
+     * 用户画像生成接口地址，例如 http://206.82.1.18:7809/chat_object/user_profile
+     */
+    private String profileEndpoint = "http://206.82.1.18:7809/chat_object/user_profile";
+
+    /**
+     * 用户画像生成提示
+     */
+    private String profileInstruction = "请根据 history 输出联系人画像 JSON，字段包括 summary/intent/tone/keywords/preferences/historyCoverage/lastUpdated。";
+
+    /**
+     * 画像场景的人设
+     */
+    private String profileCharacter = "你是一个擅长总结联系人画像的分析师。";
+
+    /**
+     * 是否启用画像刷新
+     */
+    private boolean profileEnabled = true;
+
+    /**
+     * 画像刷新间隔（毫秒）
+     */
+    private long profileRefreshIntervalMs = 600_000L;
+
+    /**
+     * 每批处理的画像数量
+     */
+    private int profileBatchSize = 50;
 }
