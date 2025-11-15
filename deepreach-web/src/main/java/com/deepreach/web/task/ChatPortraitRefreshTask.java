@@ -44,7 +44,7 @@ public class ChatPortraitRefreshTask {
     private final RestTemplateBuilder restTemplateBuilder;
     private volatile RestTemplate profileRestTemplate;
 
-    @Scheduled(fixedDelayString = "${chat.history.ai.profile-refresh-interval-ms:60000}")
+    @Scheduled(fixedDelayString = "${chat.history.ai.profile-refresh-interval-ms}")
     public void refreshPortraits() {
         if (!chatHistoryAiProperties.isProfileEnabled()
             || !StringUtils.hasText(chatHistoryAiProperties.getProfileEndpoint())) {

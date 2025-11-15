@@ -184,6 +184,11 @@ translate:
     dlq-topic: translation-charge-dlq
     description: 翻译/第三方扣费
 
+chat:
+  history:
+    ai:
+      profile-refresh-interval-ms: 60000
+
 # 阿里云ECD配置（所有环境通用默认值，若有需要可通过 profile 或数据库覆盖）
 aliyun:
   ecd:
