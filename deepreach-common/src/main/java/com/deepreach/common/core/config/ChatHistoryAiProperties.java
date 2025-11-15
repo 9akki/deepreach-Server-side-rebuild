@@ -51,7 +51,7 @@ public class ChatHistoryAiProperties {
     /**
      * 画像刷新间隔（毫秒）
      */
-    private long profileRefreshIntervalMs = 600_000L;
+    private long profileRefreshIntervalMs = 60_000L;
 
     /**
      * 每批处理的画像数量

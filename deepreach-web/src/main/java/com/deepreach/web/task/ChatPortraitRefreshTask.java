@@ -7,10 +7,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
@@ -47,7 +44,7 @@ public class ChatPortraitRefreshTask {
     private final RestTemplateBuilder restTemplateBuilder;
     private volatile RestTemplate profileRestTemplate;
 
-    @Scheduled(fixedDelayString = "${chat.history.ai.profile-refresh-interval-ms:600000}")
+    @Scheduled(fixedDelayString = "${chat.history.ai.profile-refresh-interval-ms:60000}")
     public void refreshPortraits() {
         if (!chatHistoryAiProperties.isProfileEnabled()
             || !StringUtils.hasText(chatHistoryAiProperties.getProfileEndpoint())) {
@@ -78,13 +75,7 @@ public class ChatPortraitRefreshTask {
             return;
         }
         Map<String, Object> payload = new HashMap<>();
-        payload.put("history", history);
-        payload.put("character", chatHistoryAiProperties.getProfileCharacter());
-        payload.put("instruction", chatHistoryAiProperties.getProfileInstruction());
-        Object portraitPayload = parsePortrait(record.getChatPortrait());
-        if (portraitPayload != null) {
-            payload.put("chatPortrait", portraitPayload);
-        }
+        payload.put("history", normalizeHistory(history));
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -131,15 +122,23 @@ public class ChatPortraitRefreshTask {
         return objectMapper.readValue(json, HISTORY_TYPE);
     }
 
-    private Object parsePortrait(String portrait) throws Exception {
-        if (!StringUtils.hasText(portrait)) {
-            return null;
+    private List<Map<String, String>> normalizeHistory(List<Map<String, Object>> origin) {
+        if (CollectionUtils.isEmpty(origin)) {
+            return Collections.emptyList();
         }
-        try {
-            return objectMapper.readValue(portrait, Map.class);
-        } catch (Exception ex) {
-            return portrait;
+        List<Map<String, String>> normalized = new ArrayList<>();
+        for (Map<String, Object> entry : origin) {
+            if (entry == null) {
+                continue;
+            }
+            Map<String, String> payload = new HashMap<>();
+            Object role = entry.getOrDefault("role", "user");
+            Object content = entry.getOrDefault("content", "");
+            payload.put("role", role != null ? role.toString() : "user");
+            payload.put("content", content != null ? content.toString() : "");
+            normalized.add(payload);
         }
+        return normalized;
     }
 
     private String buildPortraitJson(String rawMessage) throws Exception {

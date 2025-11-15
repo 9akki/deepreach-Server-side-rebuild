@@ -42,7 +42,7 @@
         )
         ON DUPLICATE KEY UPDATE
             history_splice = VALUES(history_splice),
-            splice_update_time = VALUES(spliceUpdateTime),
+            splice_update_time = VALUES(splice_update_time),
             version = version + 1
     </insert>
 
