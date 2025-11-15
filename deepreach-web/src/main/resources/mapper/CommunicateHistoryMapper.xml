@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.deepreach.web.mapper.CommunicateHistoryMapper">
+
+    <resultMap id="CommunicateHistoryResult" type="com.deepreach.web.entity.CommunicateHistory">
+        <id column="user_id" property="userId"/>
+        <id column="contact_username" property="contactUsername"/>
+        <id column="platform_id" property="platformId"/>
+        <result column="history_splice" property="historySplice"/>
+        <result column="chat_portrait" property="chatPortrait"/>
+        <result column="splice_update_time" property="spliceUpdateTime"/>
+        <result column="portrait_update_time" property="portraitUpdateTime"/>
+        <result column="version" property="version"/>
+    </resultMap>
+
+    <select id="selectByPk" resultMap="CommunicateHistoryResult">
+        SELECT user_id,
+               contact_username,
+               platform_id,
+               history_splice,
+               chat_portrait,
+               splice_update_time,
+               portrait_update_time,
+               version
+        FROM communicate_history
+        WHERE user_id = #{userId}
+          AND contact_username = #{contactUsername}
+          AND platform_id = #{platformId}
+    </select>
+
+    <insert id="upsertHistory">
+        INSERT INTO communicate_history (
+            user_id, contact_username, platform_id,
+            history_splice, chat_portrait, splice_update_time,
+            portrait_update_time, version
+        ) VALUES (
+            #{userId}, #{contactUsername}, #{platformId},
+            #{historySplice}, NULL, #{spliceUpdateTime},
+            NULL, 1
+        )
+        ON DUPLICATE KEY UPDATE
+            history_splice = VALUES(history_splice),
+            splice_update_time = VALUES(spliceUpdateTime),
+            version = version + 1
+    </insert>
+
+    <update id="insertPortrait">
+        INSERT INTO communicate_history (
+            user_id, contact_username, platform_id,
+            chat_portrait, portrait_update_time, version
+        ) VALUES (
+            #{userId}, #{contactUsername}, #{platformId},
+            #{chatPortrait}, #{portraitUpdateTime}, 1
+        )
+        ON DUPLICATE KEY UPDATE
+            chat_portrait = VALUES(chat_portrait),
+            portrait_update_time = VALUES(portrait_update_time),
+            version = version + 1
+    </update>
+
+    <update id="updatePortrait">
+        UPDATE communicate_history
+        SET chat_portrait = #{chatPortrait},
+            portrait_update_time = #{portraitUpdateTime},
+            version = version + 1
+        WHERE user_id = #{userId}
+          AND contact_username = #{contactUsername}
+          AND platform_id = #{platformId}
+    </update>
+
+</mapper>

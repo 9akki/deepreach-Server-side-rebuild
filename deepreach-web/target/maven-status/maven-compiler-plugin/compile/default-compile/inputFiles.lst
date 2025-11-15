@@ -9,8 +9,10 @@
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/dto/CommissionSettlementApproveRequest.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/dto/AgentCommissionAdjustRequest.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/config/TranslateBillingConfig.java
+/Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/mapper/CommunicateHistoryMapper.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/service/impl/AiSuggestionServiceImpl.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/domain/dto/ProxyTestDTO.java
+/Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/service/impl/CommunicateHistoryServiceImpl.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/domain/vo/ProxyVO.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/mapper/ProxyMapper.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/mapper/UserDrBalanceMapper.java
@@ -52,6 +54,7 @@
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/service/FileStorageService.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/controller/CloudComputerController.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/service/impl/BuyerInstanceStatisticsServiceImpl.java
+/Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/entity/CommunicateHistory.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/domain/dto/ProxyCreateDTO.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/config/PrimaryDataSourceConfig.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/controller/BuyerInstanceStatisticsController.java
@@ -62,6 +65,7 @@
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/dto/AgentCommissionSummaryResponse.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/mapper/UserComputerMapper.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/mapper/AgentCommissionSettlementMapper.java
+/Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/service/CommunicateHistoryService.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/mapper/AgentCommissionAccountMapper.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/mapper/DrBillingRecordMapper.java
 /Users/gak1/Documents/GitHub/deepreach-Server-side-rebuild/deepreach-web/src/main/java/com/deepreach/web/controller/ProxyController.java

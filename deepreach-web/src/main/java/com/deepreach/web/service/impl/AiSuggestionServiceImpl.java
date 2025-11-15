@@ -12,11 +12,13 @@ import com.deepreach.web.domain.dto.AiSuggestionResult;
 import com.deepreach.web.service.AiCharacterService;
 import com.deepreach.web.service.AiInstanceService;
 import com.deepreach.web.service.AiSuggestionService;
+import com.deepreach.web.service.CommunicateHistoryService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -47,6 +49,7 @@ public class AiSuggestionServiceImpl implements AiSuggestionService {
     private final AiSuggestionProperties properties;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+    private final CommunicateHistoryService communicateHistoryService;
 
     public AiSuggestionServiceImpl(AiInstanceService aiInstanceService,
                                    AiCharacterService aiCharacterService,
@@ -54,13 +57,15 @@ public class AiSuggestionServiceImpl implements AiSuggestionService {
                                    ConsumptionBalanceGuard balanceGuard,
                                    AiSuggestionProperties properties,
                                    RestTemplateBuilder restTemplateBuilder,
-                                   ObjectMapper objectMapper) {
+                                   ObjectMapper objectMapper,
+                                   CommunicateHistoryService communicateHistoryService) {
         this.aiInstanceService = aiInstanceService;
         this.aiCharacterService = aiCharacterService;
         this.translationBillingService = translationBillingService;
         this.balanceGuard = balanceGuard;
         this.properties = properties;
         this.objectMapper = objectMapper;
+        this.communicateHistoryService = communicateHistoryService;
         long timeout = Math.max(properties.getTimeoutMs(), 1000L);
         Duration timeoutDuration = Duration.ofMillis(timeout);
         this.restTemplate = restTemplateBuilder
@@ -107,7 +112,19 @@ public class AiSuggestionServiceImpl implements AiSuggestionService {
             properties.getSceneName()
         );
 
-        AiSuggestionResult result = invokeAiService(request, character.getPrompt(), currentUserId);
+        List<AiSuggestionRequest.ChatRecord> history = request.getHistory();
+        if (CollectionUtils.isEmpty(history)) {
+            throw new ServiceException("history不能为空");
+        }
+        String contactUsername = resolveContactUsername(history);
+        Integer platformId = instance.getPlatformId();
+        if (platformId == null) {
+            throw new ServiceException("实例未绑定平台，无法存储聊天历史");
+        }
+        CommunicateHistoryService.CommunicateHistorySnapshot snapshot =
+            communicateHistoryService.loadSnapshot(currentUserId, contactUsername, platformId);
+
+        AiSuggestionResult result = invokeAiService(request, character.getPrompt(), currentUserId, snapshot.chatPortrait());
         if (result == null) {
             throw new ServiceException("AI服务响应为空");
         }
@@ -119,16 +136,17 @@ public class AiSuggestionServiceImpl implements AiSuggestionService {
                 result.getCode(), result.getTotalTokens());
         }
 
+        communicateHistoryService.mergeAndSaveAsync(snapshot, history);
+
         return result;
     }
 
     private AiSuggestionResult invokeAiService(AiSuggestionRequest request,
                                                String characterPrompt,
-                                               Long userId) {
+                                               Long userId,
+                                               String chatPortrait) {
         Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("history", CollectionUtils.isEmpty(request.getHistory())
-            ? Collections.emptyList()
-            : request.getHistory());
+        payload.put("history", request.toPayloadHistory());
         payload.put("character", characterPrompt);
 
         String displayLang = resolveDisplayLanguage(request.getLang());
@@ -137,6 +155,10 @@ public class AiSuggestionServiceImpl implements AiSuggestionService {
         }
 
         payload.put("user_id", userId);
+        Object normalizedPortrait = normalizePortrait(chatPortrait);
+        if (normalizedPortrait != null) {
+            payload.put("chatPortrait", normalizedPortrait);
+        }
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -197,5 +219,38 @@ public class AiSuggestionServiceImpl implements AiSuggestionService {
         map.put("it", "Italiano");
         map.put("ms", "Bahasa Melayu");
         return Collections.unmodifiableMap(map);
+    }
+
+    private Object normalizePortrait(String portrait) {
+        if (!StringUtils.hasText(portrait)) {
+            return null;
+        }
+        try {
+            return objectMapper.readValue(portrait, Map.class);
+        } catch (Exception ex) {
+            log.warn("Failed to parse chatPortrait JSON, fallback to raw string", ex);
+            return portrait;
+        }
+    }
+
+    private String resolveContactUsername(List<AiSuggestionRequest.ChatRecord> history) {
+        String contact = null;
+        for (int i = history.size() - 1; i >= 0; i--) {
+            AiSuggestionRequest.ChatRecord record = history.get(i);
+            if (!StringUtils.hasText(record.getRole()) || !StringUtils.hasText(record.getContact())) {
+                continue;
+            }
+            String role = record.getRole().trim().toLowerCase(Locale.ROOT);
+            if ("user".equals(role) && contact == null) {
+                contact = record.getContact();
+            }
+            if (StringUtils.hasText(contact)) {
+                break;
+            }
+        }
+        if (!StringUtils.hasText(contact)) {
+            throw new ServiceException("无法识别联系人用户名");
+        }
+        return contact;
     }
 }
